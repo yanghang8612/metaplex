@@ -14,7 +14,7 @@
   "scripts": {
     "develop": "gatsby develop",
     "start": "gatsby develop",
-    "build": "NODE_ENV=production && gatsby build",
+    "build": "gatsby build",
     "serve": "gatsby serve",
     "clean": "gatsby clean",
     "type-check": "tsc --noEmit",
