@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/solana-labs/helios-build">
-    <img alt="Gatsby" src="https://www.gatsbyjs.com/Gatsby-Monogram.svg" width="60" />
+    <img alt="Helios Logo" src="https://github.com/solana-labs/helios-build/blob/main/src/images/helios_logo.svg" />
   </a>
 </p>
 <h1 align="center">
