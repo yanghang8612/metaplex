@@ -1,6 +1,6 @@
 <p align="center">
-  <a style="background-color: white;" href="https://github.com/solana-labs/helios-build">
-    <img alt="Helios Logo" src="https://github.com/solana-labs/helios-build/blob/main/src/images/helios_logo.inline.svg" />
+  <a href="https://github.com/solana-labs/helios-build">
+    <img alt="Helios Logo" src="https://github.com/solana-labs/helios-build/blob/main/src/images/helios_logo_white.inline.svg" />
   </a>
 </p>
 <h1 align="center">
