@@ -16,7 +16,7 @@ const Button = tw.button`
   bg-green-500 hover:bg-green-800 text-white p-3 rounded mt-5
 `;
 
-const IndexPage = () => (
+const IndexPage = (): React.ReactElement => (
   <Layout>
     <Container>
       <h1>Hi from the Initial Helios Test!</h1>

@@ -9,7 +9,7 @@ type Props = {
   className?: string;
 };
 
-const HeroImage = ({ className, children }: Props) => {
+const HeroImage = ({ className, children }: Props): React.ReactElement => {
   const { index } = useStaticQuery(
     graphql`
       query {

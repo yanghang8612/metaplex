@@ -2,7 +2,7 @@ import * as React from "react";
 import HeliosLogo from "../../images/helios_logo.inline.svg";
 
 // Tailwind usage with direct classes.
-const Header = () => {
+const Header = (): React.ReactElement => {
   return (
     <nav
       id="nav"

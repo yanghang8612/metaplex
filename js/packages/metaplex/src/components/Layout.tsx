@@ -15,7 +15,7 @@ const Main = styled(StyledHeroImage)`
   ${tw`min-h-screen py-0 inset-0 bg-black flex flex-col justify-center`}
 `;
 
-const Layout = ({ children }: ILayoutProps) => {
+const Layout = ({ children }: ILayoutProps): React.ReactElement => {
   return (
     <>
       <SEO title={`Helios`} />

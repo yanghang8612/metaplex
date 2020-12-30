@@ -4,19 +4,19 @@ import { Helmet } from "react-helmet";
 
 interface ISEOProps {
   description?: string;
-  keywords?: [];
   lang?: string;
-  meta?: [];
+  // meta?: [];
+  // keywords?: [];
   title?: string;
 }
 
 const SEO = ({
   description,
   lang,
-  meta = [],
-  keywords = [],
+  // meta = [],
+  // keywords = [],
   title,
-}: ISEOProps) => {
+}: ISEOProps): React.ReactElement => {
   const { site } = useStaticQuery(graphql`
     query DefaultSEOQuery {
       site {

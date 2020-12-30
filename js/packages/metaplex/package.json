@@ -17,8 +17,10 @@
     "build": "gatsby build",
     "serve": "gatsby serve",
     "clean": "gatsby clean",
-    "type-check": "tsc --noEmit",
-    "lint": "eslint . --ignore-path .gitignore --ext .ts,.tsx,.js"
+    "format": "prettier --check \"**/*.{js,jsx,json,md,scss}\"",
+    "format:fix": "prettier --write \"**/*.{js,jsx,json,md,scss}\"",
+    "lint": "eslint . --ignore-path .gitignore --ext .ts,.tsx,.js",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@emotion/react": "^11.1.4",

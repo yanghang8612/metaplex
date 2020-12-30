@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/solana-labs/helios-build">
-    <img style="color: white;" alt="Helios Logo" src="https://github.com/solana-labs/helios-build/blob/main/src/images/helios_logo.svg" />
+    <img style="background-color: white;" alt="Helios Logo" src="https://github.com/solana-labs/helios-build/blob/main/src/images/helios_logo.svg" />
   </a>
 </p>
 <h1 align="center">
@@ -9,33 +9,56 @@
 
 ## 🚀 Quick start
 
-1.  **Create a Gatsby site.**
+#### Tools used
 
-    Use the Gatsby CLI to create a new site, specifying the minimal starter.
+The base `Node.js` LTS version used in the creation of this repo was `v14.15.3`.
 
-    ```shell
-    # create a new Gatsby site using the minimal starter
-    npm init gatsby
+As a package manager we started with `yarn` (classic version), but `npm` or
+similar should work as well. You may get them from:
+
+- `yarn`: [classic.yarnpkg.com](https://classic.yarnpkg.com/lang/en/)
+- `npm`: [Instructions](https://www.npmjs.com/get-npm)
+
+And of course the Code Editor / IDE of your choice - though we'd recommend
+going with either [Visual Studio Code](https://code.visualstudio.com/) or
+[IntelliJ IDEA](https://www.jetbrains.com/idea/) for their top-notch TypeScript,
+styled components / emotion & tailwindcss support (through plugins).
+
+#### Tools to know
+
+- [TypeScript](https://www.typescriptlang.org/) - static type checking
+- [tailwindcss](https://tailwindcss.com/) - utility-first CSS framework
+- [Twin](https://github.com/ben-rogerson/twin.macro) - blends the magic of Tailwind with the flexibility of css-in-js
+- [Emotion](https://emotion.sh/docs/styled) - css-in-js library
+
+#### More to know about some of the mentioned tools with Gatsby
+
+- [Tailwind CSS in Gatsby](https://www.gatsbyjs.com/docs/how-to/styling/tailwind-css/)
+- [Styling with Emotion](https://www.gatsbyjs.com/docs/how-to/styling/emotion/)
+
+#### Developing
+
+1.  **Start developing.**
+
+    Clone this repo, change into its directory and run either:
+
+    ```sh
+    yarn develop
     ```
 
-2.  **Start developing.**
+    or:
 
-    Navigate into your new site’s directory and start it up.
-
-    ```shell
-    cd my-gatsby-site/
+    ```sh
     npm run develop
     ```
 
-3.  **Open the code and start customizing!**
+2.  **Open the code and start customizing!**
 
-    Your site is now running at http://localhost:8000!
+    The site is now running at http://localhost:8000!
 
-    Edit `src/pages/index.tsx` to see your site update in real-time!
+#### Learn more about Gatsby
 
-4.  **Learn more**
-
-    - [Documentation](https://www.gatsbyjs.com/docs/?utm_source=starter&utm_medium=readme&utm_campaign=minimal-starter)
+    - [Documentation](https://www.gatsbyjs.com/docs)
 
     - [Tutorials](https://www.gatsbyjs.com/tutorial/?utm_source=starter&utm_medium=readme&utm_campaign=minimal-starter)
 

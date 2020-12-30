@@ -15,23 +15,24 @@ module.exports = {
     node: true,
   },
   rules: {
+    "@typescript-eslint/no-var-requires": "off",
     quotes: "off",
-    "@typescript-eslint/quotes": [
-      2,
-      "backtick",
-      {
-        avoidEscape: true,
-      },
-    ],
+    // "@typescript-eslint/quotes": [
+    //   2,
+    //   "backtick",
+    //   {
+    //     avoidEscape: true,
+    //   },
+    // ],
     indent: ["error", 2, { SwitchCase: 1 }],
-    "prettier/prettier": [
-      "error",
-      {
-        trailingComma: "es5",
-        semi: false,
-        singleQuote: false,
-        printWidth: 120,
-      },
-    ],
+    // "prettier/prettier": [
+    //   "error",
+    //   {
+    //     trailingComma: "es5",
+    //     semi: false,
+    //     singleQuote: false,
+    //     printWidth: 120,
+    //   },
+    // ],
   },
 };
