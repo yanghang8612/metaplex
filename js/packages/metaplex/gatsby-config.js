@@ -3,13 +3,14 @@ module.exports = {
     title: "Helios Conference",
     description: "Helios - Blockchain’s Next Generation Conference",
     author: `@solana`,
+    siteUrl: "http://localhost:8000",
   },
   plugins: [
     "gatsby-plugin-emotion",
     "gatsby-plugin-sharp",
     "gatsby-plugin-react-helmet",
-    "gatsby-plugin-sitemap",
-    "gatsby-plugin-offline",
+    // "gatsby-plugin-sitemap",
+    // "gatsby-plugin-offline",
     {
       resolve: "gatsby-plugin-manifest",
       options: {
@@ -41,6 +42,9 @@ module.exports = {
           include: /\.inline\.svg$/,
         },
       },
+    },
+    {
+      resolve: "gatsby-plugin-postcss",
     },
   ],
 };
