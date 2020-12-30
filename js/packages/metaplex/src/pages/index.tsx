@@ -1,15 +1,19 @@
 import * as React from "react";
-import tw from "twin.macro";
+import tw, { styled } from "twin.macro";
 
 import Layout from "../components/Layout";
 
-// Shorthand Versions.
-const Container = tw.div`
-  relative sm:max-w-xl sm:mx-auto text-blue-400 text-lg text-center
+// Styled version with macro, usage like in styled components.
+const Container = styled.div`
+  ${tw`relative sm:max-w-xl sm:mx-auto text-white text-xl text-center`}
+  h1 {
+    ${tw`text-4xl font-bold`}
+  }
 `;
 
+// Shorthand Version.
 const Button = tw.button`
-  bg-blue-500 hover:bg-blue-800 text-white p-3 rounded mt-5
+  bg-green-500 hover:bg-green-800 text-white p-3 rounded mt-5
 `;
 
 const IndexPage = () => (
