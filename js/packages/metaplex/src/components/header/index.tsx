@@ -1,6 +1,7 @@
 import * as React from "react";
 import HeliosLogo from "../../images/helios_logo.inline.svg";
 
+// Tailwind usage with direct classes.
 const Header = () => {
   return (
     <nav
@@ -21,19 +22,19 @@ const Header = () => {
           href="#"
           className="mx-4 text-lg  border-b-2 border-transparent hover:border-b-2 hover:border-indigo-300 transition duration-500"
         >
-          About
+          The Conference
         </a>
         <a
           href="#"
           className="mx-4 text-lg border-b-2 border-transparent hover:border-b-2 hover:border-indigo-300 transition duration-500"
         >
-          Why Us ?
+          Partners
         </a>
         <a
           href="#"
           className="mx-4 text-lg border-b-2 border-transparent hover:border-b-2 hover:border-indigo-300 transition duration-500"
         >
-          Our Products
+          Press
         </a>
       </div>
 
