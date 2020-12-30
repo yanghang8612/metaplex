@@ -1,9 +1,13 @@
 {
   "name": "helios-conference",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "private": true,
   "description": "Helios Conference",
-  "author": "Tim Hagn",
+  "author": "Solana Maintainers <maintainers@solana.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/solana-labs/helios-build"
+  },
   "keywords": [
     "gatsby"
   ],
@@ -12,15 +16,16 @@
     "start": "gatsby develop",
     "build": "gatsby build",
     "serve": "gatsby serve",
-    "clean": "gatsby clean"
+    "clean": "gatsby clean",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint . --ignore-path .gitignore --ext .ts,.tsx,.js"
   },
-  "license": "0BSD",
   "dependencies": {
     "@emotion/react": "^11.1.4",
     "@emotion/styled": "^11.0.0",
     "@mdx-js/mdx": "^1.6.22",
     "@mdx-js/react": "^1.6.22",
-    "gatsby": "^2.26.1",
+    "gatsby": "^2.29.3",
     "gatsby-image": "^2.8.0",
     "gatsby-plugin-emotion": "^5.1.0",
     "gatsby-plugin-manifest": "^2.9.1",
@@ -31,8 +36,20 @@
     "gatsby-plugin-sitemap": "^2.9.0",
     "gatsby-source-filesystem": "^2.8.1",
     "gatsby-transformer-sharp": "^2.9.0",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1",
+    "react": "^17.0.1",
+    "react-dom": "^17.0.1",
     "react-helmet": "^6.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^14.14.16",
+    "@types/react": "^17.0.0",
+    "@types/react-dom": "^17.0.0",
+    "@typescript-eslint/eslint-plugin": "^4.11.1",
+    "@typescript-eslint/parser": "^4.11.1",
+    "eslint": "^7.16.0",
+    "eslint-config-prettier": "^7.1.0",
+    "eslint-plugin-prettier": "^3.3.0",
+    "prettier": "2.2.1",
+    "typescript": "^4.1.3"
   }
 }

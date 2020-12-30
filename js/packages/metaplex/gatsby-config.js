@@ -1,6 +1,8 @@
 module.exports = {
   siteMetadata: {
     title: "Helios Conference",
+    description: "Helios - Blockchain’s Next Generation Conference",
+    author: `@solana`,
   },
   plugins: [
     "gatsby-plugin-emotion",
