@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://github.com/solana-labs/helios-build">
-    <img alt="Helios Logo" src="https://github.com/solana-labs/helios-build/blob/main/src/images/helios_logo.svg" />
+    <img style="color: white;" alt="Helios Logo" src="https://github.com/solana-labs/helios-build/blob/main/src/images/helios_logo.svg" />
   </a>
 </p>
 <h1 align="center">
@@ -31,7 +31,7 @@
 
     Your site is now running at http://localhost:8000!
 
-    Edit `src/pages/index.js` to see your site update in real-time!
+    Edit `src/pages/index.tsx` to see your site update in real-time!
 
 4.  **Learn more**
 
