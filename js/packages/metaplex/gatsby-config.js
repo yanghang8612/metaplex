@@ -14,6 +14,7 @@ module.exports = {
     {
       resolve: "gatsby-plugin-manifest",
       options: {
+        background_color: "#0c0e1b",
         icon: "src/images/icon.png",
       },
     },

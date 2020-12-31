@@ -1,6 +1,6 @@
 import * as React from "react";
 import { graphql, useStaticQuery } from "gatsby";
-import { styled } from "twin.macro";
+import tw, { styled } from "twin.macro";
 
 import BackgroundImage from "gatsby-background-image";
 
@@ -9,11 +9,15 @@ type Props = {
   className?: string;
 };
 
-const HeroImage = ({ className, children }: Props): React.ReactElement => {
-  const { index } = useStaticQuery(
+const PartnerSectionBackground = ({
+  className,
+  children,
+  ...props
+}: Props): React.ReactElement => {
+  const { second } = useStaticQuery(
     graphql`
       query {
-        index: file(relativePath: { eq: "dummy_hero.jpg" }) {
+        second: file(relativePath: { eq: "second_image.jpg" }) {
           childImageSharp {
             fluid(quality: 90, maxWidth: 1920) {
               ...GatsbyImageSharpFluid_withWebp
@@ -25,25 +29,23 @@ const HeroImage = ({ className, children }: Props): React.ReactElement => {
   );
 
   // Set ImageData.
-  const imageData = index.childImageSharp.fluid;
+  const imageData = second.childImageSharp.fluid;
 
   return (
     <BackgroundImage
       Tag="div"
       className={className}
       fluid={imageData}
-      backgroundColor={`#040e18`}
+      backgroundColor={`#0c0e1b`}
+      {...props}
     >
       {children}
     </BackgroundImage>
   );
 };
 
-const StyledHeroImage = styled(HeroImage)`
-  width: 100%;
-  background-position: bottom center;
-  background-repeat: repeat-y;
-  background-size: cover;
+const StyledPartnerSectionBackground = styled(PartnerSectionBackground)`
+  ${tw`min-h-screen w-full py-0 inset-0 flex flex-col justify-center bg-left bg-contain`}
 `;
 
-export default StyledHeroImage;
+export default StyledPartnerSectionBackground;
