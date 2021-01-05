@@ -7,6 +7,10 @@ import tw from "twin.macro";
 
 const HeaderButton = tw(BaseButton)`px-8`;
 
+const NavLink = tw.a`
+mx-4 my-auto text-lg border-b-2 border-transparent hover:border-b-2 hover:border-indigo-300 transition duration-500
+`;
+
 // Tailwind usage with direct classes.
 const Header = (): React.ReactElement => {
   return (
@@ -21,25 +25,11 @@ const Header = (): React.ReactElement => {
       </div>
 
       <div className="p-4 hidden md:flex flex-row justify-between font-sans uppercase">
-        <a
-          id="hide-after-click"
-          href="#"
-          className="mx-4 my-auto text-lg border-b-2 border-transparent hover:border-b-2 hover:border-indigo-300 transition duration-500"
-        >
+        <NavLink id="hide-after-click" href="#">
           The Conference
-        </a>
-        <a
-          href="#partners"
-          className="mx-4 my-auto text-lg border-b-2 border-transparent hover:border-b-2 hover:border-indigo-300 transition duration-500"
-        >
-          Partners
-        </a>
-        <a
-          href="#"
-          className="mx-4 my-auto  border-b-2 border-transparent hover:border-b-2 hover:border-indigo-300 transition duration-500"
-        >
-          Press
-        </a>
+        </NavLink>
+        <NavLink href="#partners">Partners</NavLink>
+        <NavLink href="#">Press</NavLink>
         <HeaderButton>Attend</HeaderButton>
       </div>
 

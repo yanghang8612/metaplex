@@ -6,10 +6,15 @@ import BaseButton from "../BaseButton";
 
 // Styled version with macro, usage like in styled components.
 const Container = styled.div`
-  ${tw`relative sm:max-w-xl text-white text-xl text-left px-10`}
+  ${tw`
+    relative 
+    sm:max-w-xl md:max-w-3xl
+    text-white text-xl text-left 
+    px-2 sm:px-10`}
   h1 {
-    ${tw`text-4xl font-bold`}
+    ${tw`text-6xl md:text-8xl font-serif`}
   }
+  border: 1px solid red;
 `;
 
 // Shorthand Version.

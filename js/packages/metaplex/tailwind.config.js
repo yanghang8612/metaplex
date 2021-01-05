@@ -7,6 +7,12 @@ module.exports = {
       serif: ["maiola", "serif"],
       sans: ["termina", "sans-serif"],
     },
+    backgroundSize: {
+      auto: "auto",
+      cover: "cover",
+      contain: "contain",
+      half: "50%",
+    },
   },
   variants: {
     extend: {},
