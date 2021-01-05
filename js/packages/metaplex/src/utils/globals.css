@@ -2,3 +2,18 @@
 
 @tailwind base;
 @tailwind utilities;
+
+@layer base {
+  h1 {
+    @apply text-6xl md:text-8xl font-header mb-6;
+  }
+  h2 {
+    @apply text-5xl md:text-6xl font-header mb-4;
+  }
+  h3 {
+    @apply text-4xl md:text-6xl font-header mb-3;
+  }
+  p {
+    @apply font-serif;
+  }
+}

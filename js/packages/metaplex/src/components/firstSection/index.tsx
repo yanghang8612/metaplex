@@ -3,6 +3,7 @@ import tw, { styled } from "twin.macro";
 
 import StyledHeroImage from "./HeroImage";
 import BaseButton from "../BaseButton";
+import { graphql, useStaticQuery } from "gatsby";
 
 // Styled version with macro, usage like in styled components.
 const Container = styled.div`
@@ -11,10 +12,14 @@ const Container = styled.div`
     sm:max-w-xl md:max-w-3xl
     text-white text-xl text-left 
     px-2 sm:px-10`}
-  h1 {
-    ${tw`text-6xl md:text-8xl font-serif`}
-  }
-  border: 1px solid red;
+`;
+
+const HeroDivider = styled.div`
+  ${tw`mt-7 mb-5`}
+  height: 0;
+  max-width: 60%;
+  margin-left: -0.5rem;
+  border: 1px solid rgba(223, 223, 223, 0.1);
 `;
 
 // Shorthand Version.
@@ -30,13 +35,29 @@ const RedButton = tw(BaseButton)`
  *
  * @constructor
  */
-const FirstSection = (): React.ReactElement => (
-  <StyledHeroImage>
-    <Container>
-      <h1>Blockchain's Next Generation Conference</h1>
-      <RedButton>Request an invite</RedButton>
-    </Container>
-  </StyledHeroImage>
-);
+const FirstSection = (): React.ReactElement => {
+  const { hero } = useStaticQuery(
+    graphql`
+      query {
+        hero: markdownRemark(frontmatter: { slug: { eq: "hero" } }) {
+          frontmatter {
+            title
+          }
+          rawMarkdownBody
+        }
+      }
+    `
+  );
+  return (
+    <StyledHeroImage>
+      <Container>
+        <h1>{hero.frontmatter.title}</h1>
+        <p>{hero.rawMarkdownBody}</p>
+        <HeroDivider />
+        <RedButton>Request an invite</RedButton>
+      </Container>
+    </StyledHeroImage>
+  );
+};
 
 export default FirstSection;

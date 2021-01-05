@@ -5,6 +5,7 @@ module.exports = {
     extend: {},
     fontFamily: {
       serif: ["maiola", "serif"],
+      header: ["orpheus", "serif"],
       sans: ["termina", "sans-serif"],
     },
     backgroundSize: {
