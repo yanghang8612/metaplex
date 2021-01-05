@@ -12,17 +12,15 @@ const Header = (): React.ReactElement => {
   return (
     <nav
       id="nav"
-      className="absolute inset-x-0 top-0 flex flex-row justify-between content-center  z-10 text-white bg-transparent"
+      className="absolute inset-x-0 top-0 flex flex-row justify-between content-center z-10 text-white bg-transparent"
     >
       <div className="p-4">
-        <div className="font-extrabold tracking-widest text-xl">
-          <a href="#" className="transition duration-500 hover:text-indigo-500">
-            <HeliosLogo />
-          </a>
-        </div>
+        <a href="#" className="transition duration-500 hover:text-indigo-500">
+          <HeliosLogo />
+        </a>
       </div>
 
-      <div className="p-4 hidden md:flex flex-row justify-between font-bold uppercase">
+      <div className="p-4 hidden md:flex flex-row justify-between font-sans uppercase">
         <a
           id="hide-after-click"
           href="#"
