@@ -1,9 +1,9 @@
 import * as React from "react";
+import { graphql, useStaticQuery } from "gatsby";
 import tw, { styled } from "twin.macro";
 
 import StyledHeroImage from "./HeroImage";
 import BaseButton from "../BaseButton";
-import { graphql, useStaticQuery } from "gatsby";
 
 // Styled version with macro, usage like in styled components.
 const Container = styled.div`

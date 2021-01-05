@@ -12,8 +12,10 @@ const Layout = ({ children }: ILayoutProps): React.ReactElement => {
   return (
     <>
       <SEO title={`Helios`} />
-      <Header />
-      <main>{children}</main>
+      <main>
+        {children}
+        <Header />
+      </main>
       {/*<Footer />*/}
     </>
   );

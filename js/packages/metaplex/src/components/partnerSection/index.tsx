@@ -1,8 +1,8 @@
 import * as React from "react";
+import { graphql, useStaticQuery } from "gatsby";
 import tw, { styled } from "twin.macro";
 
 import StyledPartnerSectionBackground from "./PartnerSectionBackground";
-import { graphql, useStaticQuery } from "gatsby";
 
 const OuterContainer = styled.div`
   ${tw`flex text-white text-xl px-10 object-right`}
