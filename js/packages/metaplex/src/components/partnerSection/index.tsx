@@ -6,14 +6,11 @@ import { graphql, useStaticQuery } from "gatsby";
 
 const OuterContainer = styled.div`
   ${tw`flex text-white text-xl px-10 object-right`}
-  h2 {
-    ${tw`text-4xl font-bold`}
-  }
 `;
 
 const LeftWrapper = tw.div`flex-grow`;
 
-const RightContainer = tw.div`w-9/12`;
+const RightContainer = tw.div`w-8/12`;
 
 /**
  * The Partner Section.
@@ -39,7 +36,7 @@ const PartnerSection = (): React.ReactElement => {
       <OuterContainer>
         <LeftWrapper />
         <RightContainer>
-          <h2>{partners.frontmatter.title}</h2>
+          <h3>{partners.frontmatter.title}</h3>
           <p>{partners.rawMarkdownBody}</p>
         </RightContainer>
       </OuterContainer>
