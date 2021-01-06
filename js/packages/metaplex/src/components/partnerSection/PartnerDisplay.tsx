@@ -5,15 +5,30 @@ type PartnerCardProps = {
   lastRow: boolean;
 };
 
+/**
+ * A single Partner Card.
+ *
+ * @param partnerName   {string}    The current partners (logo) name.
+ * @param lastRow       {boolean}   Are we in the last row? If yes add padding.
+ * @constructor
+ */
 const PartnerCard = ({ partnerName, lastRow }: PartnerCardProps) => (
   <div
-    className={`border-l border-gray-800 pt-5 ${lastRow ? `pb-28` : `pb-5`}`}
+    className={`border-l border-gray-800 pt-5 ${
+      lastRow ? `pb-7 sm:pb-28` : `pb-5`
+    }`}
   >
     <img src={`/partners/${partnerName}.svg`} alt={partnerName} />
   </div>
 );
 
-export const PartnersPerCategory = ({ partners }: { partners: any }): any => {
+/**
+ * Splits given partners by category & creates a card for each Partner.
+ *
+ * @param partners
+ * @constructor
+ */
+export const PartnerDisplay = ({ partners }: { partners: any }): any => {
   const partnerKeys = Object.keys(partners);
 
   return partnerKeys.map((category, index) => {
@@ -29,6 +44,7 @@ export const PartnersPerCategory = ({ partners }: { partners: any }): any => {
           key={partnerName}
         />
       ));
+
     return (
       <div className="relative flex flex-row" key={category}>
         <h5 className="absolute left-2 top-1">{categoryTitle}</h5>
@@ -38,11 +54,5 @@ export const PartnersPerCategory = ({ partners }: { partners: any }): any => {
     );
   });
 };
-
-export const PartnerDisplay = ({ partners }: { partners: any }): any => (
-  <>
-    <PartnersPerCategory partners={partners} />
-  </>
-);
 
 export default PartnerDisplay;

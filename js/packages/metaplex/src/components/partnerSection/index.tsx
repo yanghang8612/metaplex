@@ -11,7 +11,7 @@ const OuterContainer = styled.div`
 
 const LeftWrapper = tw.div`flex-grow`;
 
-const RightContainer = tw.div`w-7/12 2xl:w-8/12`;
+const RightContainer = tw.div`w-full sm:w-7/12 2xl:w-8/12`;
 
 /**
  * The Partner Section.
