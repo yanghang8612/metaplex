@@ -40,7 +40,7 @@ const HeaderButton = tw(BaseButton)`px-8`;
 const Header = (): React.ReactElement => {
   return (
     <HeaderNavigation id="nav">
-      <LogoLink>
+      <LogoLink href="#">
         <HeliosLogo />
       </LogoLink>
 
