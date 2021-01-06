@@ -1,6 +1,9 @@
 ---
 title: "Our Partners"
-slug: partners
+slug: "partners"
+main: "ftx, coinshare, balancer, gauntlet"
+investment: "mcc, curve, circle, aave"
+lunar: "compound, slow, meme, summa"
 ---
 
 Helios appreciates our sponsors for their dedication and contribution to the

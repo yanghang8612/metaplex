@@ -25,21 +25,28 @@ const PartnerSection = (): React.ReactElement => {
         partners: markdownRemark(frontmatter: { slug: { eq: "partners" } }) {
           frontmatter {
             title
+            main
+            investment
+            lunar
           }
           rawMarkdownBody
         }
       }
     `
   );
+  const {
+    frontmatter: { title, ...partnerCat },
+    rawMarkdownBody,
+  } = partners;
   return (
     // @ts-ignore - the id is allowed in BackgroundImage
     <StyledPartnerSectionBackground id="partners">
       <OuterContainer>
         <LeftWrapper />
         <RightContainer>
-          <h3>{partners.frontmatter.title}</h3>
-          <p>{partners.rawMarkdownBody}</p>
-          <PartnerDisplay />
+          <h3>{title}</h3>
+          <p>{rawMarkdownBody}</p>
+          <PartnerDisplay partners={partnerCat} />
         </RightContainer>
       </OuterContainer>
     </StyledPartnerSectionBackground>

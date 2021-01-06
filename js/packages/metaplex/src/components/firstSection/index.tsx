@@ -4,8 +4,8 @@ import tw, { styled } from "twin.macro";
 
 import StyledHeroImage from "./HeroImage";
 import BaseButton from "../BaseButton";
+import Divider from "../Divider";
 
-// Styled version with macro, usage like in styled components.
 const Container = styled.div`
   ${tw`
     relative 
@@ -14,12 +14,10 @@ const Container = styled.div`
     px-2 sm:px-10`}
 `;
 
-const HeroDivider = styled.div`
+const HeroDivider = styled(Divider)`
   ${tw`mt-7 mb-5`}
-  height: 0;
   max-width: 60%;
   margin-left: -0.5rem;
-  border: 1px solid rgba(223, 223, 223, 0.1);
 `;
 
 // Shorthand Version.
