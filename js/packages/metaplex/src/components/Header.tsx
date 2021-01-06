@@ -9,6 +9,7 @@ absolute
 inset-x-0 top-0 
 flex flex-row justify-between content-center 
 z-10 
+p-3
 text-white 
 bg-transparent
 `;

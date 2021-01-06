@@ -11,7 +11,7 @@ const Container = styled.div`
     relative 
     sm:max-w-xl md:max-w-3xl
     text-white text-xl text-left 
-    px-2 sm:px-10`}
+    px-2 sm:px-12`}
 `;
 
 const HeroDivider = styled(Divider)`
