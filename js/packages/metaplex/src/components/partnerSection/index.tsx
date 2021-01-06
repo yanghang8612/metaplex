@@ -3,14 +3,15 @@ import { graphql, useStaticQuery } from "gatsby";
 import tw, { styled } from "twin.macro";
 
 import StyledPartnerSectionBackground from "./PartnerSectionBackground";
+import PartnerDisplay from "./PartnerDisplay";
 
 const OuterContainer = styled.div`
-  ${tw`flex text-white text-xl px-10 object-right`}
+  ${tw`flex text-white text-xl px-10`}
 `;
 
 const LeftWrapper = tw.div`flex-grow`;
 
-const RightContainer = tw.div`w-8/12`;
+const RightContainer = tw.div`w-7/12 2xl:w-8/12`;
 
 /**
  * The Partner Section.
@@ -38,6 +39,7 @@ const PartnerSection = (): React.ReactElement => {
         <RightContainer>
           <h3>{partners.frontmatter.title}</h3>
           <p>{partners.rawMarkdownBody}</p>
+          <PartnerDisplay />
         </RightContainer>
       </OuterContainer>
     </StyledPartnerSectionBackground>

@@ -14,7 +14,7 @@ const globalStyles = css`
     ${tw`text-2xl md:text-4xl font-header mb-3`};
   }
   p {
-    ${tw`font-serif`};
+    ${tw`font-serif mb-6`};
   }
 `;
 

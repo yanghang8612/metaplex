@@ -48,6 +48,10 @@ const HeroImage = ({ className, children }: Props): React.ReactElement => {
       Tag="div"
       className={className}
       fluid={imageData}
+      style={{
+        backgroundPosition: "",
+        backgroundSize: "",
+      }}
       backgroundColor={`#0c0e1b`}
     >
       {children}
@@ -60,7 +64,11 @@ const StyledHeroImage = styled(HeroImage)`
     min-h-screen w-full
     py-0 inset-0 
     flex flex-col justify-center 
-    bg-right-top bg-half sm:bg-right-bottom sm:bg-contain`}
+  `}
+  &:before,
+  &:after {
+    ${tw`bg-right-top bg-half sm:bg-right-bottom lg:bg-contain`}
+  }
 `;
 
 export default StyledHeroImage;

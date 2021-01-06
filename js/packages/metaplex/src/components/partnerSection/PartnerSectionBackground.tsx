@@ -46,6 +46,10 @@ const PartnerSectionBackground = ({
 
 const StyledPartnerSectionBackground = styled(PartnerSectionBackground)`
   ${tw`min-h-screen w-full py-0 inset-0 flex flex-col justify-center bg-left bg-contain`}
+  &:before,
+  &:after {
+    filter: brightness(70%);
+  }
 `;
 
 export default StyledPartnerSectionBackground;
