@@ -20,7 +20,10 @@ const HeroDivider = styled(Divider)`
   margin-left: -0.5rem;
 `;
 
-// Shorthand Version.
+const DateInfo = tw.span`
+  font-sans text-xs sm:text-sm block
+`;
+
 const RedButton = tw(BaseButton)`
   hover:bg-red-800 
   text-red-800 hover:text-black 
@@ -40,6 +43,7 @@ const FirstSection = (): React.ReactElement => {
         hero: markdownRemark(frontmatter: { slug: { eq: "hero" } }) {
           frontmatter {
             title
+            dateinfo
           }
           rawMarkdownBody
         }
@@ -52,6 +56,7 @@ const FirstSection = (): React.ReactElement => {
         <h1>{hero.frontmatter.title}</h1>
         <p>{hero.rawMarkdownBody}</p>
         <HeroDivider />
+        <DateInfo>{hero.frontmatter.dateinfo}</DateInfo>
         <RedButton>Request an invite</RedButton>
       </Container>
     </StyledHeroImage>
