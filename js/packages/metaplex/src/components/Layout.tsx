@@ -2,9 +2,9 @@ import { Global } from "@emotion/react";
 import * as React from "react";
 import { GlobalStyles } from "twin.macro";
 import globalStyles from "../utils/globalStyles";
+import FooterSection from "./footerSection";
 
 import Header from "./Header";
-// import Footer from "./footer";
 import SEO from "./SEO";
 
 interface ILayoutProps {
@@ -20,8 +20,8 @@ const Layout = ({ children }: ILayoutProps): React.ReactElement => {
       <main>
         {children}
         <Header />
+        <FooterSection />
       </main>
-      {/*<Footer />*/}
     </>
   );
 };

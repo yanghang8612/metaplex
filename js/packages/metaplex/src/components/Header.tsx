@@ -44,7 +44,7 @@ const Header = (): React.ReactElement => {
       </LogoLink>
 
       <NavLinkWrapper>
-        <NavLink href="#">The Conference</NavLink>
+        <NavLink href="#">The Event</NavLink>
         <NavLink href="#partners">Partners</NavLink>
         <NavLink href="#">Press</NavLink>
         <HeaderButton>Attend</HeaderButton>

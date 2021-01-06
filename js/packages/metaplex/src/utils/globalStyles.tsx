@@ -13,9 +13,14 @@ const globalStyles = css`
   h3 {
     ${tw`text-2xl md:text-4xl font-header mb-3`}
   }
-  h5 {
+  h5,
+  h6 {
     ${tw`text-xs sm:text-sm font-sans uppercase`}
     color: #DC3A34;
+  }
+  h6 {
+    ${tw`mx-4 my-auto`}
+    color: white;
   }
   p {
     ${tw`font-serif mb-6`}
