@@ -6,17 +6,19 @@ const FooterNav = styled.nav`
 flex flex-row justify-between content-center 
 text-white 
 bg-transparent
-pb-10 pt-2 mx-8`}
+pb-24 pt-2 mx-5 sm:mx-16`}
   border-top: 1px solid rgba(223, 223, 223, 0.5);
 `;
 
 const NavLinkWrapper = tw.div`
-md:flex flex-row justify-between 
+flex flex-col md:flex-row justify-between 
 font-sans uppercase
 `;
 
 const LeftLink = tw.a`
-text-sm
+text-xs
+sm:text-sm
+my-auto
 font-sans uppercase
 transition duration-500 
 hover:text-indigo-500
@@ -25,10 +27,10 @@ max-w-xs
 `;
 
 const NavLink = tw.a`
-ml-4 my-auto 
-text-sm 
-hidden
-md:block
+ml-2 sm:ml-4 my-auto
+mb-2 sm:mb-auto 
+text-xs
+sm:text-sm
 border-b-2 border-transparent hover:border-b-2 hover:border-indigo-300 
 transition duration-500
 `;
