@@ -42,9 +42,9 @@ const Footer = (): React.ReactElement => {
 
       <NavLinkWrapper>
         <NavLink href="#">About</NavLink>
-        <NavLink href="#">Press</NavLink>
+        <NavLink href="#press">Press</NavLink>
         <NavLink href="#">Get in Touch</NavLink>
-        <NavLink href="#">Sponsors</NavLink>
+        <NavLink href="#partners">Sponsors</NavLink>
       </NavLinkWrapper>
     </FooterNav>
   );

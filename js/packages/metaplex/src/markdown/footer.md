@@ -1,6 +1,6 @@
 ---
 title: "Hosted by the Solana Foundation"
-slug: footer
+slug: "footer"
 ---
 
 The Helios Conference kicks off with exciting reveals, inspiration, and new

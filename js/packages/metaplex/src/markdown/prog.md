@@ -1,6 +1,6 @@
 ---
 title: "Keynote Talks, Industry Panels, and Learning Workshops"
-slug: prog
+slug: "prog"
 summary: "Programming"
 ---
 

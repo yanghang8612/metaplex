@@ -56,7 +56,8 @@ const ProgrammingSection = (): React.ReactElement => {
     `
   );
   return (
-    <StyledProgrammingSectionBackground>
+    // @ts-ignore - the id is allowed in BackgroundImage
+    <StyledProgrammingSectionBackground id="press">
       <OuterContainer>
         <UpperContainer>
           <h5>{programming.frontmatter.summary}</h5>

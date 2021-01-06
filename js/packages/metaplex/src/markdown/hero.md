@@ -1,6 +1,6 @@
 ---
 title: "Blockchain’s Next Generation Conference"
-slug: hero
+slug: "hero"
 dateinfo: "SINGAPORE, OCTOBER 14th — 17th, 2021" 
 ---
 
