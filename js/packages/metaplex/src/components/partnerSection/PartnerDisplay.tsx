@@ -1,36 +1,48 @@
 import * as React from "react";
-import tw, { styled } from "twin.macro";
 
 type PartnerCardProps = {
   partnerName: string;
+  lastRow: boolean;
 };
 
-const PartnerCard = ({ partnerName }: PartnerCardProps) => (
-  <div>{partnerName}</div>
+const PartnerCard = ({ partnerName, lastRow }: PartnerCardProps) => (
+  <div
+    className={`border-l border-gray-800 pt-5 ${lastRow ? `pb-28` : `pb-5`}`}
+  >
+    <img src={`/partners/${partnerName}.svg`} alt={partnerName} />
+  </div>
 );
 
-export const partnersByCategory = (partners: any) =>
-  Object.keys(partners).map((category) => {
+export const PartnersPerCategory = ({ partners }: { partners: any }): any => {
+  const partnerKeys = Object.keys(partners);
+
+  return partnerKeys.map((category, index) => {
+    const categoryTitle = `${category} Partners`;
+    const lastRow = index === partnerKeys.length - 1;
+
     const partnersInCategory = partners[category]
       .split(",")
       .map((partnerName: any) => (
-        <PartnerCard partnerName={partnerName} key={partnerName} />
+        <PartnerCard
+          partnerName={partnerName.trim()}
+          lastRow={lastRow}
+          key={partnerName}
+        />
       ));
-    const categoryTitle = `${category} Partners`;
     return (
-      <div key={category}>
-        <h5>{categoryTitle}</h5>
+      <div className="relative flex flex-row" key={category}>
+        <h5 className="absolute left-2 top-1">{categoryTitle}</h5>
         {partnersInCategory}
+        <div className="min-h-full border-r border-gray-800" />
       </div>
     );
   });
-
-const PartnerDisplay = ({ partners }: { partners: any }) => {
-  return <div>{partnersByCategory(partners)}</div>;
 };
 
-const StyledPartnerDisplay = styled(PartnerDisplay)`
-  ${tw`bg-white border-white w-full py-64`}
-`;
+export const PartnerDisplay = ({ partners }: { partners: any }): any => (
+  <>
+    <PartnersPerCategory partners={partners} />
+  </>
+);
 
-export default StyledPartnerDisplay;
+export default PartnerDisplay;
