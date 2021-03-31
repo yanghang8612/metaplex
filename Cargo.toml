@@ -23,6 +23,8 @@ members = [
   "token-swap/program/fuzz",
   "token-vault/program",
   "token-vault/test",
+  "nft_metadata/program",
+  "nft_metadata/test",
   "token/cli",
   "token/program",
   "utils/cgen",
