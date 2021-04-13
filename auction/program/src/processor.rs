@@ -32,7 +32,7 @@ pub fn process_instruction(
 /// Bids associate a bidding key with an amount bid.
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
-struct Bid(Pubkey, u64);
+pub struct Bid(Pubkey, u64);
 
 /// BidState tracks the running state of an auction, each variant represents a different kind of
 /// auction being run.
