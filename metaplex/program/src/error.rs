@@ -51,9 +51,15 @@ pub enum MetaplexError {
     #[error("Invalid program authority provided")]
     InvalidAuthority,
 
-    /// Vault's authority does not match the expected ['metaplex', auction_key]
+    /// Vault's authority does not match the expected pda with seed ['metaplex', auction_key]
     #[error("Vault's authority does not match the expected ['metaplex', auction_key]")]
     VaultAuthorityMismatch,
+
+    /// Auction's authority does not match the expected pda with seed ['metaplex', auction_key]
+    #[error(
+        "Auction's authority does not match the expected pda with seed ['metaplex', auction_key]"
+    )]
+    AuctionAuthorityMismatch,
 
     /// Auction Manager does not have the appropriate pda key with seed ['metaplex', auction_key]
     #[error(
@@ -68,6 +74,18 @@ pub enum MetaplexError {
     /// Vault's external pricing account needs to match the external pricing account given
     #[error("Vault's external pricing account needs to match the external pricing account given")]
     VaultExternalPricingMismatch,
+
+    /// Auction is not auctioning off the vault given!
+    #[error("Auction is not auctioning off the vault given!")]
+    AuctionVaultMismatch,
+
+    /// Only active vaults may be used in auction managers!
+    #[error("Only active vaults may be used in auction managers!")]
+    VaultNotActive,
+
+    /// Cannot auction off an empty vault!
+    #[error("Cannot auction off an empty vault!")]
+    VaultCannotEmpty,
 }
 
 impl PrintProgramError for MetaplexError {

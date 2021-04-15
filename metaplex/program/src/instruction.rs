@@ -15,7 +15,7 @@ pub enum MetaplexInstruction {
     ///   0. `[writable]` Uninitialized, unallocated auction manager account with pda of ['metaplex', auction_key from auction referenced below]
     ///   1. `[]` Activated vault account with authority set to auction manager account (this will be checked)
     ///           Note in addition that this vault account should have authority set to this program's pda of ['metaplex', auction_key]
-    ///   2. `[]` Auction with auctioned item being set to the vault given
+    ///   2. `[]` Auction with auctioned item being set to the vault given and authority set to this program's pda of ['metaplex', auction_key]
     ///   3. `[]` External Pricing Account which must be owned by this program
     ///   4. `[]` System sysvar
     ///   5. `[]` Rent sysvar

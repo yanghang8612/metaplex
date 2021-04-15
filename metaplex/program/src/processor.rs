@@ -17,7 +17,7 @@ use {
     },
     spl_auction::processor::AuctionData,
     spl_token::state::{Account, Mint},
-    spl_token_vault::state::{ExternalPriceAccount, Vault},
+    spl_token_vault::state::{ExternalPriceAccount, Vault, VaultState},
 };
 
 pub fn process_instruction(
@@ -67,6 +67,10 @@ pub fn process_init_auction_manager(
         return Err(MetaplexError::AuctionManagerKeyMismatch.into());
     }
 
+    if auction.authority != auction_authority {
+        return Err(MetaplexError::AuctionAuthorityMismatch.into());
+    }
+
     if external_pricing_account_info.owner != program_id {
         return Err(MetaplexError::ExternalPriceAccountOwnerMismatch.into());
     }
@@ -75,7 +79,17 @@ pub fn process_init_auction_manager(
         return Err(MetaplexError::VaultExternalPricingMismatch.into());
     }
 
-    if auction.
+    if auction.resource != vault_info.key {
+        return Err(MetaplexError::AuctionVaultMismatch.into());
+    }
+
+    if vault.state != VaultState::Active {
+        return Err(MetaplexError::VaultNotActive.into());
+    }
+
+    if vault.token_type_count == 0 {
+        return Err(MetaplexError::VaultCannotEmpty.into());
+    }
 
     vault.serialize(&mut *vault_info.data.borrow_mut())?;
 
