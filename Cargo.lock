@@ -163,11 +163,10 @@ checksum = "904dfeac50f3cdaba28fc6f57fdcddb75f49ed61346676a78c4ffe55877802fd"
 
 [[package]]
 name = "bincode"
-version = "1.3.1"
+version = "1.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f30d3a39baa26f9651f17b375061f3233dde33424a8b72b0dbe93a68a0bc896d"
+checksum = "b1f45e9417d87227c7a56d22e471c6206462cba514c7590c09aff4cf6d1ddcad"
 dependencies = [
- "byteorder",
  "serde",
 ]
 
@@ -2637,6 +2636,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "ringbuf"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25396a5da385580bae6dcca1969e036162df02abf8efbe99bbb7c9830429a9ad"
+
+[[package]]
 name = "rpassword"
 version = "4.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3667,6 +3672,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "spl-auction"
+version = "0.0.1"
+dependencies = [
+ "borsh 0.8.2",
+ "byteorder",
+ "num-derive",
+ "num-traits",
+ "ringbuf",
+ "solana-program",
+ "solana-program-test",
+ "solana-sdk",
+ "spl-token 3.1.0",
+ "thiserror",
+]
+
+[[package]]
 name = "spl-binary-oracle-pair"
 version = "0.1.0"
 dependencies = [
@@ -3798,6 +3819,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "spl-metaplex"
+version = "0.0.1"
+dependencies = [
+ "borsh 0.8.2",
+ "num-derive",
+ "num-traits",
+ "solana-program",
+ "spl-auction",
+ "spl-token 3.1.0",
+ "spl-token-vault",
+ "thiserror",
+]
+
+[[package]]
 name = "spl-record"
 version = "0.1.0"
 dependencies = [
@@ -3808,7 +3843,6 @@ dependencies = [
  "solana-program",
  "solana-program-test",
  "solana-sdk",
- "spl-token 3.1.0",
  "thiserror",
 ]
 
@@ -3946,6 +3980,34 @@ dependencies = [
 ]
 
 [[package]]
+name = "spl-token-metadata"
+version = "0.0.1"
+dependencies = [
+ "borsh 0.8.2",
+ "num-derive",
+ "num-traits",
+ "solana-program",
+ "spl-token 3.1.0",
+ "thiserror",
+]
+
+[[package]]
+name = "spl-token-metadata-test-client"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "borsh 0.8.2",
+ "clap",
+ "solana-clap-utils",
+ "solana-cli-config",
+ "solana-client",
+ "solana-program",
+ "solana-sdk",
+ "spl-token 3.1.0",
+ "spl-token-metadata",
+]
+
+[[package]]
 name = "spl-token-swap"
 version = "2.1.0"
 dependencies = [
@@ -3973,6 +4035,34 @@ dependencies = [
  "spl-math",
  "spl-token 3.1.0",
  "spl-token-swap",
+]
+
+[[package]]
+name = "spl-token-vault"
+version = "0.0.1"
+dependencies = [
+ "borsh 0.8.2",
+ "num-derive",
+ "num-traits",
+ "solana-program",
+ "spl-token 3.1.0",
+ "thiserror",
+]
+
+[[package]]
+name = "spl-token-vault-test-client"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "borsh 0.8.2",
+ "clap",
+ "solana-clap-utils",
+ "solana-cli-config",
+ "solana-client",
+ "solana-program",
+ "solana-sdk",
+ "spl-token 3.1.0",
+ "spl-token-vault",
 ]
 
 [[package]]

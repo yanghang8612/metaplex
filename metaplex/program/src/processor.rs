@@ -2,8 +2,10 @@ use {
     crate::{
         error::MetaplexError,
         instruction::MetaplexInstruction,
-        state::{AuctionManagerSettings, PREFIX},
-        utils::{assert_initialized, assert_owned_by, assert_rent_exempt},
+        state::{AuctionManager, AuctionManagerSettings, Key, MAX_AUCTION_MANAGER_SIZE, PREFIX},
+        utils::{
+            assert_initialized, assert_owned_by, assert_rent_exempt, create_or_allocate_account_raw,
+        },
     },
     borsh::{BorshDeserialize, BorshSerialize},
     solana_program::{
@@ -45,8 +47,10 @@ pub fn process_init_auction_manager(
     let vault_info = next_account_info(account_info_iter)?;
     let auction_info = next_account_info(account_info_iter)?;
     let external_pricing_account_info = next_account_info(account_info_iter)?;
+    let payer_info = next_account_info(account_info_iter)?;
     let system_info = next_account_info(account_info_iter)?;
-    let rent = &Rent::from_account_info(next_account_info(account_info_iter)?)?;
+    let rent_info = next_account_info(account_info_iter)?;
+    let rent = &Rent::from_account_info(rent_info)?;
 
     // Just verifying this is a real account that serializes
     let _external_price_account: ExternalPriceAccount =
@@ -57,7 +61,7 @@ pub fn process_init_auction_manager(
     assert_rent_exempt(rent, external_pricing_account_info)?;
 
     let seeds = &[PREFIX.as_bytes(), &auction_info.key.as_ref()];
-    let (auction_authority, _) = Pubkey::find_program_address(seeds, &program_id);
+    let (auction_authority, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
 
     if vault.authority != auction_authority {
         return Err(MetaplexError::VaultAuthorityMismatch.into());
@@ -79,7 +83,7 @@ pub fn process_init_auction_manager(
         return Err(MetaplexError::VaultExternalPricingMismatch.into());
     }
 
-    if auction.resource != vault_info.key {
+    if auction.resource != *vault_info.key {
         return Err(MetaplexError::AuctionVaultMismatch.into());
     }
 
@@ -91,7 +95,32 @@ pub fn process_init_auction_manager(
         return Err(MetaplexError::VaultCannotEmpty.into());
     }
 
-    vault.serialize(&mut *vault_info.data.borrow_mut())?;
+    for n in n..auction_manager_settings.winning_keys.len() {
+        if n > vault.token_type_count {
+            return Err(MetaplexError::InvalidSafetyDeposit);
+        }
+    }
+
+    let authority_seeds = &[PREFIX.as_bytes(), &auction_info.key.as_ref(), &[bump_seed]];
+
+    create_or_allocate_account_raw(
+        *program_id,
+        auction_manager_info,
+        rent_info,
+        system_info,
+        payer_info,
+        MAX_AUCTION_MANAGER_SIZE,
+        authority_seeds,
+    )?;
+
+    let auction_manager: AuctionManager =
+        try_from_slice_unchecked(&auction_manager_info.data.borrow_mut())?;
+
+    auction_manager.key = Key::AuctionManagerV1;
+    auction_manager.settings = auction_manager_settings;
+    auction_manager.vault = vault_info.key;
+    auction_manager.auction = auction_info.key;
+    auction_manager.serialize(&mut *auction_manager_info.data.borrow_mut())?;
 
     Ok(())
 }

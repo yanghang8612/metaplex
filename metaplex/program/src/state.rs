@@ -5,7 +5,10 @@ use {
 /// prefix used for PDAs to avoid certain collision attacks (https://en.wikipedia.org/wiki/Collision_attack#Chosen-prefix_collision_attack)
 pub const PREFIX: &str = "metaplex";
 
-pub const MAX_AUCTION_MANAGER_SIZE: usize = 1 + 32 + 32 + 32 + 1;
+pub const MAX_WINNER_SIZE: usize = 200;
+pub const MAX_AUCTION_MANAGER_SIZE: usize =
+    1 + 32 + 32 + 1 + MAX_WINNER_SIZE + 1 + 1 + 9 + 9 + 9 + 9 + 9;
+
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
 pub enum Key {

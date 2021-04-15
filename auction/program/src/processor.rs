@@ -1,11 +1,8 @@
 use crate::errors::AuctionError;
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
-    account_info::AccountInfo,
-    clock::UnixTimestamp,
-    entrypoint::ProgramResult,
-    program_error::ProgramError,
-    pubkey::Pubkey,
+    account_info::AccountInfo, clock::UnixTimestamp, entrypoint::ProgramResult,
+    program_error::ProgramError, pubkey::Pubkey,
 };
 
 pub mod cancel_bid;
@@ -38,7 +35,7 @@ pub struct Bid(Pubkey, u64);
 /// auction being run.
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
-enum BidState {
+pub enum BidState {
     EnglishAuction { bids: Vec<Bid>, max: usize },
     OpenEdition,
 }
@@ -120,22 +117,22 @@ pub enum WinnerLimit {
 
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
-struct AuctionData {
+pub struct AuctionData {
     /// Pubkey of the authority with permission to modify this auction.
-    authority: Pubkey,
+    pub authority: Pubkey,
     /// Auction Bids, each user may have one bid open at a time.
-    bid_state: BidState,
+    pub bid_state: BidState,
     /// The time the last bid was placed, used to time auction ending.
-    last_bid: Option<UnixTimestamp>,
+    pub last_bid: Option<UnixTimestamp>,
     /// Pubkey of the resource being bid on.
-    resource: Pubkey,
+    pub resource: Pubkey,
     /// Time the auction starts at, this may be changed only if the auction hasn't started.
-    start_time: UnixTimestamp,
+    pub start_time: UnixTimestamp,
     /// End time is the cut-off point that the auction is forced to end by.
-    end_time: Option<UnixTimestamp>,
+    pub end_time: Option<UnixTimestamp>,
     /// Gap time is the amount of time after the previous bid at which the auction ends. Going
     /// once, going twice, sold!
-    gap_time: Option<UnixTimestamp>,
+    pub gap_time: Option<UnixTimestamp>,
 }
 
 /// Models a set of metadata for a bidder, meant to be stored in a PDA. This allows looking up
