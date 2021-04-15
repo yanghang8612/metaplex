@@ -5,9 +5,9 @@ use {
 /// prefix used for PDAs to avoid certain collision attacks (https://en.wikipedia.org/wiki/Collision_attack#Chosen-prefix_collision_attack)
 pub const PREFIX: &str = "metaplex";
 
-pub const MAX_WINNER_SIZE: usize = 200;
-pub const MAX_AUCTION_MANAGER_SIZE: usize =
-    1 + 32 + 32 + 1 + MAX_WINNER_SIZE + 1 + 1 + 9 + 9 + 9 + 9 + 9;
+pub const MAX_WINNERS: usize = 200;
+pub const MAX_WINNER_SIZE: usize = 3 * MAX_WINNERS;
+pub const MAX_AUCTION_MANAGER_SIZE: usize = 1 + 32 + 32 + 1 + 1 + 1 + 1 + MAX_WINNER_SIZE + 2 + 9;
 
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
@@ -28,43 +28,75 @@ pub struct AuctionManager {
 
     pub vault: Pubkey,
 
+    pub state: AuctionManagerState,
+
     pub settings: AuctionManagerSettings,
 }
+
+#[repr(C)]
+#[derive(Clone, BorshSerialize, BorshDeserialize)]
+pub struct AuctionManagerState {
+    pub status: AuctionManagerStatus,
+    /// When all boxes are validated the auction is started and auction manager moves to Running
+    pub safety_deposit_boxes_validated: u8,
+}
+
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize)]
 pub struct AuctionManagerSettings {
-    pub winners_eligible_for_open_edition: bool,
+    /// Setups:
+    /// 1. Winners get open edition + not charged extra
+    /// 2. Winners dont get open edition
+    pub open_edition_winner_constraint: WinnerConstraint,
+
+    /// Setups:
+    /// 1. Losers get open edition for free
+    /// 2. Losers get open edition but pay fixed price
+    /// 3. Losers get open edition but pay bid price
+    pub open_edition_non_winning_constraint: NonWinningConstraint,
 
     /// The safety deposit box index in the vault containing the winning items, in order of place
     /// The same index can appear multiple times if that index contains n tokens for n appearances (this will be checked)
-    pub winning_keys: Vec<u8>,
-
-    /// The safety deposit box index in the vault containing the template for the limited edition
-    pub limited_edition_key: Option<u8>,
+    pub winning_configs: Vec<WinningConfigs>,
 
     /// The safety deposit box index in the vault containing the template for the open edition
-    pub open_edition_key: Option<u8>,
-
-    /// How long open edition (if this auction manager has it) goes for
-    pub open_edition_duration_slots: Option<u64>,
-
-    /// How many limited editions will be minted - these go to the nth second, third, x place winners
-    /// after winning keys are exhausted, minted off master record in limited edition key.
-    pub limited_edition_count: Option<u64>,
-
-    /// The reserve price for a bid to be considered a valid bid for redemption.
-    /// The auction may allow bids to be placed underneath this but presenting that ticket to this
-    /// manager will not allow any redemptions.
-    pub reserve_price: Option<u64>,
+    pub open_edition_config: Option<u8>,
 
     /// Setting this field disconnects the open edition's price from the bid. Any bid you submit, regardless
     /// of amount, charges you the same fixed price. NOTE: This field supersedes open_edition_reserve_price.
     pub open_edition_fixed_price: Option<u64>,
+}
 
-    /// Setting this field disconnects the open edition reserve price from the normal bid reserve price.
-    /// This means that while you may need $120 bid at least to have a winning bid for a limited edition or winning item,
-    /// if you lose both of those, you can redeem an open edition token for your lower bid amount, even 0$ if the auctioneer so chooses,
-    /// as a token of appreciation for coming. This means different people will pay different amounts for the open edition based
-    /// on what their bid ticket says, always above this reserve price, and this reserve price is separated from the main reserve price.
-    pub open_edition_reserve_price: Option<u64>,
+#[repr(C)]
+#[derive(Clone, BorshSerialize, BorshDeserialize)]
+pub enum WinnerConstraint {
+    NoOpenEdition,
+    OpenEditionGiven,
+}
+
+#[repr(C)]
+#[derive(Clone, BorshSerialize, BorshDeserialize)]
+pub enum NonWinningConstraint {
+    NoOpenEdition,
+    GivenForFixedPrice,
+    GivenForBidPrice,
+}
+
+#[repr(C)]
+#[derive(Clone, BorshSerialize, BorshDeserialize)]
+pub struct WinningConfigs {
+    pub safety_deposit_box_index: u8,
+    pub amount: u8,
+    /// Each safety deposit box needs to be validated via endpoint before auction manager will agree to let auction begin.
+    pub validated: bool,
+    pub is_edition: bool,
+}
+
+#[repr(C)]
+#[derive(Clone, BorshSerialize, BorshDeserialize)]
+pub enum AuctionManagerStatus {
+    Initialized,
+    Running,
+    Disbursing,
+    Finished,
 }

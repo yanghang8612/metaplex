@@ -2,7 +2,10 @@ use {
     crate::{
         error::MetaplexError,
         instruction::MetaplexInstruction,
-        state::{AuctionManager, AuctionManagerSettings, Key, MAX_AUCTION_MANAGER_SIZE, PREFIX},
+        state::{
+            AuctionManager, AuctionManagerSettings, AuctionManagerState, AuctionManagerStatus, Key,
+            MAX_AUCTION_MANAGER_SIZE, PREFIX,
+        },
         utils::{
             assert_initialized, assert_owned_by, assert_rent_exempt, create_or_allocate_account_raw,
         },
@@ -19,6 +22,7 @@ use {
     },
     spl_auction::processor::AuctionData,
     spl_token::state::{Account, Mint},
+    spl_token_metadata::state::MasterEdition,
     spl_token_vault::state::{ExternalPriceAccount, Vault, VaultState},
 };
 
@@ -47,6 +51,7 @@ pub fn process_init_auction_manager(
     let vault_info = next_account_info(account_info_iter)?;
     let auction_info = next_account_info(account_info_iter)?;
     let external_pricing_account_info = next_account_info(account_info_iter)?;
+    let open_master_edition_info = next_account_info(account_info_iter)?;
     let payer_info = next_account_info(account_info_iter)?;
     let system_info = next_account_info(account_info_iter)?;
     let rent_info = next_account_info(account_info_iter)?;
@@ -95,9 +100,21 @@ pub fn process_init_auction_manager(
         return Err(MetaplexError::VaultCannotEmpty.into());
     }
 
-    for n in n..auction_manager_settings.winning_keys.len() {
-        if n > vault.token_type_count {
-            return Err(MetaplexError::InvalidSafetyDeposit);
+    for n in 0..auction_manager_settings.winning_configs.len() {
+        let winning_config = &auction_manager_settings.winning_configs[n];
+        if winning_config.safety_deposit_box_index > vault.token_type_count.into() {
+            return Err(MetaplexError::InvalidSafetyDepositBox.into());
+        }
+    }
+
+    if let Some(open_edition_config) = auction_manager_settings.open_edition_config {
+        if open_edition_config > vault.token_type_count {
+            return Err(MetaplexError::InvalidSafetyDepositBox.into());
+        }
+        let open_master_edition: MasterEdition =
+            try_from_slice_unchecked(&open_master_edition_info.data.borrow_mut())?;
+        if let Some(_) = open_master_edition.max_supply {
+            return Err(MetaplexError::CantUseLimitedSupplyEditionsWithOpenEditionAuction.into());
         }
     }
 
@@ -113,13 +130,15 @@ pub fn process_init_auction_manager(
         authority_seeds,
     )?;
 
-    let auction_manager: AuctionManager =
+    let mut auction_manager: AuctionManager =
         try_from_slice_unchecked(&auction_manager_info.data.borrow_mut())?;
 
     auction_manager.key = Key::AuctionManagerV1;
     auction_manager.settings = auction_manager_settings;
-    auction_manager.vault = vault_info.key;
-    auction_manager.auction = auction_info.key;
+    auction_manager.vault = *vault_info.key;
+    auction_manager.auction = *auction_info.key;
+    auction_manager.state.status = AuctionManagerStatus::Initialized;
+    auction_manager.state.safety_deposit_boxes_validated = 0;
     auction_manager.serialize(&mut *auction_manager_info.data.borrow_mut())?;
 
     Ok(())

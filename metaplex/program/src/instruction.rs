@@ -17,9 +17,10 @@ pub enum MetaplexInstruction {
     ///           Note in addition that this vault account should have authority set to this program's pda of ['metaplex', auction_key]
     ///   2. `[]` Auction with auctioned item being set to the vault given and authority set to this program's pda of ['metaplex', auction_key]
     ///   3. `[]` External Pricing Account which must be owned by this program
-    ///   4. `[signer]` Payer
-    ///   5. `[]` System sysvar
-    ///   6. `[]` Rent sysvar
+    ///   4. `[]` Open edition MasterEdition account (optional - only if using this feature)
+    ///   6. `[signer]` Payer
+    ///   7. `[]` System sysvar
+    ///   8. `[]` Rent sysvar
     InitAuctionManager(AuctionManagerSettings),
 }
 /*

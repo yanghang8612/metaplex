@@ -3828,6 +3828,7 @@ dependencies = [
  "solana-program",
  "spl-auction",
  "spl-token 3.1.0",
+ "spl-token-metadata",
  "spl-token-vault",
  "thiserror",
 ]

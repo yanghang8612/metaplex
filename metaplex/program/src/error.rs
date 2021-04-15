@@ -86,6 +86,14 @@ pub enum MetaplexError {
     /// Cannot auction off an empty vault!
     #[error("Cannot auction off an empty vault!")]
     VaultCannotEmpty,
+
+    /// Listed a safety deposit box index that does not exist in this vault
+    #[error("Listed a safety deposit box index that does not exist in this vault")]
+    InvalidSafetyDepositBox,
+
+    /// Cant use a limited supply edition for an open edition as you may run out of editions to print
+    #[error("Cant use a limited supply edition for an open edition as you may run out of editions to print")]
+    CantUseLimitedSupplyEditionsWithOpenEditionAuction,
 }
 
 impl PrintProgramError for MetaplexError {
