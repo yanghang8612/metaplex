@@ -1,4 +1,5 @@
 use {
+    crate::state::AuctionManagerSettings,
     borsh::{BorshDeserialize, BorshSerialize},
     solana_program::{
         instruction::{AccountMeta, Instruction},
@@ -11,13 +12,14 @@ use {
 #[derive(BorshSerialize, BorshDeserialize, Clone)]
 pub enum MetaplexInstruction {
     /// Initializes an Auction Manager
-    ///   0. `[writable]` Uninitialized auction manager account
-    ///   0. `[]` Activated vault account with authority set to auction manager account (this will be checked)
-    ///           Note in addition that this vault account should
-    ///   0. `[]` Auction with auctioned item being set to the vault given
-    ///   5. `[]` External Pricing Account
-    ///   7. `[]` Rent sysvar
-    InitAuctionManager,
+    ///   0. `[writable]` Uninitialized, unallocated auction manager account with pda of ['metaplex', auction_key from auction referenced below]
+    ///   1. `[]` Activated vault account with authority set to auction manager account (this will be checked)
+    ///           Note in addition that this vault account should have authority set to this program's pda of ['metaplex', auction_key]
+    ///   2. `[]` Auction with auctioned item being set to the vault given
+    ///   3. `[]` External Pricing Account which must be owned by this program
+    ///   4. `[]` System sysvar
+    ///   5. `[]` Rent sysvar
+    InitAuctionManager(AuctionManagerSettings),
 }
 /*
 /// Creates an InitMetaplex instruction

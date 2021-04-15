@@ -25,6 +25,11 @@ pub struct AuctionManager {
 
     pub vault: Pubkey,
 
+    pub settings: AuctionManagerSettings,
+}
+#[repr(C)]
+#[derive(Clone, BorshSerialize, BorshDeserialize)]
+pub struct AuctionManagerSettings {
     pub winners_eligible_for_open_edition: bool,
 
     /// The safety deposit box index in the vault containing the winning items, in order of place
