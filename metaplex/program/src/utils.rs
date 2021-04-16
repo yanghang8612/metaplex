@@ -1,5 +1,5 @@
 use {
-    crate::error::MetaplexError,
+    crate::{error::MetaplexError, state::AuctionManager},
     solana_program::{
         account_info::AccountInfo,
         entrypoint::ProgramResult,
@@ -12,6 +12,7 @@ use {
         sysvar::{rent::Rent, Sysvar},
     },
     spl_token_metadata::{instruction::transfer_update_authority, state::Metadata},
+    spl_token_vault::state::SafetyDepositBox,
     std::convert::TryInto,
 };
 
@@ -43,6 +44,40 @@ pub fn assert_owned_by(account: &AccountInfo, owner: &Pubkey) -> ProgramResult {
     }
 }
 
+pub fn assert_store_safety_vault_manager_match(
+    auction_manager: &AuctionManager,
+    safety_deposit: &SafetyDepositBox,
+    vault_info: &AccountInfo,
+    store_info: &AccountInfo,
+) -> ProgramResult {
+    if auction_manager.vault != *vault_info.key {
+        return Err(MetaplexError::AuctionManagerVaultMismatch.into());
+    }
+
+    if safety_deposit.vault != *vault_info.key {
+        return Err(MetaplexError::SafetyDepositBoxVaultMismatch.into());
+    }
+
+    if safety_deposit.store != *store_info.key {
+        return Err(MetaplexError::SafetyDepositBoxStoreMismatch.into());
+    }
+    Ok(())
+}
+
+pub fn assert_authority_correct(
+    auction_manager: &AuctionManager,
+    authority_info: &AccountInfo,
+) -> ProgramResult {
+    if auction_manager.authority != *authority_info.key {
+        return Err(MetaplexError::AuctionManagerAuthorityMismatch.into());
+    }
+
+    if !authority_info.is_signer {
+        return Err(MetaplexError::AuctionManagerAuthorityIsNotSigner.into());
+    }
+
+    Ok(())
+}
 /// Create account almost from scratch, lifted from
 /// https://github.com/solana-labs/solana-program-library/blob/7d4873c61721aca25464d42cc5ef651a7923ca79/associated-token-account/program/src/processor.rs#L51-L98
 #[inline(always)]
@@ -91,9 +126,33 @@ pub fn create_or_allocate_account_raw<'a>(
     Ok(())
 }
 
+pub fn transfer_safety_deposit_box_items<'a>(signer_seeds: &[&[u8]]) -> ProgramResult {
+    let transferring_obj = match metadata.non_unique_specific_update_authority {
+        Some(_) => metadata_info,
+        None => name_symbol_info,
+    };
+    invoke_signed(
+        &transfer_update_authority(
+            *token_metadata_program.key,
+            *transferring_obj.key,
+            *update_authority.key,
+            *new_update_authority.key,
+        ),
+        &[
+            update_authority,
+            new_update_authority,
+            transferring_obj,
+            token_metadata_program,
+        ],
+        &[&signer_seeds],
+    )?;
+
+    Ok(())
+}
+
 pub fn transfer_metadata_ownership<'a>(
     metadata: &Metadata,
-    token_metadata_program: Pubkey,
+    token_metadata_program: AccountInfo<'a>,
     metadata_info: AccountInfo<'a>,
     name_symbol_info: AccountInfo<'a>,
     update_authority: AccountInfo<'a>,
@@ -106,12 +165,17 @@ pub fn transfer_metadata_ownership<'a>(
     };
     invoke_signed(
         &transfer_update_authority(
-            token_metadata_program,
+            *token_metadata_program.key,
             *transferring_obj.key,
             *update_authority.key,
             *new_update_authority.key,
         ),
-        &[update_authority, new_update_authority, transferring_obj],
+        &[
+            update_authority,
+            new_update_authority,
+            transferring_obj,
+            token_metadata_program,
+        ],
         &[&signer_seeds],
     )?;
 

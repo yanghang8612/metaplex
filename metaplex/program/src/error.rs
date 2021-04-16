@@ -105,15 +105,27 @@ pub enum MetaplexError {
     #[error("The mint given does not match the mint on the given safety deposit box!")]
     SafetyDepositBoxMintMismatch,
 
+    /// The token metadata program given does not match the token metadata program on this auction manager!
+    #[error("The token metadata program given does not match the token metadata program on this auction manager!")]
+    AuctionManagerTokenMetadataProgramMismatch,
+
     /// The mint is owned by a different token program than the one used by this auction manager!
     #[error(
         "The mint is owned by a different token program than the one used by this auction manager!"
     )]
     TokenProgramMismatch,
 
-    /// Only active vaults may be used in auction managers!
-    #[error("Only active vaults may be used in auction managers!")]
-    VaultNotActive,
+    /// The auction given does not match the auction on the auction manager!
+    #[error("The auction given does not match the auction on the auction manager!")]
+    AuctionManagerAuctionMismatch,
+
+    /// The token program given does not match the token program on the auction manager!
+    #[error("The token program given does not match the token program on the auction manager!")]
+    AuctionManagerTokenProgramMismatch,
+
+    /// Only combined vaults may be used in auction managers!
+    #[error("Only combined vaults may be used in auction managers!")]
+    VaultNotCombined,
 
     /// Cannot auction off an empty vault!
     #[error("Cannot auction off an empty vault!")]
@@ -158,6 +170,22 @@ pub enum MetaplexError {
     /// Not enough tokens to supply winners!
     #[error("Not enough tokens to supply winners!")]
     NotEnoughTokensToSupplyWinners,
+
+    /// The auction manager must own the payoff account!
+    #[error("The auction manager must own the payoff account!")]
+    AuctionManagerMustOwnPayoffAccount,
+
+    /// The auction manager must own the oustanding shares  account!
+    #[error("The auction manager must own the oustanding shares account!")]
+    AuctionManagerMustOwnOutstandingSharesAccount,
+
+    /// This bidder metadata does not have the expected PDA address
+    #[error("This bidder metadata does not have the expected PDA address")]
+    InvalidBidderMetadata,
+
+    /// The safety deposit box for your winning bid placement does not match the safety deposit box you provided!
+    #[error("The safety deposit box for your winning bid placement does not match the safety deposit box you provided!")]
+    SafetyDepositIndexMismatch,
 }
 
 impl PrintProgramError for MetaplexError {

@@ -8,7 +8,7 @@ pub const PREFIX: &str = "metaplex";
 pub const MAX_WINNERS: usize = 200;
 pub const MAX_WINNER_SIZE: usize = 5 * MAX_WINNERS;
 pub const MAX_AUCTION_MANAGER_SIZE: usize =
-    1 + 32 + 32 + 32 + 32 + 32 + 1 + 1 + 1 + 1 + MAX_WINNER_SIZE + 2 + 9;
+    1 + 32 + 32 + 32 + 32 + 32 + 32 + 32 + 1 + 1 + 1 + 1 + MAX_WINNER_SIZE + 2 + 9;
 
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
@@ -30,6 +30,10 @@ pub struct AuctionManager {
     pub auction: Pubkey,
 
     pub vault: Pubkey,
+
+    pub auction_program: Pubkey,
+
+    pub token_vault_program: Pubkey,
 
     pub token_metadata_program: Pubkey,
 
@@ -60,7 +64,7 @@ pub struct AuctionManagerSettings {
     /// Setups:
     /// 1. Winners get open edition + not charged extra
     /// 2. Winners dont get open edition
-    pub open_edition_winner_constraint: WinnerConstraint,
+    pub open_edition_winner_constraint: WinningConstraint,
 
     /// Setups:
     /// 1. Losers get open edition for free
@@ -81,14 +85,14 @@ pub struct AuctionManagerSettings {
 }
 
 #[repr(C)]
-#[derive(Clone, BorshSerialize, BorshDeserialize)]
-pub enum WinnerConstraint {
+#[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
+pub enum WinningConstraint {
     NoOpenEdition,
     OpenEditionGiven,
 }
 
 #[repr(C)]
-#[derive(Clone, BorshSerialize, BorshDeserialize)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
 pub enum NonWinningConstraint {
     NoOpenEdition,
     GivenForFixedPrice,

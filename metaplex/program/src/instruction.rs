@@ -22,9 +22,11 @@ pub enum MetaplexInstruction {
     ///   6. `[]` Authority for the Auction Manager
     ///   7. `[signer]` Payer
     ///   8. `[]` Token program
-    ///   9. `[]` Token metadata program
-    ///   10. `[]` System sysvar
-    ///   11. `[]` Rent sysvar
+    ///   9. `[]` Token vault program
+    ///   10. `[]` Token metadata program
+    ///   11. `[]` Auction program
+    ///   12. `[]` System sysvar
+    ///   13. `[]` Rent sysvar
     InitAuctionManager(AuctionManagerSettings),
 
     /// Validates that a given safety deposit box has in it contents that match the expected WinningConfig in the auction manager.
@@ -47,7 +49,17 @@ pub enum MetaplexInstruction {
     /// The auction manager will switch from Running state to Disbursing state. If you are the last, this may change
     /// the auction manager state to Finished provided that no authorities remain to be delegated for Master Edition tokens.
     ///   0. `[writable]` Auction manager
-    ///   0. `[writable]` Auction manager
+    ///   1. `[writable]` Store of safety deposit box account
+    ///   2. `[writable]` Destination account
+    ///   3. `[]` Safety deposit box account
+    ///   4. `[]` Fraction mint of the vault
+    ///   5. `[]` Vault account
+    ///   6. `[]` Auction
+    ///   7. `[]` Your BidderMetadata account
+    ///   8. `[signer]` Authority of the auction manager
+    ///   9. `[]` Token program
+    ///   10. `[]` Token Vault program
+    ///   11. `[]` Rent sysvar
     RedeemBid,
 }
 /*

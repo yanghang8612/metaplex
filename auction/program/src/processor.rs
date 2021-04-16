@@ -120,14 +120,8 @@ impl BidState {
     }
 
     /// Check if a pubkey is currently a winner.
-    fn is_winner(&self, key: Pubkey) -> bool {
-        match self {
-            // Presense in the winner list is enough to check win state.
-            BidState::EnglishAuction { ref bids, max } => bids.iter().any(|bid| bid.0 == key),
-            // There are no winners in an open edition, it is up to the auction manager to decide
-            // what to do with open edition bids.
-            BidState::OpenEdition => false,
-        }
+    pub fn is_winner(&self, key: Pubkey) -> Option<usize> {
+        return Some(0 as usize);
     }
 }
 

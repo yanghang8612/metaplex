@@ -4,11 +4,13 @@ use {
         instruction::MetaplexInstruction,
         state::{
             AuctionManager, AuctionManagerSettings, AuctionManagerState, AuctionManagerStatus,
-            EditionType, Key, WinningConfig, MAX_AUCTION_MANAGER_SIZE, PREFIX,
+            EditionType, Key, NonWinningConstraint, WinningConfig, WinningConstraint,
+            MAX_AUCTION_MANAGER_SIZE, PREFIX,
         },
         utils::{
-            assert_initialized, assert_owned_by, assert_rent_exempt,
-            create_or_allocate_account_raw, transfer_metadata_ownership,
+            assert_authority_correct, assert_initialized, assert_owned_by, assert_rent_exempt,
+            assert_store_safety_vault_manager_match, create_or_allocate_account_raw,
+            transfer_metadata_ownership,
         },
     },
     borsh::{BorshDeserialize, BorshSerialize},
@@ -21,7 +23,7 @@ use {
         rent::Rent,
         sysvar::Sysvar,
     },
-    spl_auction::processor::AuctionData,
+    spl_auction::processor::{AuctionData, BidderMetadata},
     spl_token::state::{Account, Mint},
     spl_token_metadata::{
         state::{Edition, MasterEdition, Metadata},
@@ -45,7 +47,95 @@ pub fn process_instruction(
             msg!("Instruction: Validate Safety Deposit Box");
             process_validate_safety_deposit_box(program_id, accounts)
         }
+        MetaplexInstruction::RedeemBid => {
+            msg!("Instruction: Redeem Bid");
+            process_redeem_bid(program_id, accounts)
+        }
     }
+}
+pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let account_info_iter = &mut accounts.iter();
+
+    let auction_manager_info = next_account_info(account_info_iter)?;
+    let store_info = next_account_info(account_info_iter)?;
+    let destination_info = next_account_info(account_info_iter)?;
+    let safety_deposit_info = next_account_info(account_info_iter)?;
+    let fraction_mint_info = next_account_info(account_info_iter)?;
+    let vault_info = next_account_info(account_info_iter)?;
+    let auction_info = next_account_info(account_info_iter)?;
+    let bidder_metadata_info = next_account_info(account_info_iter)?;
+    let authority_info = next_account_info(account_info_iter)?;
+    let token_program_info = next_account_info(account_info_iter)?;
+    let token_vault_program_info = next_account_info(account_info_iter)?;
+    let rent_info = next_account_info(account_info_iter)?;
+    let rent = &Rent::from_account_info(rent_info)?;
+
+    let mut auction_manager: AuctionManager =
+        try_from_slice_unchecked(&auction_manager_info.data.borrow_mut())?;
+    let safety_deposit: SafetyDepositBox =
+        try_from_slice_unchecked(&safety_deposit_info.data.borrow_mut())?;
+    let auction: AuctionData = try_from_slice_unchecked(&auction_info.data.borrow_mut())?;
+    let bidder_metadata: BidderMetadata =
+        try_from_slice_unchecked(&bidder_metadata_info.data.borrow_mut())?;
+    let destination: Account = assert_initialized(destination_info)?;
+
+    assert_owned_by(destination_info, token_program_info.key)?;
+    assert_owned_by(auction_manager_info, program_id)?;
+    assert_authority_correct(&auction_manager, authority_info)?;
+    assert_store_safety_vault_manager_match(
+        &auction_manager,
+        &safety_deposit,
+        vault_info,
+        store_info,
+    )?;
+    // looking out for you!
+    assert_rent_exempt(rent, destination_info)?;
+
+    if auction_manager.auction != *auction_info.key {
+        return Err(MetaplexError::AuctionManagerAuctionMismatch.into());
+    }
+
+    if auction_manager.token_program != *token_program_info.key {
+        return Err(MetaplexError::AuctionManagerTokenProgramMismatch.into());
+    }
+
+    let meta_path = [
+        spl_auction::PREFIX.as_bytes(),
+        auction_manager.auction_program.as_ref(),
+        auction_info.key.as_ref(),
+        bidder_metadata.bidder_pubkey.as_ref(),
+        "metadata".as_bytes(),
+    ];
+    let (meta_key, _) = Pubkey::find_program_address(&meta_path, &auction_manager.auction_program);
+
+    if meta_key != *bidder_metadata_info.key {
+        return Err(MetaplexError::InvalidBidderMetadata.into());
+    }
+
+    let mut gets_open_edition = auction_manager.settings.open_edition_config != None;
+
+    if !bidder_metadata.cancelled {
+        if let Some(winning_index) = auction.bid_state.is_winner(bidder_metadata.bidder_pubkey) {
+            if winning_index < auction_manager.settings.winning_configs.len() {
+                // Okay, so they placed in the auction winning prizes section!
+                gets_open_edition = auction_manager.settings.open_edition_winner_constraint
+                    == WinningConstraint::OpenEditionGiven;
+
+                let winning_config = auction_manager.settings.winning_configs[winning_index];
+                if winning_config.safety_deposit_box_index != safety_deposit.order {
+                    return Err(MetaplexError::SafetyDepositIndexMismatch.into());
+                }
+
+                match winning_config.edition_type {
+                    EditionType::NA => {}
+                    EditionType::MasterEdition => {}
+                    EditionType::MasterEditionAsTemplate => {}
+                    EditionType::Edition => {}
+                }
+            }
+        }
+    }
+    Ok(())
 }
 
 pub fn process_validate_safety_deposit_box(
@@ -64,6 +154,7 @@ pub fn process_validate_safety_deposit_box(
     let vault_info = next_account_info(account_info_iter)?;
     let authority_info = next_account_info(account_info_iter)?;
     let metadata_authority_info = next_account_info(account_info_iter)?;
+    let token_metadata_program_info = next_account_info(account_info_iter)?;
 
     let mut auction_manager: AuctionManager =
         try_from_slice_unchecked(&auction_manager_info.data.borrow_mut())?;
@@ -76,19 +167,27 @@ pub fn process_validate_safety_deposit_box(
     // Is it a real mint?
     let _mint: Mint = assert_initialized(mint_info)?;
 
+    assert_owned_by(auction_manager_info, program_id)?;
     assert_update_authority_is_correct(
         &metadata,
         metadata_info,
         Some(name_symbol_info),
         metadata_authority_info,
     )?;
-
-    if auction_manager.authority != *authority_info.key {
-        return Err(MetaplexError::AuctionManagerAuthorityMismatch.into());
-    }
+    assert_authority_correct(&auction_manager, authority_info)?;
+    assert_store_safety_vault_manager_match(
+        &auction_manager,
+        &safety_deposit,
+        vault_info,
+        store_info,
+    )?;
 
     if *mint_info.key != safety_deposit.token_mint {
         return Err(MetaplexError::SafetyDepositBoxMintMismatch.into());
+    }
+
+    if *token_metadata_program_info.key != auction_manager.token_metadata_program {
+        return Err(MetaplexError::AuctionManagerTokenMetadataProgramMismatch.into());
     }
 
     // We want to ensure that the mint you are using with this token is one
@@ -96,22 +195,6 @@ pub fn process_validate_safety_deposit_box(
     // we can check by asserting ownership by the token program we recorded in init.
     if *mint_info.owner != auction_manager.token_program {
         return Err(MetaplexError::TokenProgramMismatch.into());
-    }
-
-    if !authority_info.is_signer {
-        return Err(MetaplexError::AuctionManagerAuthorityIsNotSigner.into());
-    }
-
-    if auction_manager.vault != *vault_info.key {
-        return Err(MetaplexError::AuctionManagerVaultMismatch.into());
-    }
-
-    if safety_deposit.vault != *vault_info.key {
-        return Err(MetaplexError::SafetyDepositBoxVaultMismatch.into());
-    }
-
-    if safety_deposit.store != *store_info.key {
-        return Err(MetaplexError::SafetyDepositBoxStoreMismatch.into());
     }
 
     if safety_deposit.token_mint != metadata.mint {
@@ -186,9 +269,11 @@ pub fn process_validate_safety_deposit_box(
                 &auction_manager.auction.as_ref(),
                 &[bump_seed],
             ];
+            // We need to be able to issue minting of limited edition invocations as auction manager
+            // for duration of this auction
             transfer_metadata_ownership(
                 &metadata,
-                auction_manager.token_metadata_program,
+                token_metadata_program_info.clone(),
                 metadata_info.clone(),
                 name_symbol_info.clone(),
                 metadata_authority_info.clone(),
@@ -263,7 +348,9 @@ pub fn process_init_auction_manager(
     let authority_info = next_account_info(account_info_iter)?;
     let payer_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
+    let token_vault_program_info = next_account_info(account_info_iter)?;
     let token_metadata_program_info = next_account_info(account_info_iter)?;
+    let auction_program_info = next_account_info(account_info_iter)?;
     let system_info = next_account_info(account_info_iter)?;
     let rent_info = next_account_info(account_info_iter)?;
     let rent = &Rent::from_account_info(rent_info)?;
@@ -273,7 +360,8 @@ pub fn process_init_auction_manager(
         try_from_slice_unchecked(&external_pricing_account_info.data.borrow_mut())?;
     let vault: Vault = try_from_slice_unchecked(&vault_info.data.borrow_mut())?;
     let auction: AuctionData = try_from_slice_unchecked(&auction_info.data.borrow_mut())?;
-
+    assert_owned_by(vault_info, token_vault_program_info.key)?;
+    assert_owned_by(auction_info, auction_program_info.key)?;
     assert_rent_exempt(rent, external_pricing_account_info)?;
 
     let seeds = &[PREFIX.as_bytes(), &auction_info.key.as_ref()];
@@ -303,8 +391,8 @@ pub fn process_init_auction_manager(
         return Err(MetaplexError::AuctionVaultMismatch.into());
     }
 
-    if vault.state != VaultState::Active {
-        return Err(MetaplexError::VaultNotActive.into());
+    if vault.state != VaultState::Combined {
+        return Err(MetaplexError::VaultNotCombined.into());
     }
 
     if vault.token_type_count == 0 {
@@ -366,7 +454,9 @@ pub fn process_init_auction_manager(
     auction_manager.auction = *auction_info.key;
     auction_manager.authority = *authority_info.key;
     auction_manager.token_program = *token_program_info.key;
+    auction_manager.token_vault_program = *token_vault_program_info.key;
     auction_manager.token_metadata_program = *token_metadata_program_info.key;
+    auction_manager.auction_program = *auction_program_info.key;
     auction_manager.state.status = AuctionManagerStatus::Initialized;
     auction_manager.state.safety_deposit_boxes_validated = 0;
     auction_manager.serialize(&mut *auction_manager_info.data.borrow_mut())?;
