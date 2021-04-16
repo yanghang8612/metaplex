@@ -8,6 +8,7 @@ use solana_program::{
 pub mod cancel_bid;
 pub mod create_auction;
 pub mod place_bid;
+pub mod start_auction;
 
 pub fn process_instruction(
     program_id: &Pubkey,
@@ -18,12 +19,34 @@ pub fn process_instruction(
     use cancel_bid::cancel_bid;
     use create_auction::create_auction;
     use place_bid::place_bid;
+    use start_auction::start_auction;
 
     match AuctionInstruction::try_from_slice(input)? {
         AuctionInstruction::CreateAuction(args) => create_auction(program_id, accounts, args),
+        AuctionInstruction::StartAuction(args) => start_auction(program_id, accounts, args),
         AuctionInstruction::PlaceBid(args) => place_bid(program_id, accounts, args),
         AuctionInstruction::CancelBid(args) => cancel_bid(program_id, accounts),
     }
+}
+
+#[repr(C)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
+pub struct AuctionData {
+    /// Pubkey of the authority with permission to modify this auction.
+    pub authority: Pubkey,
+    /// Auction Bids, each user may have one bid open at a time.
+    pub bid_state: BidState,
+    /// The time the last bid was placed, used to time auction ending.
+    pub last_bid: Option<UnixTimestamp>,
+    /// Pubkey of the resource being bid on.
+    pub resource: Pubkey,
+    /// Whether or not the auction has started
+    pub started: bool,
+    /// End time is the cut-off point that the auction is forced to end by.
+    pub end_time: Option<UnixTimestamp>,
+    /// Gap time is the amount of time after the previous bid at which the auction ends. Going
+    /// once, going twice, sold!
+    pub gap_time: Option<UnixTimestamp>,
 }
 
 /// Bids associate a bidding key with an amount bid.
@@ -115,31 +138,20 @@ pub enum WinnerLimit {
     Capped(usize),
 }
 
-#[repr(C)]
-#[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
-pub struct AuctionData {
-    /// Pubkey of the authority with permission to modify this auction.
-    pub authority: Pubkey,
-    /// Auction Bids, each user may have one bid open at a time.
-    pub bid_state: BidState,
-    /// The time the last bid was placed, used to time auction ending.
-    pub last_bid: Option<UnixTimestamp>,
-    /// Pubkey of the resource being bid on.
-    pub resource: Pubkey,
-    /// Time the auction starts at, this may be changed only if the auction hasn't started.
-    pub start_time: UnixTimestamp,
-    /// End time is the cut-off point that the auction is forced to end by.
-    pub end_time: Option<UnixTimestamp>,
-    /// Gap time is the amount of time after the previous bid at which the auction ends. Going
-    /// once, going twice, sold!
-    pub gap_time: Option<UnixTimestamp>,
-}
-
 /// Models a set of metadata for a bidder, meant to be stored in a PDA. This allows looking up
 /// information about a bidder regardless of if they have won, lost or cancelled.
+#[repr(C)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
 struct BidderMetadata {
-    /// Tracks the last time this user bid.
-    last_bid: UnixTimestamp,
-    /// Foreign Key. A reference to the auction this bid was placed on.
-    auction: Pubkey,
+    // Relationship with the bidder who's metadata this covers.
+    bidder_pubkey: Pubkey,
+    // Relationship with the auction this bid was placed on.
+    auction_pubkey: Pubkey,
+    // Amount that the user bid.
+    last_bid: u64,
+    // Tracks the last time this user bid.
+    last_bid_timestamp: UnixTimestamp,
+    // Whether the last bid the user made was cancelled. This should also be enough to know if the
+    // user is a winner, as if cancelled it implies previous bids were also cancelled.
+    cancelled: bool,
 }
