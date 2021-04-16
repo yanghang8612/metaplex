@@ -6,7 +6,7 @@ use {
 pub const PREFIX: &str = "metaplex";
 
 pub const MAX_WINNERS: usize = 200;
-pub const MAX_WINNER_SIZE: usize = 4 * MAX_WINNERS;
+pub const MAX_WINNER_SIZE: usize = 5 * MAX_WINNERS;
 pub const MAX_AUCTION_MANAGER_SIZE: usize =
     1 + 32 + 32 + 32 + 32 + 32 + 1 + 1 + 1 + 1 + MAX_WINNER_SIZE + 2 + 9;
 
@@ -46,6 +46,12 @@ pub struct AuctionManagerState {
     pub status: AuctionManagerStatus,
     /// When all boxes are validated the auction is started and auction manager moves to Running
     pub safety_deposit_boxes_validated: u8,
+
+    /// Each master edition used as a template has to grant it's authority to the auction manager.
+    /// This counter is incremented by one each time this is done. At the end of the auction, this is decremented
+    /// each time authority is delegated back to the owner or the new owner and when it hits 0 another condition
+    /// is met for going to Finished state.
+    pub master_editions_with_authorities_remaining_to_return: u8,
 }
 
 #[repr(C)]
@@ -109,6 +115,7 @@ pub struct WinningConfig {
     pub amount: u8,
     /// Each safety deposit box needs to be validated via endpoint before auction manager will agree to let auction begin.
     pub validated: bool,
+    pub has_authority: bool,
     pub edition_type: EditionType,
 }
 

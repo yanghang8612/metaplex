@@ -34,10 +34,21 @@ pub enum MetaplexInstruction {
     ///   2. `[]` Store account of safety deposit box
     ///   3. `[]` Mint account of the token in the safety deposit box
     ///   4. `[]` Metadata account
-    ///   5. `[]` Edition OR MasterEdition record (if this safety deposit item contains a mint that has either)
-    ///   6. `[]` Vault account
-    ///   7. `[signer]` Authority
+    ///   5. `[]` Name symbol tuple account
+    ///           (This account is optional, and will only be used if metadata is unique, otherwise this account key will be ignored no matter it's value)
+    ///   6. `[]` Edition OR MasterEdition record (if this safety deposit item contains a mint that has either)
+    ///   7. `[]` Vault account
+    ///   8. `[signer]` Authority
+    ///   9. `[signer]` Metadata Authority
     ValidateSafetyDepositBox,
+
+    /// Note: This requires that auction manager be in a Running state.
+    /// If an auction is complete, you can redeem your bid for a specific item here. If you are the first to do this,
+    /// The auction manager will switch from Running state to Disbursing state. If you are the last, this may change
+    /// the auction manager state to Finished provided that no authorities remain to be delegated for Master Edition tokens.
+    ///   0. `[writable]` Auction manager
+    ///   0. `[writable]` Auction manager
+    RedeemBid,
 }
 /*
 /// Creates an InitMetaplex instruction

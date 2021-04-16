@@ -11,6 +11,7 @@ use {
         system_instruction,
         sysvar::{rent::Rent, Sysvar},
     },
+    spl_token_metadata::{instruction::transfer_update_authority, state::Metadata},
     std::convert::TryInto,
 };
 
@@ -86,6 +87,33 @@ pub fn create_or_allocate_account_raw<'a>(
         &[&signer_seeds],
     )?;
     msg!("Completed assignation!");
+
+    Ok(())
+}
+
+pub fn transfer_metadata_ownership<'a>(
+    metadata: &Metadata,
+    token_metadata_program: Pubkey,
+    metadata_info: AccountInfo<'a>,
+    name_symbol_info: AccountInfo<'a>,
+    update_authority: AccountInfo<'a>,
+    new_update_authority: AccountInfo<'a>,
+    signer_seeds: &[&[u8]],
+) -> ProgramResult {
+    let transferring_obj = match metadata.non_unique_specific_update_authority {
+        Some(_) => metadata_info,
+        None => name_symbol_info,
+    };
+    invoke_signed(
+        &transfer_update_authority(
+            token_metadata_program,
+            *transferring_obj.key,
+            *update_authority.key,
+            *new_update_authority.key,
+        ),
+        &[update_authority, new_update_authority, transferring_obj],
+        &[&signer_seeds],
+    )?;
 
     Ok(())
 }

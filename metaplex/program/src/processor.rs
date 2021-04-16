@@ -7,7 +7,8 @@ use {
             EditionType, Key, WinningConfig, MAX_AUCTION_MANAGER_SIZE, PREFIX,
         },
         utils::{
-            assert_initialized, assert_owned_by, assert_rent_exempt, create_or_allocate_account_raw,
+            assert_initialized, assert_owned_by, assert_rent_exempt,
+            create_or_allocate_account_raw, transfer_metadata_ownership,
         },
     },
     borsh::{BorshDeserialize, BorshSerialize},
@@ -22,7 +23,10 @@ use {
     },
     spl_auction::processor::AuctionData,
     spl_token::state::{Account, Mint},
-    spl_token_metadata::state::{Edition, MasterEdition, Metadata},
+    spl_token_metadata::{
+        state::{Edition, MasterEdition, Metadata},
+        utils::assert_update_authority_is_correct,
+    },
     spl_token_vault::state::{ExternalPriceAccount, SafetyDepositBox, Vault, VaultState},
 };
 
@@ -43,6 +47,7 @@ pub fn process_instruction(
         }
     }
 }
+
 pub fn process_validate_safety_deposit_box(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
@@ -53,10 +58,12 @@ pub fn process_validate_safety_deposit_box(
     let safety_deposit_info = next_account_info(account_info_iter)?;
     let store_info = next_account_info(account_info_iter)?;
     let metadata_info = next_account_info(account_info_iter)?;
+    let name_symbol_info = next_account_info(account_info_iter)?;
     let mint_info = next_account_info(account_info_iter)?;
     let edition_info = next_account_info(account_info_iter)?;
     let vault_info = next_account_info(account_info_iter)?;
     let authority_info = next_account_info(account_info_iter)?;
+    let metadata_authority_info = next_account_info(account_info_iter)?;
 
     let mut auction_manager: AuctionManager =
         try_from_slice_unchecked(&auction_manager_info.data.borrow_mut())?;
@@ -68,6 +75,13 @@ pub fn process_validate_safety_deposit_box(
     let _vault: Vault = try_from_slice_unchecked(&vault_info.data.borrow_mut())?;
     // Is it a real mint?
     let _mint: Mint = assert_initialized(mint_info)?;
+
+    assert_update_authority_is_correct(
+        &metadata,
+        metadata_info,
+        Some(name_symbol_info),
+        metadata_authority_info,
+    )?;
 
     if auction_manager.authority != *authority_info.key {
         return Err(MetaplexError::AuctionManagerAuthorityMismatch.into());
@@ -164,6 +178,35 @@ pub fn process_validate_safety_deposit_box(
             {
                 return Err(MetaplexError::CannotAuctionOffMoreThanOneOfMasterEditionItself.into());
             }
+
+            let seeds = &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()];
+            let (_, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
+            let authority_seeds = &[
+                PREFIX.as_bytes(),
+                &auction_manager.auction.as_ref(),
+                &[bump_seed],
+            ];
+            transfer_metadata_ownership(
+                &metadata,
+                auction_manager.token_metadata_program,
+                metadata_info.clone(),
+                name_symbol_info.clone(),
+                metadata_authority_info.clone(),
+                auction_manager_info.clone(),
+                authority_seeds,
+            )?;
+
+            winning_config.has_authority = true;
+            auction_manager
+                .state
+                .master_editions_with_authorities_remaining_to_return = match auction_manager
+                .state
+                .master_editions_with_authorities_remaining_to_return
+                .checked_add(1)
+            {
+                Some(val) => val,
+                None => return Err(MetaplexError::NumericalOverflowError.into()),
+            };
         }
         EditionType::Edition => {
             if edition_key != *edition_info.key {
