@@ -6,8 +6,9 @@ use {
 pub const PREFIX: &str = "metaplex";
 
 pub const MAX_WINNERS: usize = 200;
-pub const MAX_WINNER_SIZE: usize = 3 * MAX_WINNERS;
-pub const MAX_AUCTION_MANAGER_SIZE: usize = 1 + 32 + 32 + 1 + 1 + 1 + 1 + MAX_WINNER_SIZE + 2 + 9;
+pub const MAX_WINNER_SIZE: usize = 4 * MAX_WINNERS;
+pub const MAX_AUCTION_MANAGER_SIZE: usize =
+    1 + 32 + 32 + 32 + 32 + 32 + 1 + 1 + 1 + 1 + MAX_WINNER_SIZE + 2 + 9;
 
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
@@ -24,9 +25,15 @@ pub enum Key {
 pub struct AuctionManager {
     pub key: Key,
 
+    pub authority: Pubkey,
+
     pub auction: Pubkey,
 
     pub vault: Pubkey,
+
+    pub token_metadata_program: Pubkey,
+
+    pub token_program: Pubkey,
 
     pub state: AuctionManagerState,
 
@@ -57,7 +64,7 @@ pub struct AuctionManagerSettings {
 
     /// The safety deposit box index in the vault containing the winning items, in order of place
     /// The same index can appear multiple times if that index contains n tokens for n appearances (this will be checked)
-    pub winning_configs: Vec<WinningConfigs>,
+    pub winning_configs: Vec<WinningConfig>,
 
     /// The safety deposit box index in the vault containing the template for the open edition
     pub open_edition_config: Option<u8>,
@@ -83,19 +90,33 @@ pub enum NonWinningConstraint {
 }
 
 #[repr(C)]
-#[derive(Clone, BorshSerialize, BorshDeserialize)]
-pub struct WinningConfigs {
+#[derive(Clone, PartialEq, BorshSerialize, BorshDeserialize, Copy)]
+pub enum EditionType {
+    // Not an edition
+    NA,
+    /// Means you are auctioning off the master edition record
+    MasterEdition,
+    /// Means you are using the master edition to print off new editions during the auction (limited or open edition)
+    MasterEditionAsTemplate,
+    /// Means you are indicating this is an Edition, not a Master Edition, and you are auctioning it
+    Edition,
+}
+
+#[repr(C)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, Copy)]
+pub struct WinningConfig {
     pub safety_deposit_box_index: u8,
     pub amount: u8,
     /// Each safety deposit box needs to be validated via endpoint before auction manager will agree to let auction begin.
     pub validated: bool,
-    pub is_edition: bool,
+    pub edition_type: EditionType,
 }
 
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize)]
 pub enum AuctionManagerStatus {
     Initialized,
+    Validated,
     Running,
     Disbursing,
     Finished,

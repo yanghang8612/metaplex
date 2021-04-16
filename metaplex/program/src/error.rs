@@ -61,6 +61,12 @@ pub enum MetaplexError {
     )]
     AuctionAuthorityMismatch,
 
+    /// The authority passed to the call does not match the authority on the auction manager!
+    #[error(
+        "The authority passed to the call does not match the authority on the auction manager!"
+    )]
+    AuctionManagerAuthorityMismatch,
+
     /// Auction Manager does not have the appropriate pda key with seed ['metaplex', auction_key]
     #[error(
         "Auction Manager does not have the appropriate pda key with seed ['metaplex', auction_key]"
@@ -79,6 +85,32 @@ pub enum MetaplexError {
     #[error("Auction is not auctioning off the vault given!")]
     AuctionVaultMismatch,
 
+    /// Vault given does not match that on given auction manager!
+    #[error("Vault given does not match that on given auction manager!")]
+    AuctionManagerVaultMismatch,
+
+    /// The safety deposit box given does not belong to the given vault!
+    #[error("The safety deposit box given does not belong to the given vault!")]
+    SafetyDepositBoxVaultMismatch,
+
+    /// The store given does not belong to the safety deposit box given!
+    #[error("The store given does not belong to the safety deposit box given!")]
+    SafetyDepositBoxStoreMismatch,
+
+    /// The metadata given does not match the mint on the safety deposit box given!
+    #[error("The metadata given does not match the mint on the safety deposit box given!")]
+    SafetyDepositBoxMetadataMismatch,
+
+    /// The mint given does not match the mint on the given safety deposit box!
+    #[error("The mint given does not match the mint on the given safety deposit box!")]
+    SafetyDepositBoxMintMismatch,
+
+    /// The mint is owned by a different token program than the one used by this auction manager!
+    #[error(
+        "The mint is owned by a different token program than the one used by this auction manager!"
+    )]
+    TokenProgramMismatch,
+
     /// Only active vaults may be used in auction managers!
     #[error("Only active vaults may be used in auction managers!")]
     VaultNotActive,
@@ -94,6 +126,38 @@ pub enum MetaplexError {
     /// Cant use a limited supply edition for an open edition as you may run out of editions to print
     #[error("Cant use a limited supply edition for an open edition as you may run out of editions to print")]
     CantUseLimitedSupplyEditionsWithOpenEditionAuction,
+
+    /// This safety deposit box is not listed as a prize in this auction manager!
+    #[error("This safety deposit box is not listed as a prize in this auction manager!")]
+    SafetyDepositBoxNotUsedInAuction,
+
+    /// Auction Manager Authority needs to be signer for this action!
+    #[error("Auction Manager Authority needs to be signer for this action!")]
+    AuctionManagerAuthorityIsNotSigner,
+
+    /// Either you have given a non-existent edition address or you have given the address to a different token-metadata program than was used to make this edition!
+    #[error("Either you have given a non-existent edition address or you have given the address to a different token-metadata program than was used to make this edition!")]
+    InvalidEditionAddress,
+
+    /// There are not enough editions available for this auction!
+    #[error("There are not enough editions available for this auction!")]
+    NotEnoughEditionsAvailableForAuction,
+
+    /// The store in the safety deposit is empty, so you have nothing to auction!
+    #[error("The store in the safety deposit is empty, so you have nothing to auction!")]
+    StoreIsEmpty,
+
+    /// Cannot auction off more than one of the master edition itself!
+    #[error("Cannot auction off more than one of the master edition itself!")]
+    CannotAuctionOffMoreThanOneOfMasterEditionItself,
+
+    /// Cannot auction off more than one of a limited edition!
+    #[error("Cannot auction off more than one of a limited edition!")]
+    CannotAuctionOffMoreThanOneOfLimitedEdition,
+
+    /// Not enough tokens to supply winners!
+    #[error("Not enough tokens to supply winners!")]
+    NotEnoughTokensToSupplyWinners,
 }
 
 impl PrintProgramError for MetaplexError {

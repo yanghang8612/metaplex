@@ -18,10 +18,26 @@ pub enum MetaplexInstruction {
     ///   2. `[]` Auction with auctioned item being set to the vault given and authority set to this program's pda of ['metaplex', auction_key]
     ///   3. `[]` External Pricing Account which must be owned by this program
     ///   4. `[]` Open edition MasterEdition account (optional - only if using this feature)
-    ///   6. `[signer]` Payer
-    ///   7. `[]` System sysvar
-    ///   8. `[]` Rent sysvar
+    ///   5. `[]` Open edition Mint account (optional - only if using this feature)
+    ///   6. `[]` Authority for the Auction Manager
+    ///   7. `[signer]` Payer
+    ///   8. `[]` Token program
+    ///   9. `[]` Token metadata program
+    ///   10. `[]` System sysvar
+    ///   11. `[]` Rent sysvar
     InitAuctionManager(AuctionManagerSettings),
+
+    /// Validates that a given safety deposit box has in it contents that match the expected WinningConfig in the auction manager.
+    /// A stateful call, this will error out if you call it a second time after validation has occurred.
+    ///   0. `[writable]` Auction manager
+    ///   1. `[]` Safety deposit box account
+    ///   2. `[]` Store account of safety deposit box
+    ///   3. `[]` Mint account of the token in the safety deposit box
+    ///   4. `[]` Metadata account
+    ///   5. `[]` Edition OR MasterEdition record (if this safety deposit item contains a mint that has either)
+    ///   6. `[]` Vault account
+    ///   7. `[signer]` Authority
+    ValidateSafetyDepositBox,
 }
 /*
 /// Creates an InitMetaplex instruction
