@@ -25,7 +25,7 @@ use {
         rent::Rent,
         sysvar::Sysvar,
     },
-    spl_auction::processor::{AuctionData, BidderMetadata},
+    spl_auction::processor::AuctionData,
     spl_token::state::{Account, Mint},
     spl_token_metadata::{
         state::{MasterEdition, Metadata},
@@ -71,6 +71,7 @@ pub fn process_instruction(
         }
     }
 }
+
 pub fn process_redeem_open_edition_bid(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
@@ -90,15 +91,14 @@ pub fn process_redeem_open_edition_bid(
     let token_program_info = next_account_info(account_info_iter)?;
     let token_vault_program_info = next_account_info(account_info_iter)?;
     let token_metadata_program_info = next_account_info(account_info_iter)?;
-    let rent_info = next_account_info(account_info_iter)?;
     let system_info = next_account_info(account_info_iter)?;
+    let rent_info = next_account_info(account_info_iter)?;
     let clock_info = next_account_info(account_info_iter)?;
 
     let new_metadata_info = next_account_info(account_info_iter)?;
     let destination_mint_info = next_account_info(account_info_iter)?;
     let destination_mint_authority_info = next_account_info(account_info_iter)?;
     let master_metadata_info = next_account_info(account_info_iter)?;
-    let open_edition_destination_info = next_account_info(account_info_iter)?;
     let new_edition_info = next_account_info(account_info_iter)?;
     let master_edition_info = next_account_info(account_info_iter)?;
 
@@ -146,11 +146,6 @@ pub fn process_redeem_open_edition_bid(
     }
 
     if gets_open_edition {
-        let _destination: Account = assert_initialized(open_edition_destination_info)?;
-
-        assert_owned_by(destination_info, token_program_info.key)?;
-        assert_rent_exempt(rent, destination_info)?;
-
         let seeds = &[PREFIX.as_bytes(), &auction_manager_info.key.as_ref()];
         let (_, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
         let mint_seeds = &[
@@ -208,8 +203,8 @@ pub fn process_redeem_master_edition_bid(
     let token_program_info = next_account_info(account_info_iter)?;
     let token_vault_program_info = next_account_info(account_info_iter)?;
     let token_metadata_program_info = next_account_info(account_info_iter)?;
-    let rent_info = next_account_info(account_info_iter)?;
     let system_info = next_account_info(account_info_iter)?;
+    let rent_info = next_account_info(account_info_iter)?;
     let clock_info = next_account_info(account_info_iter)?;
 
     let metadata_info = next_account_info(account_info_iter)?;
@@ -358,8 +353,8 @@ pub fn process_redeem_limited_edition_bid(
     let token_program_info = next_account_info(account_info_iter)?;
     let token_vault_program_info = next_account_info(account_info_iter)?;
     let token_metadata_program_info = next_account_info(account_info_iter)?;
-    let rent_info = next_account_info(account_info_iter)?;
     let system_info = next_account_info(account_info_iter)?;
+    let rent_info = next_account_info(account_info_iter)?;
     let clock_info = next_account_info(account_info_iter)?;
 
     let new_metadata_info = next_account_info(account_info_iter)?;
@@ -518,8 +513,8 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
     let token_program_info = next_account_info(account_info_iter)?;
     let token_vault_program_info = next_account_info(account_info_iter)?;
     let token_metadata_program_info = next_account_info(account_info_iter)?;
-    let rent_info = next_account_info(account_info_iter)?;
     let system_info = next_account_info(account_info_iter)?;
+    let rent_info = next_account_info(account_info_iter)?;
     let clock_info = next_account_info(account_info_iter)?;
 
     let transfer_authority_info = next_account_info(account_info_iter)?;

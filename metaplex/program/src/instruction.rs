@@ -75,8 +75,8 @@ pub enum MetaplexInstruction {
     ///   10. `[]` Token program
     ///   11. `[]` Token Vault program
     ///   12. `[]` Token metadata program
-    ///   13. `[]` Rent sysvar
-    ///   14. `[]` System
+    ///   13. `[]` System
+    ///   14. `[]` Rent sysvar
     ///   15. `[]` Clock sysvar.
     ///   16. `[]` PDA-based Transfer authority to move the tokens from the store to the destination seed ['vault', program_id]
     ///        but please note that this is a PDA relative to the Token Vault program, with the 'vault' prefix
@@ -105,11 +105,11 @@ pub enum MetaplexInstruction {
     ///   10. `[]` Token program
     ///   11. `[]` Token Vault program
     ///   12. `[]` Token metadata program
-    ///   13. `[]` Rent sysvar
-    ///   14. `[]` System
+    ///   13. `[]` System
+    ///   14. `[]` Rent sysvar
     ///   15. `[]` Clock sysvar.
     ///   16. `[writable]` Master Metadata account (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   17. `[writable]` Name symbol tuple account
+    ///   17. `[writable]` Master Name symbol tuple account
     ///           (This account is optional, and will only be used if metadata is unique, otherwise this account key will be ignored no matter it's value)
     ///   18. `[]` New authority for Master Metadata - If you are taking ownership of a Master Edition in and of itself, or a Limited Edition that isn't newly minted for you during this auction
     ///             ie someone else had it minted for themselves in a prior auction or through some other means, this is the account the metadata for these tokens will be delegated to
@@ -148,8 +148,8 @@ pub enum MetaplexInstruction {
     ///   10. `[]` Token program
     ///   11. `[]` Token Vault program
     ///   12. `[]` Token metadata program
-    ///   13. `[]` Rent sysvar
-    ///   14. `[]` System
+    ///   13. `[]` System
+    ///   14. `[]` Rent sysvar
     ///   15. `[]` Clock sysvar.
     ///   16. `[writable]` New Limited Edition Metadata (pda of ['metadata', program id, newly made mint id]) - remember PDA is relative to token metadata program
     ///   17. `[writable]` Mint of destination account. This needs to be a newly created mint and the destination account
@@ -191,21 +191,16 @@ pub enum MetaplexInstruction {
     ///   10. `[]` Token program
     ///   11. `[]` Token Vault program
     ///   12. `[]` Token metadata program
-    ///   13. `[]` Rent sysvar
-    ///   14. `[]` System
+    ///   13. `[]` System
+    ///   14. `[]` Rent sysvar
     ///   15. `[]` Clock sysvar.
     ///   16. `[writable]` New Open Edition Metadata (pda of ['metadata', program id, newly made mint id]) - remember PDA is relative to token metadata program
     ///   17. `[writable]` Mint of destination account. This needs to be a newly created mint and the destination account
-    ///                   needs to have exactly one token in it already. We will simply "grant" the limited edition status on this token.
-    ///   18. `[signer]` Destination mint authority - this account is optional, and will only be used/checked if you are receiving a newly minted limited edition.
+    ///                   needs to have exactly one token in it already. We will simply "grant" the open edition status on this token.
+    ///   18. `[signer]` Destination mint authority - this account is optional, and will only be used/checked if you are receiving a newly minted open edition.
     ///   19. `[]` Master Metadata (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   20. `[]` Destination account with a single token in it
-    ///   21. `[]` New Limited Edition (pda of ['metadata', program id, newly made mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   22. `[]` Master Edition (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   23. `[]` Original authority on the Master Metadata, which can be gotten via reading off the key from lookup of OriginalAuthorityLookup struct with
-    ///            key of (pda of ['metaplex', auction key, master metadata key]).
-    ///            We'll use this to grant back authority to the owner of the master metadata if we no longer need it after this latest minting.
-    ///   24. `[]` Original authority Lookup key - pda of ['metaplex', auction key, master metadata key]
+    ///   20. `[]` New Open Edition (pda of ['metadata', program id, newly made mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   21. `[]` Master Edition (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
     RedeemOpenEditionBid,
 
     /// If the auction manager is in Validated state, it can invoke the start command via calling this command here.
@@ -213,39 +208,321 @@ pub enum MetaplexInstruction {
     ///   0. `[writable]` Auction manager
     ///   1. `[writable]` Auction
     ///   2. `[signer]` Auction manager authority
-    ///   3. `[signer]` Auction program
+    ///   3. `[]` Auction program
     StartAuction,
 }
-/*
-/// Creates an InitMetaplex instruction
+
+/// Creates an InitAuctionManager instruction
 #[allow(clippy::too_many_arguments)]
 pub fn create_init_vault_instruction(
     program_id: Pubkey,
-    fraction_mint: Pubkey,
-    redeem_treasury: Pubkey,
-    fraction_treasury: Pubkey,
+    auction_manager: Pubkey,
     vault: Pubkey,
-    vault_authority: Pubkey,
-    external_price_account: Pubkey,
-    allow_further_share_creation: bool,
+    auction: Pubkey,
+    external_pricing_account: Pubkey,
+    open_edition_master_edition: Pubkey,
+    open_edition_mint: Pubkey,
+    auction_manager_authority: Pubkey,
+    payer: Pubkey,
+    token_vault_program: Pubkey,
+    token_metadata_program: Pubkey,
+    auction_program: Pubkey,
+    settings: AuctionManagerSettings,
 ) -> Instruction {
     Instruction {
         program_id,
         accounts: vec![
-            AccountMeta::new(fraction_mint, false),
-            AccountMeta::new(redeem_treasury, false),
-            AccountMeta::new(fraction_treasury, false),
-            AccountMeta::new(vault, false),
-            AccountMeta::new_readonly(vault_authority, false),
-            AccountMeta::new_readonly(external_price_account, false),
+            AccountMeta::new(auction_manager, false),
+            AccountMeta::new_readonly(vault, false),
+            AccountMeta::new_readonly(auction, false),
+            AccountMeta::new_readonly(external_pricing_account, false),
+            AccountMeta::new_readonly(open_edition_master_edition, false),
+            AccountMeta::new_readonly(open_edition_mint, false),
+            AccountMeta::new_readonly(auction_manager_authority, false),
+            AccountMeta::new_readonly(payer, true),
             AccountMeta::new_readonly(spl_token::id(), false),
+            AccountMeta::new_readonly(token_vault_program, false),
+            AccountMeta::new_readonly(token_metadata_program, false),
+            AccountMeta::new_readonly(auction_program, false),
+            AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
         ],
-        data: MetaplexInstruction::InitMetaplex(InitMetaplexArgs {
-            allow_further_share_creation,
-        })
-        .try_to_vec()
-        .unwrap(),
+        data: MetaplexInstruction::InitAuctionManager(settings)
+            .try_to_vec()
+            .unwrap(),
     }
 }
-*/
+
+/// Creates an ValidateSafetyDepositBox instruction
+#[allow(clippy::too_many_arguments)]
+pub fn create_validate_safety_deposit_box_instruction(
+    program_id: Pubkey,
+    auction_manager: Pubkey,
+    metadata: Pubkey,
+    name_symbol: Pubkey,
+    original_authority_lookup: Pubkey,
+    safety_deposit_box: Pubkey,
+    store: Pubkey,
+    safety_deposit_mint: Pubkey,
+    edition: Pubkey,
+    vault: Pubkey,
+    auction_manager_authority: Pubkey,
+    metadata_authority: Pubkey,
+    payer: Pubkey,
+    token_metadata_program: Pubkey,
+) -> Instruction {
+    Instruction {
+        program_id,
+        accounts: vec![
+            AccountMeta::new(auction_manager, false),
+            AccountMeta::new(metadata, false),
+            AccountMeta::new(name_symbol, false),
+            AccountMeta::new(original_authority_lookup, false),
+            AccountMeta::new_readonly(safety_deposit_box, false),
+            AccountMeta::new_readonly(store, false),
+            AccountMeta::new_readonly(safety_deposit_mint, false),
+            AccountMeta::new_readonly(edition, false),
+            AccountMeta::new_readonly(vault, false),
+            AccountMeta::new_readonly(auction_manager_authority, true),
+            AccountMeta::new_readonly(metadata_authority, true),
+            AccountMeta::new_readonly(payer, true),
+            AccountMeta::new_readonly(token_metadata_program, false),
+            AccountMeta::new_readonly(solana_program::system_program::id(), false),
+            AccountMeta::new_readonly(sysvar::rent::id(), false),
+        ],
+        data: MetaplexInstruction::ValidateSafetyDepositBox
+            .try_to_vec()
+            .unwrap(),
+    }
+}
+
+/// Creates an RedeemBid instruction
+#[allow(clippy::too_many_arguments)]
+pub fn create_redeem_bid_instruction(
+    program_id: Pubkey,
+    auction_manager: Pubkey,
+    store: Pubkey,
+    destination: Pubkey,
+    bid_redemption: Pubkey,
+    safety_deposit_box: Pubkey,
+    fraction_mint: Pubkey,
+    vault: Pubkey,
+    auction: Pubkey,
+    bidder_metadata: Pubkey,
+    payer: Pubkey,
+    token_vault_program: Pubkey,
+    token_metadata_program: Pubkey,
+    transfer_authority: Pubkey,
+) -> Instruction {
+    Instruction {
+        program_id,
+        accounts: vec![
+            AccountMeta::new(auction_manager, false),
+            AccountMeta::new(store, false),
+            AccountMeta::new(destination, false),
+            AccountMeta::new(bid_redemption, false),
+            AccountMeta::new_readonly(safety_deposit_box, false),
+            AccountMeta::new_readonly(fraction_mint, false),
+            AccountMeta::new_readonly(vault, false),
+            AccountMeta::new_readonly(auction, false),
+            AccountMeta::new_readonly(bidder_metadata, false),
+            AccountMeta::new_readonly(payer, true),
+            AccountMeta::new_readonly(spl_token::id(), false),
+            AccountMeta::new_readonly(token_vault_program, false),
+            AccountMeta::new_readonly(token_metadata_program, false),
+            AccountMeta::new_readonly(solana_program::system_program::id(), false),
+            AccountMeta::new_readonly(sysvar::rent::id(), false),
+            AccountMeta::new_readonly(sysvar::clock::id(), false),
+            AccountMeta::new_readonly(transfer_authority, false),
+        ],
+        data: MetaplexInstruction::RedeemBid.try_to_vec().unwrap(),
+    }
+}
+
+/// Creates an RedeemMasterEditionBid instruction
+#[allow(clippy::too_many_arguments)]
+pub fn create_redeem_master_edition_bid_instruction(
+    program_id: Pubkey,
+    auction_manager: Pubkey,
+    store: Pubkey,
+    destination: Pubkey,
+    bid_redemption: Pubkey,
+    safety_deposit_box: Pubkey,
+    fraction_mint: Pubkey,
+    vault: Pubkey,
+    auction: Pubkey,
+    bidder_metadata: Pubkey,
+    payer: Pubkey,
+    token_vault_program: Pubkey,
+    token_metadata_program: Pubkey,
+    master_metadata: Pubkey,
+    master_name_symbol: Pubkey,
+    new_metadata_authority: Pubkey,
+    transfer_authority: Pubkey,
+) -> Instruction {
+    Instruction {
+        program_id,
+        accounts: vec![
+            AccountMeta::new(auction_manager, false),
+            AccountMeta::new(store, false),
+            AccountMeta::new(destination, false),
+            AccountMeta::new(bid_redemption, false),
+            AccountMeta::new_readonly(safety_deposit_box, false),
+            AccountMeta::new_readonly(fraction_mint, false),
+            AccountMeta::new_readonly(vault, false),
+            AccountMeta::new_readonly(auction, false),
+            AccountMeta::new_readonly(bidder_metadata, false),
+            AccountMeta::new_readonly(payer, true),
+            AccountMeta::new_readonly(spl_token::id(), false),
+            AccountMeta::new_readonly(token_vault_program, false),
+            AccountMeta::new_readonly(token_metadata_program, false),
+            AccountMeta::new_readonly(solana_program::system_program::id(), false),
+            AccountMeta::new_readonly(sysvar::rent::id(), false),
+            AccountMeta::new_readonly(sysvar::clock::id(), false),
+            AccountMeta::new(master_metadata, false),
+            AccountMeta::new(master_name_symbol, false),
+            AccountMeta::new_readonly(new_metadata_authority, false),
+            AccountMeta::new_readonly(transfer_authority, false),
+        ],
+        data: MetaplexInstruction::RedeemMasterEditionBid
+            .try_to_vec()
+            .unwrap(),
+    }
+}
+
+/// Creates an RedeemLimitedEditionBid instruction
+#[allow(clippy::too_many_arguments)]
+pub fn create_redeem_limited_edition_bid_instruction(
+    program_id: Pubkey,
+    auction_manager: Pubkey,
+    store: Pubkey,
+    destination: Pubkey,
+    bid_redemption: Pubkey,
+    safety_deposit_box: Pubkey,
+    fraction_mint: Pubkey,
+    vault: Pubkey,
+    auction: Pubkey,
+    bidder_metadata: Pubkey,
+    payer: Pubkey,
+    token_vault_program: Pubkey,
+    token_metadata_program: Pubkey,
+    new_limited_edition_metadata: Pubkey,
+    destination_mint: Pubkey,
+    destination_mint_authority: Pubkey,
+    master_metadata: Pubkey,
+    master_name_symbol: Pubkey,
+    new_limited_edition: Pubkey,
+    master_edition: Pubkey,
+    original_authority: Pubkey,
+    original_authority_lookup: Pubkey,
+) -> Instruction {
+    Instruction {
+        program_id,
+        accounts: vec![
+            AccountMeta::new(auction_manager, false),
+            AccountMeta::new(store, false),
+            AccountMeta::new(destination, false),
+            AccountMeta::new(bid_redemption, false),
+            AccountMeta::new_readonly(safety_deposit_box, false),
+            AccountMeta::new_readonly(fraction_mint, false),
+            AccountMeta::new_readonly(vault, false),
+            AccountMeta::new_readonly(auction, false),
+            AccountMeta::new_readonly(bidder_metadata, false),
+            AccountMeta::new_readonly(payer, true),
+            AccountMeta::new_readonly(spl_token::id(), false),
+            AccountMeta::new_readonly(token_vault_program, false),
+            AccountMeta::new_readonly(token_metadata_program, false),
+            AccountMeta::new_readonly(solana_program::system_program::id(), false),
+            AccountMeta::new_readonly(sysvar::rent::id(), false),
+            AccountMeta::new_readonly(sysvar::clock::id(), false),
+            AccountMeta::new(new_limited_edition_metadata, false),
+            AccountMeta::new(destination_mint, false),
+            AccountMeta::new_readonly(destination_mint_authority, true),
+            AccountMeta::new_readonly(master_metadata, false),
+            AccountMeta::new_readonly(master_name_symbol, false),
+            AccountMeta::new_readonly(new_limited_edition, false),
+            AccountMeta::new_readonly(master_edition, false),
+            AccountMeta::new_readonly(original_authority, false),
+            AccountMeta::new_readonly(original_authority_lookup, false),
+        ],
+        data: MetaplexInstruction::RedeemLimitedEditionBid
+            .try_to_vec()
+            .unwrap(),
+    }
+}
+
+/// Creates an RedeemOpenEditionBid instruction
+#[allow(clippy::too_many_arguments)]
+pub fn create_redeem_open_edition_bid_instruction(
+    program_id: Pubkey,
+    auction_manager: Pubkey,
+    store: Pubkey,
+    destination: Pubkey,
+    bid_redemption: Pubkey,
+    safety_deposit_box: Pubkey,
+    fraction_mint: Pubkey,
+    vault: Pubkey,
+    auction: Pubkey,
+    bidder_metadata: Pubkey,
+    payer: Pubkey,
+    token_vault_program: Pubkey,
+    token_metadata_program: Pubkey,
+    new_open_edition_metadata: Pubkey,
+    destination_mint: Pubkey,
+    destination_mint_authority: Pubkey,
+    master_metadata: Pubkey,
+    new_open_edition: Pubkey,
+    master_edition: Pubkey,
+) -> Instruction {
+    Instruction {
+        program_id,
+        accounts: vec![
+            AccountMeta::new(auction_manager, false),
+            AccountMeta::new(store, false),
+            AccountMeta::new(destination, false),
+            AccountMeta::new(bid_redemption, false),
+            AccountMeta::new_readonly(safety_deposit_box, false),
+            AccountMeta::new_readonly(fraction_mint, false),
+            AccountMeta::new_readonly(vault, false),
+            AccountMeta::new_readonly(auction, false),
+            AccountMeta::new_readonly(bidder_metadata, false),
+            AccountMeta::new_readonly(payer, true),
+            AccountMeta::new_readonly(spl_token::id(), false),
+            AccountMeta::new_readonly(token_vault_program, false),
+            AccountMeta::new_readonly(token_metadata_program, false),
+            AccountMeta::new_readonly(solana_program::system_program::id(), false),
+            AccountMeta::new_readonly(sysvar::rent::id(), false),
+            AccountMeta::new_readonly(sysvar::clock::id(), false),
+            AccountMeta::new(new_open_edition_metadata, false),
+            AccountMeta::new(destination_mint, false),
+            AccountMeta::new_readonly(destination_mint_authority, true),
+            AccountMeta::new_readonly(master_metadata, false),
+            AccountMeta::new_readonly(new_open_edition, false),
+            AccountMeta::new_readonly(master_edition, false),
+        ],
+        data: MetaplexInstruction::RedeemOpenEditionBid
+            .try_to_vec()
+            .unwrap(),
+    }
+}
+
+/// Creates an StartAuction instruction
+#[allow(clippy::too_many_arguments)]
+pub fn create_start_auction_instruction(
+    program_id: Pubkey,
+    auction_manager: Pubkey,
+    auction: Pubkey,
+    auction_manager_authority: Pubkey,
+    auction_program: Pubkey,
+) -> Instruction {
+    Instruction {
+        program_id,
+        accounts: vec![
+            AccountMeta::new(auction_manager, false),
+            AccountMeta::new(auction, false),
+            AccountMeta::new_readonly(auction_manager_authority, true),
+            AccountMeta::new_readonly(auction_program, false),
+        ],
+        data: MetaplexInstruction::StartAuction.try_to_vec().unwrap(),
+    }
+}
