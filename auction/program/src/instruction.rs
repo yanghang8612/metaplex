@@ -1,8 +1,6 @@
 use crate::{
     processor::{
-        cancel_bid::CancelBidArgs,
-        create_auction::CreateAuctionArgs,
-        place_bid::PlaceBidArgs,
+        cancel_bid::CancelBidArgs, create_auction::CreateAuctionArgs, place_bid::PlaceBidArgs,
         start_auction::StartAuctionArgs,
     },
     PREFIX,
@@ -68,18 +66,12 @@ pub fn start_auction(
             AccountMeta::new_readonly(sysvar::rent::id(), false),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
         ],
-        data: AuctionInstruction::StartAuction(args)
-            .try_to_vec()
-            .unwrap(),
+        data: AuctionInstruction::StartAuction(args).try_to_vec().unwrap(),
     }
 }
 
 /// Creates an PlaceBid instruction.
-pub fn place_bid(
-    program_id: Pubkey,
-    bidder_pubkey: Pubkey,
-    args: PlaceBidArgs,
-) -> Instruction {
+pub fn place_bid(program_id: Pubkey, bidder_pubkey: Pubkey, args: PlaceBidArgs) -> Instruction {
     // Derive Auction Key
     let seeds = &[
         PREFIX.as_bytes(),
@@ -118,8 +110,6 @@ pub fn place_bid(
             AccountMeta::new_readonly(sysvar::rent::id(), false),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
         ],
-        data: AuctionInstruction::PlaceBid(args)
-            .try_to_vec()
-            .unwrap(),
+        data: AuctionInstruction::PlaceBid(args).try_to_vec().unwrap(),
     }
 }

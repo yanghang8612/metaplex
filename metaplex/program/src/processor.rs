@@ -6,14 +6,13 @@ use {
         instruction::MetaplexInstruction,
         state::{
             AuctionManager, AuctionManagerSettings, AuctionManagerStatus, EditionType, Key,
-            NonWinningConstraint, WinningConfig, WinningConfigState, WinningConstraint,
-            MAX_AUCTION_MANAGER_SIZE, PREFIX,
+            NonWinningConstraint, OriginalAuthorityLookup, WinningConfig, WinningConfigState,
+            WinningConstraint, MAX_AUCTION_MANAGER_SIZE, PREFIX,
         },
         utils::{
             assert_authority_correct, assert_initialized, assert_owned_by, assert_rent_exempt,
-            assert_store_safety_vault_manager_match, create_or_allocate_account_raw,
-            mint_edition_from_account_iterator, transfer_metadata_ownership,
-            transfer_safety_deposit_box_items,
+            assert_store_safety_vault_manager_match, create_or_allocate_account_raw, mint_edition,
+            transfer_metadata_ownership, transfer_safety_deposit_box_items,
         },
     },
     borsh::{BorshDeserialize, BorshSerialize},
@@ -29,7 +28,7 @@ use {
     spl_auction::processor::{AuctionData, BidderMetadata},
     spl_token::state::{Account, Mint},
     spl_token_metadata::{
-        state::{Edition, MasterEdition, Metadata},
+        state::{MasterEdition, Metadata},
         utils::assert_update_authority_is_correct,
     },
     spl_token_vault::state::{ExternalPriceAccount, SafetyDepositBox, Vault, VaultState},
@@ -225,12 +224,33 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
 
                     EditionType::MasterEditionAsTemplate => {
                         // In this case we need to mint a limited edition for you!
-                        mint_edition_from_account_iterator(
-                            *program_id,
-                            auction_manager_info,
-                            token_metadata_program_info,
-                            payer_info,
-                            account_info_iter,
+                        let new_metadata_info = next_account_info(account_info_iter)?;
+                        let destination_mint_info = next_account_info(account_info_iter)?;
+                        let destination_mint_authority_info = next_account_info(account_info_iter)?;
+                        let master_metadata_info = next_account_info(account_info_iter)?;
+                        let master_name_symbol_info = next_account_info(account_info_iter)?;
+                        let new_edition_info = next_account_info(account_info_iter)?;
+                        let master_edition_info = next_account_info(account_info_iter)?;
+
+                        let seeds = &[PREFIX.as_bytes(), &auction_manager_info.key.as_ref()];
+                        let (_, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
+                        let mint_seeds = &[
+                            PREFIX.as_bytes(),
+                            &auction_manager_info.key.as_ref(),
+                            &[bump_seed],
+                        ];
+
+                        mint_edition(
+                            token_metadata_program_info.clone(),
+                            new_metadata_info.clone(),
+                            new_edition_info.clone(),
+                            master_edition_info.clone(),
+                            destination_mint_info.clone(),
+                            destination_mint_authority_info.clone(),
+                            payer_info.clone(),
+                            auction_manager_info.clone(),
+                            master_metadata_info.clone(),
+                            mint_seeds,
                         )?;
 
                         winning_config_state.amount_minted =
@@ -241,6 +261,76 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
 
                         if winning_config_state.amount_minted == winning_config.amount {
                             winning_config_state.claimed = true;
+
+                            // we might be able to shift authority back now. check to see others that share also
+                            // are all claimed?
+                            let mut any_unclaimed = false;
+                            for n in 0..auction_manager.state.winning_config_states.len() {
+                                let config = auction_manager.settings.winning_configs[n];
+                                let state = auction_manager.state.winning_config_states[n];
+                                if config.safety_deposit_box_index
+                                    == winning_config.safety_deposit_box_index
+                                    && state.claimed == false
+                                {
+                                    any_unclaimed = true;
+                                    break;
+                                }
+                            }
+
+                            if !any_unclaimed {
+                                let original_authority = next_account_info(account_info_iter)?;
+                                let original_authority_lookup_info =
+                                    next_account_info(account_info_iter)?;
+
+                                let original_authority_lookup_seeds = &[
+                                    PREFIX.as_bytes(),
+                                    &auction_manager.auction.as_ref(),
+                                    master_metadata_info.key.as_ref(),
+                                ];
+
+                                let (expected_key, original_bump_seed) =
+                                    Pubkey::find_program_address(
+                                        original_authority_lookup_seeds,
+                                        &program_id,
+                                    );
+
+                                let original_authority_seeds = &[
+                                    PREFIX.as_bytes(),
+                                    &auction_manager.auction.as_ref(),
+                                    master_metadata_info.key.as_ref(),
+                                    &[original_bump_seed],
+                                ];
+
+                                if expected_key != *original_authority_lookup_info.key {
+                                    return Err(
+                                        MetaplexError::OriginalAuthorityLookupKeyMismatch.into()
+                                    );
+                                }
+
+                                let original_authority_lookup: OriginalAuthorityLookup =
+                                    try_from_slice_unchecked(
+                                        &original_authority_lookup_info.data.borrow_mut(),
+                                    )?;
+                                if original_authority_lookup.original_authority
+                                    != *original_authority.key
+                                {
+                                    return Err(MetaplexError::OriginalAuthorityMismatch.into());
+                                }
+
+                                let master_metadata: Metadata = try_from_slice_unchecked(
+                                    &master_metadata_info.data.borrow_mut(),
+                                )?;
+
+                                transfer_metadata_ownership(
+                                    &master_metadata,
+                                    token_metadata_program_info.clone(),
+                                    master_metadata_info.clone(),
+                                    master_name_symbol_info.clone(),
+                                    auction_manager_info.clone(),
+                                    original_authority.clone(),
+                                    original_authority_seeds,
+                                )?;
+                            }
                         } else {
                             // We need to allow the user to make another call to RedeemBid with a new destination_account
                             // For another limited edition!
@@ -315,12 +405,33 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
     }
 
     if gets_open_edition {
-        mint_edition_from_account_iterator(
-            *program_id,
-            auction_manager_info,
-            token_metadata_program_info,
-            payer_info,
-            account_info_iter,
+        let new_metadata_info = next_account_info(account_info_iter)?;
+        let destination_mint_info = next_account_info(account_info_iter)?;
+        let destination_mint_authority_info = next_account_info(account_info_iter)?;
+        let master_metadata_info = next_account_info(account_info_iter)?;
+        let _ = next_account_info(account_info_iter)?;
+        let new_edition_info = next_account_info(account_info_iter)?;
+        let master_edition_info = next_account_info(account_info_iter)?;
+
+        let seeds = &[PREFIX.as_bytes(), &auction_manager_info.key.as_ref()];
+        let (_, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
+        let mint_seeds = &[
+            PREFIX.as_bytes(),
+            &auction_manager_info.key.as_ref(),
+            &[bump_seed],
+        ];
+
+        mint_edition(
+            token_metadata_program_info.clone(),
+            new_metadata_info.clone(),
+            new_edition_info.clone(),
+            master_edition_info.clone(),
+            destination_mint_info.clone(),
+            destination_mint_authority_info.clone(),
+            payer_info.clone(),
+            auction_manager_info.clone(),
+            master_metadata_info.clone(),
+            mint_seeds,
         )?;
     }
 
@@ -373,6 +484,7 @@ pub fn process_validate_safety_deposit_box(
     let auction_manager_info = next_account_info(account_info_iter)?;
     let metadata_info = next_account_info(account_info_iter)?;
     let name_symbol_info = next_account_info(account_info_iter)?;
+    let original_authority_lookup_info = next_account_info(account_info_iter)?;
     let safety_deposit_info = next_account_info(account_info_iter)?;
     let store_info = next_account_info(account_info_iter)?;
     let mint_info = next_account_info(account_info_iter)?;
@@ -380,7 +492,10 @@ pub fn process_validate_safety_deposit_box(
     let vault_info = next_account_info(account_info_iter)?;
     let authority_info = next_account_info(account_info_iter)?;
     let metadata_authority_info = next_account_info(account_info_iter)?;
+    let payer_info = next_account_info(account_info_iter)?;
     let token_metadata_program_info = next_account_info(account_info_iter)?;
+    let system_info = next_account_info(account_info_iter)?;
+    let rent_info = next_account_info(account_info_iter)?;
 
     let mut auction_manager: AuctionManager =
         try_from_slice_unchecked(&auction_manager_info.data.borrow_mut())?;
@@ -517,6 +632,41 @@ pub fn process_validate_safety_deposit_box(
                 auction_manager_info.clone(),
                 authority_seeds,
             )?;
+
+            let original_authority_lookup_seeds = &[
+                PREFIX.as_bytes(),
+                &auction_manager.auction.as_ref(),
+                metadata_info.key.as_ref(),
+            ];
+
+            let (expected_key, original_bump_seed) =
+                Pubkey::find_program_address(original_authority_lookup_seeds, &program_id);
+            let original_authority_seeds = &[
+                PREFIX.as_bytes(),
+                &auction_manager.auction.as_ref(),
+                metadata_info.key.as_ref(),
+                &[original_bump_seed],
+            ];
+
+            if expected_key != *original_authority_lookup_info.key {
+                return Err(MetaplexError::OriginalAuthorityLookupKeyMismatch.into());
+            }
+
+            create_or_allocate_account_raw(
+                *program_id,
+                original_authority_lookup_info,
+                rent_info,
+                system_info,
+                payer_info,
+                32,
+                original_authority_seeds,
+            )?;
+
+            let mut original_authority_lookup: OriginalAuthorityLookup =
+                try_from_slice_unchecked(&original_authority_lookup_info.data.borrow_mut())?;
+            original_authority_lookup.original_authority = *metadata_authority_info.key;
+            original_authority_lookup
+                .serialize(&mut *original_authority_lookup_info.data.borrow_mut())?;
 
             auction_manager
                 .state

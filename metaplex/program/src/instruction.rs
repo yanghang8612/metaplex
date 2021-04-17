@@ -35,15 +35,21 @@ pub enum MetaplexInstruction {
     ///   1. `[writable]` Metadata account
     ///   2. `[writable]` Name symbol tuple account
     ///           (This account is optional, and will only be used if metadata is unique, otherwise this account key will be ignored no matter it's value)
-    ///   3. `[]` Safety deposit box account
-    ///   4. `[]` Store account of safety deposit box
-    ///   5. `[]` Mint account of the token in the safety deposit box
-    ///   6. `[]` Edition OR MasterEdition record key
+    ///   3. `[writable]` Original authority lookup - unallocated uninitialized pda account with seed ['metaplex', auction key, metadata key]
+    ///                   We will store original authority here to return it later.
+    ///   4. `[]` Safety deposit box account
+    ///   5. `[]` Store account of safety deposit box
+    ///   6. `[]` Mint account of the token in the safety deposit box
+    ///   7. `[]` Edition OR MasterEdition record key
     ///           Remember this does not need to be an existing account (may not be depending on token), just is a pda with seed
     ///            of ['metadata', program id, master mint id, 'edition']. - remember PDA is relative to token metadata program.
-    ///   7. `[]` Vault account
-    ///   8. `[signer]` Authority
-    ///   9. `[signer]` Metadata Authority
+    ///   8. `[]` Vault account
+    ///   9. `[signer]` Authority
+    ///   10. `[signer]` Metadata Authority
+    ///   11. `[signer]` Payer
+    ///   12. `[]` Token metadata program
+    ///   13. `[]` System
+    ///   14. `[]` Rent sysvar
     ValidateSafetyDepositBox,
 
     /// Note: This requires that auction manager be in a Running state.
@@ -98,8 +104,13 @@ pub enum MetaplexInstruction {
     ///                   needs to have exactly one token in it already. We will simply "grant" the limited edition status on this token.
     ///   18. `[signer]` Destination mint authority - this account is optional, and will only be used/checked if you are receiving a newly minted limited edition.
     ///   19. `[]` Master Metadata (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   20. `[]` New Limited Edition (pda of ['metadata', program id, newly made mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   21. `[]` Master Edition (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   20. `[]` Master Name-Symbol (pda of ['metadata', program id, name, symbol']) - remember PDA is relative to token metadata program
+    ///   21. `[]` New Limited Edition (pda of ['metadata', program id, newly made mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   22. `[]` Master Edition (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   23. `[]` Original authority on the Master Metadata, which can be gotten via reading off the key from lookup of OriginalAuthorityLookup struct with
+    ///            key of (pda of ['metaplex', auction key, master metadata key]).
+    ///            We'll use this to grant back authority to the owner of the master metadata if we no longer need it after this latest minting.
+    ///   24. `[]` Original authority Lookup key - pda of ['metaplex', auction key, master metadata key]
     ///
     ///   Case 3: Redeeming a bid to gain ownership of a Master Edition itself:
     ///
@@ -116,8 +127,8 @@ pub enum MetaplexInstruction {
     ///   OPEN EDITIONS: FURTHERMORE, if you are expecting to receive an open edition token out of this, because this auction supports that, you'll need to add accounts of the same kind and order
     ///   as in Case 2 but for the Open Edition coin at the end of the list. This means that if you are expecting to get an open edition coin, make a destination account with a new mint,
     ///   slap a single coin in it, and then pass up the metadata pda key, new mint key, mint authority, payer, master metadata key, new edition key, and master edition in that order, just as in case 2,
-    ///   but for the open edition you expect to receive. This means that it is fully reasonable to make a RedeemBid call that has accounts #16-21 containing keys for the Limited Edition winning bid you won
-    ///   plus #21-26 containing keys for the Open Edition you got as a thank you for bidding, and at the end you'll have two tokens in two different accounts from two different mints, one a Limited Edition and one
+    ///   but for the open edition you expect to receive. This means that it is fully reasonable to make a RedeemBid call that has accounts #16-24 containing keys for the Limited Edition winning bid you won
+    ///   plus #24-30 containing keys for the Open Edition you got as a thank you for bidding, and at the end you'll have two tokens in two different accounts from two different mints, one a Limited Edition and one
     ///   an open edition.
     RedeemBid,
 }

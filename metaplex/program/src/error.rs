@@ -202,6 +202,14 @@ pub enum MetaplexError {
     /// Cannot redeem bids for an auction that has not ended!
     #[error("Cannot redeem bids for an auction that has not ended!")]
     AuctionHasNoEndTime,
+
+    /// The original authority lookup does not match the expected PDA of ['metaplex', auction key, metadata key]
+    #[error("The original authority lookup does not match the expected PDA of ['metaplex', auction key, metadata key]")]
+    OriginalAuthorityLookupKeyMismatch,
+
+    /// The original authority given does not match that on the original authority lookup account!
+    #[error("The original authority given does not match that on the original authority lookup account!")]
+    OriginalAuthorityMismatch,
 }
 
 impl PrintProgramError for MetaplexError {

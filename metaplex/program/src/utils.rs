@@ -1,10 +1,7 @@
 use {
-    crate::{
-        error::MetaplexError,
-        state::{AuctionManager, PREFIX},
-    },
+    crate::{error::MetaplexError, state::AuctionManager},
     solana_program::{
-        account_info::{next_account_info, AccountInfo},
+        account_info::AccountInfo,
         entrypoint::ProgramResult,
         msg,
         program::{invoke, invoke_signed},
@@ -14,12 +11,13 @@ use {
         system_instruction,
         sysvar::{rent::Rent, Sysvar},
     },
+    spl_auction::{instruction::start_auction, processor::start_auction::StartAuctionArgs},
     spl_token_metadata::{
         instruction::{mint_new_edition_from_master_edition, transfer_update_authority},
         state::Metadata,
     },
     spl_token_vault::{instruction::create_withdraw_tokens_instruction, state::SafetyDepositBox},
-    std::{convert::TryInto, slice::Iter},
+    std::convert::TryInto,
 };
 
 /// assert initialized account
@@ -172,44 +170,6 @@ pub fn transfer_safety_deposit_box_items<'a>(
     Ok(())
 }
 
-pub fn mint_edition_from_account_iterator<'a>(
-    program_id: Pubkey,
-    auction_manager_info: &AccountInfo<'a>,
-    token_metadata_program_info: &AccountInfo<'a>,
-    payer_info: &AccountInfo<'a>,
-    account_info_iter: &mut Iter<AccountInfo<'a>>,
-) -> ProgramResult {
-    let new_metadata_info = next_account_info(account_info_iter)?;
-    let destination_mint_info = next_account_info(account_info_iter)?;
-    let destination_mint_authority_info = next_account_info(account_info_iter)?;
-    let master_metadata_info = next_account_info(account_info_iter)?;
-    let new_edition_info = next_account_info(account_info_iter)?;
-    let master_edition_info = next_account_info(account_info_iter)?;
-
-    let seeds = &[PREFIX.as_bytes(), &auction_manager_info.key.as_ref()];
-    let (_, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
-    let mint_seeds = &[
-        PREFIX.as_bytes(),
-        &auction_manager_info.key.as_ref(),
-        &[bump_seed],
-    ];
-
-    mint_edition(
-        token_metadata_program_info.clone(),
-        new_metadata_info.clone(),
-        new_edition_info.clone(),
-        master_edition_info.clone(),
-        destination_mint_info.clone(),
-        destination_mint_authority_info.clone(),
-        payer_info.clone(),
-        auction_manager_info.clone(),
-        master_metadata_info.clone(),
-        mint_seeds,
-    )?;
-
-    Ok(())
-}
-
 pub fn mint_edition<'a>(
     token_metadata_program: AccountInfo<'a>,
     metadata: AccountInfo<'a>,
@@ -251,6 +211,27 @@ pub fn mint_edition<'a>(
     Ok(())
 }
 
+pub fn issue_start_auction<'a>(
+    auction_program: AccountInfo<'a>,
+    authority: AccountInfo<'a>,
+    auction: AccountInfo<'a>,
+    signer_seeds: &[&[u8]],
+) -> ProgramResult {
+    invoke_signed(
+        &start_auction(
+            *auction_program.key,
+            *authority.key,
+            StartAuctionArgs {
+                resource: *auction.key,
+            },
+        ),
+        &[auction_program, authority, auction],
+        &[&signer_seeds],
+    )?;
+
+    Ok(())
+}
+
 pub fn transfer_metadata_ownership<'a>(
     metadata: &Metadata,
     token_metadata_program: AccountInfo<'a>,
@@ -281,127 +262,4 @@ pub fn transfer_metadata_ownership<'a>(
     )?;
 
     Ok(())
-}
-
-/// Issue a spl_token `Transfer` instruction.
-#[inline(always)]
-pub fn spl_token_transfer(params: TokenTransferParams<'_, '_>) -> ProgramResult {
-    let TokenTransferParams {
-        source,
-        destination,
-        authority,
-        token_program,
-        amount,
-        authority_signer_seeds,
-    } = params;
-    let result = invoke_signed(
-        &spl_token::instruction::transfer(
-            token_program.key,
-            source.key,
-            destination.key,
-            authority.key,
-            &[],
-            amount,
-        )?,
-        &[source, destination, authority, token_program],
-        &[authority_signer_seeds],
-    );
-    result.map_err(|_| MetaplexError::TokenTransferFailed.into())
-}
-
-/// Issue a spl_token `MintTo` instruction.
-pub fn spl_token_mint_to(params: TokenMintToParams<'_, '_>) -> ProgramResult {
-    let TokenMintToParams {
-        mint,
-        destination,
-        authority,
-        token_program,
-        amount,
-        authority_signer_seeds,
-    } = params;
-    let result = invoke_signed(
-        &spl_token::instruction::mint_to(
-            token_program.key,
-            mint.key,
-            destination.key,
-            authority.key,
-            &[],
-            amount,
-        )?,
-        &[mint, destination, authority, token_program],
-        &[authority_signer_seeds],
-    );
-    result.map_err(|_| MetaplexError::TokenMintToFailed.into())
-}
-
-/// Issue a spl_token `Burn` instruction.
-#[inline(always)]
-pub fn spl_token_burn(params: TokenBurnParams<'_, '_>) -> ProgramResult {
-    let TokenBurnParams {
-        mint,
-        source,
-        authority,
-        token_program,
-        amount,
-        authority_signer_seeds,
-    } = params;
-    let result = invoke_signed(
-        &spl_token::instruction::burn(
-            token_program.key,
-            source.key,
-            mint.key,
-            authority.key,
-            &[],
-            amount,
-        )?,
-        &[source, mint, authority, token_program],
-        &[authority_signer_seeds],
-    );
-    result.map_err(|_| MetaplexError::TokenBurnFailed.into())
-}
-
-///TokenTransferParams
-pub struct TokenTransferParams<'a: 'b, 'b> {
-    /// source
-    pub source: AccountInfo<'a>,
-    /// destination
-    pub destination: AccountInfo<'a>,
-    /// amount
-    pub amount: u64,
-    /// authority
-    pub authority: AccountInfo<'a>,
-    /// authority_signer_seeds
-    pub authority_signer_seeds: &'b [&'b [u8]],
-    /// token_program
-    pub token_program: AccountInfo<'a>,
-}
-/// TokenMintToParams
-pub struct TokenMintToParams<'a: 'b, 'b> {
-    /// mint
-    pub mint: AccountInfo<'a>,
-    /// destination
-    pub destination: AccountInfo<'a>,
-    /// amount
-    pub amount: u64,
-    /// authority
-    pub authority: AccountInfo<'a>,
-    /// authority_signer_seeds
-    pub authority_signer_seeds: &'b [&'b [u8]],
-    /// token_program
-    pub token_program: AccountInfo<'a>,
-}
-/// TokenBurnParams
-pub struct TokenBurnParams<'a: 'b, 'b> {
-    /// mint
-    pub mint: AccountInfo<'a>,
-    /// source
-    pub source: AccountInfo<'a>,
-    /// amount
-    pub amount: u64,
-    /// authority
-    pub authority: AccountInfo<'a>,
-    /// authority_signer_seeds
-    pub authority_signer_seeds: &'b [&'b [u8]],
-    /// token_program
-    pub token_program: AccountInfo<'a>,
 }

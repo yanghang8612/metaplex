@@ -143,3 +143,9 @@ pub enum AuctionManagerStatus {
     Disbursing,
     Finished,
 }
+
+#[repr(C)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, Copy)]
+pub struct OriginalAuthorityLookup {
+    pub original_authority: Pubkey,
+}
