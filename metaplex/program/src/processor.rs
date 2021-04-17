@@ -10,8 +10,8 @@ use {
         utils::{
             assert_authority_correct, assert_initialized, assert_owned_by, assert_rent_exempt,
             assert_store_safety_vault_manager_match, common_redeem_checks, common_redeem_finish,
-            common_winning_config_checks, create_or_allocate_account_raw, mint_edition,
-            shift_authority_back_to_originating_user, transfer_metadata_ownership,
+            common_winning_config_checks, create_or_allocate_account_raw, issue_start_auction,
+            mint_edition, shift_authority_back_to_originating_user, transfer_metadata_ownership,
             transfer_safety_deposit_box_items, CommonRedeemReturn, CommonWinningConfigCheckReturn,
         },
     },
@@ -65,6 +65,10 @@ pub fn process_instruction(
             msg!("Instruction: Redeem Open Edition Bid");
             process_redeem_open_edition_bid(program_id, accounts)
         }
+        MetaplexInstruction::StartAuction => {
+            msg!("Instruction: Start Auction");
+            process_start_auction(program_id, accounts)
+        }
     }
 }
 pub fn process_redeem_open_edition_bid(
@@ -102,7 +106,7 @@ pub fn process_redeem_open_edition_bid(
         mut auction_manager,
         redemption_bump_seed,
         bidder_metadata,
-        safety_deposit,
+        safety_deposit: _safety_deposit,
         auction,
         rent,
     } = common_redeem_checks(
@@ -821,20 +825,60 @@ pub fn process_validate_safety_deposit_box(
         winning_config_states[n].validated = true;
     }
 
-    auction_manager.state.safety_deposit_boxes_validated = match auction_manager
+    auction_manager.state.winning_configs_validated = match auction_manager
         .state
-        .safety_deposit_boxes_validated
+        .winning_configs_validated
         .checked_add(winning_configs.len() as u8)
     {
         Some(val) => val,
         None => return Err(MetaplexError::NumericalOverflowError.into()),
     };
 
-    if auction_manager.state.safety_deposit_boxes_validated
+    if auction_manager.state.winning_configs_validated
         == auction_manager.settings.winning_configs.len() as u8
     {
         auction_manager.state.status = AuctionManagerStatus::Validated
     }
+
+    auction_manager.serialize(&mut *auction_manager_info.data.borrow_mut())?;
+
+    Ok(())
+}
+
+pub fn process_start_auction(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    let account_info_iter = &mut accounts.iter();
+
+    let auction_manager_info = next_account_info(account_info_iter)?;
+    let auction_info = next_account_info(account_info_iter)?;
+    let authority_info = next_account_info(account_info_iter)?;
+    let auction_program_info = next_account_info(account_info_iter)?;
+
+    let mut auction_manager: AuctionManager =
+        try_from_slice_unchecked(&auction_manager_info.data.borrow_mut())?;
+    assert_authority_correct(&auction_manager, authority_info)?;
+
+    assert_owned_by(auction_info, auction_program_info.key)?;
+    assert_owned_by(auction_manager_info, program_id)?;
+
+    if auction_manager.auction != *auction_info.key {
+        return Err(MetaplexError::AuctionManagerAuctionMismatch.into());
+    }
+
+    if auction_manager.auction_program != *auction_program_info.key {
+        return Err(MetaplexError::AuctionManagerAuctionProgramMismatch.into());
+    }
+    let seeds = &[PREFIX.as_bytes(), &auction_info.key.as_ref()];
+    let (_, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
+    let _ = &[PREFIX.as_bytes(), &auction_info.key.as_ref(), &[bump_seed]];
+
+    issue_start_auction(
+        auction_program_info.clone(),
+        auction_manager_info.clone(),
+        auction_info.clone(),
+        seeds,
+    )?;
+
+    auction_manager.state.status = AuctionManagerStatus::Running;
 
     auction_manager.serialize(&mut *auction_manager_info.data.borrow_mut())?;
 
@@ -936,7 +980,7 @@ pub fn process_init_auction_manager(
             spl_token_metadata::state::EDITION.as_bytes(),
         ];
 
-        let (edition_key, bump_seed) =
+        let (edition_key, _) =
             Pubkey::find_program_address(edition_seeds, &token_metadata_program_info.key);
         if edition_key != *open_master_edition_info.key {
             return Err(MetaplexError::InvalidEditionAddress.into());
@@ -974,7 +1018,7 @@ pub fn process_init_auction_manager(
     auction_manager.token_metadata_program = *token_metadata_program_info.key;
     auction_manager.auction_program = *auction_program_info.key;
     auction_manager.state.status = AuctionManagerStatus::Initialized;
-    auction_manager.state.safety_deposit_boxes_validated = 0;
+    auction_manager.state.winning_configs_validated = 0;
     auction_manager.state.winning_config_states = winning_config_states;
     auction_manager.serialize(&mut *auction_manager_info.data.borrow_mut())?;
 

@@ -207,6 +207,14 @@ pub enum MetaplexInstruction {
     ///            We'll use this to grant back authority to the owner of the master metadata if we no longer need it after this latest minting.
     ///   24. `[]` Original authority Lookup key - pda of ['metaplex', auction key, master metadata key]
     RedeemOpenEditionBid,
+
+    /// If the auction manager is in Validated state, it can invoke the start command via calling this command here.
+    ///
+    ///   0. `[writable]` Auction manager
+    ///   1. `[writable]` Auction
+    ///   2. `[signer]` Auction manager authority
+    ///   3. `[signer]` Auction program
+    StartAuction,
 }
 /*
 /// Creates an InitMetaplex instruction

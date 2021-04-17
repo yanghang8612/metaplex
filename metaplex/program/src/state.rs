@@ -48,8 +48,8 @@ pub struct AuctionManager {
 #[derive(Clone, BorshSerialize, BorshDeserialize)]
 pub struct AuctionManagerState {
     pub status: AuctionManagerStatus,
-    /// When all boxes are validated the auction is started and auction manager moves to Running
-    pub safety_deposit_boxes_validated: u8,
+    /// When all configs are validated the auction is started and auction manager moves to Running
+    pub winning_configs_validated: u8,
 
     /// Each master edition used as a template has to grant it's authority to the auction manager.
     /// This counter is incremented by one each time this is done. At the end of the auction, this is decremented

@@ -310,7 +310,7 @@ pub fn common_redeem_checks(
     let rent = &Rent::from_account_info(rent_info)?;
 
     if !bid_redemption_info.data_is_empty() {
-        let mut bid_redemption: BidRedemptionTicket =
+        let bid_redemption: BidRedemptionTicket =
             try_from_slice_unchecked(&bid_redemption_info.data.borrow_mut())?;
         if (is_open_edition && bid_redemption.open_edition_redeemed)
             || (!is_open_edition && bid_redemption.bid_redeemed)

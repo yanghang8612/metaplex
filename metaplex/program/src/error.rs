@@ -119,6 +119,12 @@ pub enum MetaplexError {
     #[error("The auction given does not match the auction on the auction manager!")]
     AuctionManagerAuctionMismatch,
 
+    /// The auction program given does not match the auction program on the auction manager!
+    #[error(
+        "The auction program given does not match the auction program on the auction manager!"
+    )]
+    AuctionManagerAuctionProgramMismatch,
+
     /// The token program given does not match the token program on the auction manager!
     #[error("The token program given does not match the token program on the auction manager!")]
     AuctionManagerTokenProgramMismatch,
