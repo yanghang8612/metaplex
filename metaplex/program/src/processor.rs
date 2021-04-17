@@ -3,14 +3,15 @@ use {
         error::MetaplexError,
         instruction::MetaplexInstruction,
         state::{
-            AuctionManager, AuctionManagerSettings, AuctionManagerState, AuctionManagerStatus,
-            EditionType, Key, NonWinningConstraint, WinningConfig, WinningConstraint,
+            AuctionManager, AuctionManagerSettings, AuctionManagerStatus, EditionType, Key,
+            NonWinningConstraint, WinningConfig, WinningConfigState, WinningConstraint,
             MAX_AUCTION_MANAGER_SIZE, PREFIX,
         },
         utils::{
             assert_authority_correct, assert_initialized, assert_owned_by, assert_rent_exempt,
             assert_store_safety_vault_manager_match, create_or_allocate_account_raw,
-            transfer_metadata_ownership,
+            mint_edition_from_account_iterator, transfer_metadata_ownership,
+            transfer_safety_deposit_box_items,
         },
     },
     borsh::{BorshDeserialize, BorshSerialize},
@@ -53,22 +54,30 @@ pub fn process_instruction(
         }
     }
 }
+
 pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
 
     let auction_manager_info = next_account_info(account_info_iter)?;
     let store_info = next_account_info(account_info_iter)?;
     let destination_info = next_account_info(account_info_iter)?;
+    let bid_redemption_info = next_account_info(account_info_iter)?;
     let safety_deposit_info = next_account_info(account_info_iter)?;
     let fraction_mint_info = next_account_info(account_info_iter)?;
     let vault_info = next_account_info(account_info_iter)?;
     let auction_info = next_account_info(account_info_iter)?;
     let bidder_metadata_info = next_account_info(account_info_iter)?;
-    let authority_info = next_account_info(account_info_iter)?;
+    let payer_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
     let token_vault_program_info = next_account_info(account_info_iter)?;
+    let token_metadata_program_info = next_account_info(account_info_iter)?;
     let rent_info = next_account_info(account_info_iter)?;
+    let system_info = next_account_info(account_info_iter)?;
     let rent = &Rent::from_account_info(rent_info)?;
+
+    if !bid_redemption_info.data_is_empty() {
+        return Err(MetaplexError::BidAlreadyRedeemed.into());
+    }
 
     let mut auction_manager: AuctionManager =
         try_from_slice_unchecked(&auction_manager_info.data.borrow_mut())?;
@@ -77,11 +86,11 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
     let auction: AuctionData = try_from_slice_unchecked(&auction_info.data.borrow_mut())?;
     let bidder_metadata: BidderMetadata =
         try_from_slice_unchecked(&bidder_metadata_info.data.borrow_mut())?;
-    let destination: Account = assert_initialized(destination_info)?;
+    // Is it initialized and an actual Account?
+    let _destination: Account = assert_initialized(destination_info)?;
 
     assert_owned_by(destination_info, token_program_info.key)?;
     assert_owned_by(auction_manager_info, program_id)?;
-    assert_authority_correct(&auction_manager, authority_info)?;
     assert_store_safety_vault_manager_match(
         &auction_manager,
         &safety_deposit,
@@ -99,6 +108,26 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
         return Err(MetaplexError::AuctionManagerTokenProgramMismatch.into());
     }
 
+    if auction_manager.token_vault_program != *token_vault_program_info.key {
+        return Err(MetaplexError::AuctionManagerTokenVaultProgramMismatch.into());
+    }
+
+    if auction_manager.token_metadata_program != *token_metadata_program_info.key {
+        return Err(MetaplexError::AuctionManagerTokenMetadataProgramMismatch.into());
+    }
+
+    let redemption_path = [
+        PREFIX.as_bytes(),
+        auction_manager.auction.as_ref(),
+        bidder_metadata_info.key.as_ref(),
+    ];
+    let (redemption_key, redemption_bump_seed) =
+        Pubkey::find_program_address(&redemption_path, &program_id);
+
+    if redemption_key != *bid_redemption_info.key {
+        return Err(MetaplexError::BidRedemptionMismatch.into());
+    }
+
     let meta_path = [
         spl_auction::PREFIX.as_bytes(),
         auction_manager.auction_program.as_ref(),
@@ -112,7 +141,15 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
         return Err(MetaplexError::InvalidBidderMetadata.into());
     }
 
-    let mut gets_open_edition = auction_manager.settings.open_edition_config != None;
+    let mut gets_open_edition = auction_manager.settings.open_edition_config != None
+        && auction_manager.settings.open_edition_non_winning_constraint
+            != NonWinningConstraint::NoOpenEdition;
+
+    // There is only one case where a follow up call needs to be made, and that's when we have multiple limited editions
+    // that need to be minted across multiple destination accounts. To make this a little less complex, we set a switch
+    // to check at the end of the command to decide whether or not to make the pda to check to make the bid redemption account
+    // or not.
+    let mut needs_to_wait_on_another_call = false;
 
     if !bidder_metadata.cancelled {
         if let Some(winning_index) = auction.bid_state.is_winner(bidder_metadata.bidder_pubkey) {
@@ -122,19 +159,171 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
                     == WinningConstraint::OpenEditionGiven;
 
                 let winning_config = auction_manager.settings.winning_configs[winning_index];
+                let mut winning_config_state =
+                    auction_manager.state.winning_config_states[winning_index];
+                if winning_config_state.claimed {
+                    return Err(MetaplexError::PrizeAlreadyClaimed.into());
+                }
+
                 if winning_config.safety_deposit_box_index != safety_deposit.order {
                     return Err(MetaplexError::SafetyDepositIndexMismatch.into());
                 }
 
+                let transfer_authority_seeds = [
+                    spl_token_vault::state::PREFIX.as_bytes(),
+                    &auction_manager.token_vault_program.as_ref(),
+                ];
+                let (transfer_authority, vault_bump_seed) = Pubkey::find_program_address(
+                    &transfer_authority_seeds,
+                    &&auction_manager.token_vault_program,
+                );
+
+                let vault_authority_seeds = &[
+                    spl_token_vault::state::PREFIX.as_bytes(),
+                    &auction_manager.token_vault_program.as_ref(),
+                    &[vault_bump_seed],
+                ];
+
                 match winning_config.edition_type {
-                    EditionType::NA => {}
-                    EditionType::MasterEdition => {}
-                    EditionType::MasterEditionAsTemplate => {}
-                    EditionType::Edition => {}
+                    EditionType::NA => {
+                        let transfer_authority_info = next_account_info(account_info_iter)?;
+
+                        if transfer_authority != *transfer_authority_info.key {
+                            return Err(MetaplexError::InvalidTransferAuthority.into());
+                        }
+
+                        transfer_safety_deposit_box_items(
+                            token_vault_program_info.clone(),
+                            destination_info.clone(),
+                            safety_deposit_info.clone(),
+                            store_info.clone(),
+                            vault_info.clone(),
+                            fraction_mint_info.clone(),
+                            auction_manager_info.clone(),
+                            transfer_authority_info.clone(),
+                            winning_config.amount as u64,
+                            vault_authority_seeds,
+                        )?;
+                        winning_config_state.claimed = true;
+                    }
+
+                    EditionType::MasterEditionAsTemplate => {
+                        // In this case we need to mint a limited edition for you!
+                        mint_edition_from_account_iterator(
+                            *program_id,
+                            auction_manager_info,
+                            token_metadata_program_info,
+                            payer_info,
+                            account_info_iter,
+                        )?;
+
+                        winning_config_state.amount_minted =
+                            match winning_config_state.amount_minted.checked_add(1) {
+                                Some(val) => val,
+                                None => return Err(MetaplexError::NumericalOverflowError.into()),
+                            };
+
+                        if winning_config_state.amount_minted == winning_config.amount {
+                            winning_config_state.claimed = true;
+                        } else {
+                            needs_to_wait_on_another_call = true;
+                        }
+                    }
+                    EditionType::MasterEdition => {
+                        // Someone is selling off their master edition. We need to transfer it, as well as ownership of their
+                        // metadata.
+
+                        let auction_seeds = &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()];
+                        let (_, auction_bump_seed) =
+                            Pubkey::find_program_address(auction_seeds, &program_id);
+                        let auction_authority_seeds = &[
+                            PREFIX.as_bytes(),
+                            &auction_manager.auction.as_ref(),
+                            &[auction_bump_seed],
+                        ];
+
+                        let metadata_info = next_account_info(account_info_iter)?;
+                        let name_symbol_info = next_account_info(account_info_iter)?;
+                        let new_metadata_authority_info = next_account_info(account_info_iter)?;
+                        let transfer_authority_info = next_account_info(account_info_iter)?;
+
+                        let metadata: Metadata =
+                            try_from_slice_unchecked(&metadata_info.data.borrow_mut())?;
+
+                        if transfer_authority != *transfer_authority_info.key {
+                            return Err(MetaplexError::InvalidTransferAuthority.into());
+                        }
+
+                        transfer_metadata_ownership(
+                            &metadata,
+                            token_metadata_program_info.clone(),
+                            metadata_info.clone(),
+                            name_symbol_info.clone(),
+                            auction_manager_info.clone(),
+                            new_metadata_authority_info.clone(),
+                            auction_authority_seeds,
+                        )?;
+
+                        transfer_safety_deposit_box_items(
+                            token_vault_program_info.clone(),
+                            destination_info.clone(),
+                            safety_deposit_info.clone(),
+                            store_info.clone(),
+                            vault_info.clone(),
+                            fraction_mint_info.clone(),
+                            auction_manager_info.clone(),
+                            transfer_authority_info.clone(),
+                            1,
+                            vault_authority_seeds,
+                        )?;
+
+                        auction_manager
+                            .state
+                            .master_editions_with_authorities_remaining_to_return =
+                            match auction_manager
+                                .state
+                                .master_editions_with_authorities_remaining_to_return
+                                .checked_sub(1)
+                            {
+                                Some(val) => val,
+                                None => return Err(MetaplexError::NumericalOverflowError.into()),
+                            };
+
+                        winning_config_state.claimed = true;
+                    }
                 }
             }
         }
     }
+
+    if gets_open_edition {
+        mint_edition_from_account_iterator(
+            *program_id,
+            auction_manager_info,
+            token_metadata_program_info,
+            payer_info,
+            account_info_iter,
+        )?;
+    }
+
+    if !needs_to_wait_on_another_call {
+        let redemption_seeds = &[
+            PREFIX.as_bytes(),
+            auction_manager.auction.as_ref(),
+            bidder_metadata_info.key.as_ref(),
+            &[redemption_bump_seed],
+        ];
+        create_or_allocate_account_raw(
+            *program_id,
+            bid_redemption_info,
+            rent_info,
+            system_info,
+            payer_info,
+            1,
+            redemption_seeds,
+        )?;
+    }
+
     Ok(())
 }
 
@@ -145,10 +334,10 @@ pub fn process_validate_safety_deposit_box(
     let account_info_iter = &mut accounts.iter();
 
     let auction_manager_info = next_account_info(account_info_iter)?;
-    let safety_deposit_info = next_account_info(account_info_iter)?;
-    let store_info = next_account_info(account_info_iter)?;
     let metadata_info = next_account_info(account_info_iter)?;
     let name_symbol_info = next_account_info(account_info_iter)?;
+    let safety_deposit_info = next_account_info(account_info_iter)?;
+    let store_info = next_account_info(account_info_iter)?;
     let mint_info = next_account_info(account_info_iter)?;
     let edition_info = next_account_info(account_info_iter)?;
     let vault_info = next_account_info(account_info_iter)?;
@@ -201,19 +390,32 @@ pub fn process_validate_safety_deposit_box(
         return Err(MetaplexError::SafetyDepositBoxMetadataMismatch.into());
     }
 
-    let mut winning_config_option: Option<WinningConfig> = None;
+    let mut winning_configs: Vec<WinningConfig> = vec![];
+    let mut winning_config_states: Vec<WinningConfigState> = vec![];
+
     for n in 0..auction_manager.settings.winning_configs.len() {
         let possible_config = auction_manager.settings.winning_configs[n];
         if possible_config.safety_deposit_box_index == safety_deposit.order {
-            winning_config_option = Some(possible_config);
-            break;
+            winning_configs.push(possible_config);
+            winning_config_states.push(auction_manager.state.winning_config_states[n]);
         }
     }
 
-    let mut winning_config = match winning_config_option {
-        Some(config) => config,
-        None => return Err(MetaplexError::SafetyDepositBoxNotUsedInAuction.into()),
-    };
+    if winning_configs.len() == 0 {
+        return Err(MetaplexError::SafetyDepositBoxNotUsedInAuction.into());
+    }
+
+    // At this point we know we have at least one config and they may have different amounts but all
+    // point at the same safety deposit box and so have the same edition type.
+    let edition_type = winning_configs[0].edition_type;
+    let mut total_amount_requested: u64 = 0;
+    for n in 0..winning_configs.len() {
+        let curr = winning_configs[n];
+        total_amount_requested = match total_amount_requested.checked_add(curr.amount.into()) {
+            Some(val) => val,
+            None => return Err(MetaplexError::NumericalOverflowError.into()),
+        };
+    }
 
     let edition_seeds = &[
         spl_token_metadata::state::PREFIX.as_bytes(),
@@ -225,17 +427,14 @@ pub fn process_validate_safety_deposit_box(
     let (edition_key, _) =
         Pubkey::find_program_address(edition_seeds, &auction_manager.token_metadata_program);
 
-    match winning_config.edition_type {
-        EditionType::NA => {
-            if store.amount < winning_config.amount.into() {
+    // Supply logic check
+    match edition_type {
+        EditionType::NA | EditionType::MasterEdition => {
+            if store.amount < total_amount_requested.into() {
                 return Err(MetaplexError::NotEnoughTokensToSupplyWinners.into());
             }
         }
-        EditionType::MasterEdition | EditionType::MasterEditionAsTemplate => {
-            if edition_key != *edition_info.key {
-                return Err(MetaplexError::InvalidEditionAddress.into());
-            }
-
+        EditionType::MasterEditionAsTemplate => {
             let master_edition: MasterEdition =
                 try_from_slice_unchecked(&edition_info.data.borrow_mut())?;
 
@@ -244,22 +443,22 @@ pub fn process_validate_safety_deposit_box(
                     Some(val) => val,
                     None => return Err(MetaplexError::NumericalOverflowError.into()),
                 };
-
-                if winning_config.edition_type == EditionType::MasterEditionAsTemplate
-                    && remaining_supply < winning_config.amount.into()
-                {
+                if remaining_supply < total_amount_requested {
                     return Err(MetaplexError::NotEnoughEditionsAvailableForAuction.into());
                 }
+            }
+        }
+    }
+
+    // Other checks/logic common to both Edition enum types
+    match edition_type {
+        EditionType::MasterEdition | EditionType::MasterEditionAsTemplate => {
+            if edition_key != *edition_info.key {
+                return Err(MetaplexError::InvalidEditionAddress.into());
             }
 
             if store.amount != 1 {
                 return Err(MetaplexError::StoreIsEmpty.into());
-            }
-
-            if winning_config.edition_type == EditionType::MasterEdition
-                && winning_config.amount != 1
-            {
-                return Err(MetaplexError::CannotAuctionOffMoreThanOneOfMasterEditionItself.into());
             }
 
             let seeds = &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()];
@@ -269,8 +468,9 @@ pub fn process_validate_safety_deposit_box(
                 &auction_manager.auction.as_ref(),
                 &[bump_seed],
             ];
-            // We need to be able to issue minting of limited edition invocations as auction manager
-            // for duration of this auction
+
+            // If we're doing as template, we need minting power, if we're auctioning off the master record
+            //  we need to pass on ownership, for that we NEED ownership.
             transfer_metadata_ownership(
                 &metadata,
                 token_metadata_program_info.clone(),
@@ -281,7 +481,6 @@ pub fn process_validate_safety_deposit_box(
                 authority_seeds,
             )?;
 
-            winning_config.has_authority = true;
             auction_manager
                 .state
                 .master_editions_with_authorities_remaining_to_return = match auction_manager
@@ -292,30 +491,22 @@ pub fn process_validate_safety_deposit_box(
                 Some(val) => val,
                 None => return Err(MetaplexError::NumericalOverflowError.into()),
             };
-        }
-        EditionType::Edition => {
-            if edition_key != *edition_info.key {
-                return Err(MetaplexError::InvalidEditionAddress.into());
-            }
 
-            // Check that it serializes
-            let _edition: Edition = try_from_slice_unchecked(&edition_info.data.borrow_mut())?;
-
-            if store.amount != 1 {
-                return Err(MetaplexError::StoreIsEmpty.into());
-            }
-
-            if winning_config.amount != 1 {
-                return Err(MetaplexError::CannotAuctionOffMoreThanOneOfLimitedEdition.into());
+            for n in 0..winning_configs.len() {
+                winning_configs[n].has_authority = true;
             }
         }
+        _ => {}
     }
 
-    winning_config.validated = true;
+    for n in 0..winning_config_states.len() {
+        winning_config_states[n].validated = true;
+    }
+
     auction_manager.state.safety_deposit_boxes_validated = match auction_manager
         .state
         .safety_deposit_boxes_validated
-        .checked_add(1)
+        .checked_add(winning_configs.len() as u8)
     {
         Some(val) => val,
         None => return Err(MetaplexError::NumericalOverflowError.into()),
@@ -399,11 +590,18 @@ pub fn process_init_auction_manager(
         return Err(MetaplexError::VaultCannotEmpty.into());
     }
 
+    let mut winning_config_states: Vec<WinningConfigState> = vec![];
     for n in 0..auction_manager_settings.winning_configs.len() {
         let winning_config = &auction_manager_settings.winning_configs[n];
         if winning_config.safety_deposit_box_index > vault.token_type_count.into() {
             return Err(MetaplexError::InvalidSafetyDepositBox.into());
         }
+
+        winning_config_states.push(WinningConfigState {
+            amount_minted: 0,
+            validated: false,
+            claimed: false,
+        })
     }
 
     if let Some(open_edition_config) = auction_manager_settings.open_edition_config {
@@ -459,6 +657,7 @@ pub fn process_init_auction_manager(
     auction_manager.auction_program = *auction_program_info.key;
     auction_manager.state.status = AuctionManagerStatus::Initialized;
     auction_manager.state.safety_deposit_boxes_validated = 0;
+    auction_manager.state.winning_config_states = winning_config_states;
     auction_manager.serialize(&mut *auction_manager_info.data.borrow_mut())?;
 
     Ok(())

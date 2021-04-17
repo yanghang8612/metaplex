@@ -136,16 +136,16 @@ pub enum WinnerLimit {
 /// information about a bidder regardless of if they have won, lost or cancelled.
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
-struct BidderMetadata {
+pub struct BidderMetadata {
     // Relationship with the bidder who's metadata this covers.
-    bidder_pubkey: Pubkey,
+    pub bidder_pubkey: Pubkey,
     // Relationship with the auction this bid was placed on.
-    auction_pubkey: Pubkey,
+    pub auction_pubkey: Pubkey,
     // Amount that the user bid.
-    last_bid: u64,
+    pub last_bid: u64,
     // Tracks the last time this user bid.
-    last_bid_timestamp: UnixTimestamp,
+    pub last_bid_timestamp: UnixTimestamp,
     // Whether the last bid the user made was cancelled. This should also be enough to know if the
     // user is a winner, as if cancelled it implies previous bids were also cancelled.
-    cancelled: bool,
+    pub cancelled: bool,
 }

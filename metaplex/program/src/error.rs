@@ -47,9 +47,9 @@ pub enum MetaplexError {
     #[error("Token burn failed")]
     TokenBurnFailed,
 
-    /// Invalid program authority provided
-    #[error("Invalid program authority provided")]
-    InvalidAuthority,
+    /// Invalid transfer authority provided
+    #[error("Invalid transfer authority provided")]
+    InvalidTransferAuthority,
 
     /// Vault's authority does not match the expected pda with seed ['metaplex', auction_key]
     #[error("Vault's authority does not match the expected ['metaplex', auction_key]")]
@@ -123,6 +123,10 @@ pub enum MetaplexError {
     #[error("The token program given does not match the token program on the auction manager!")]
     AuctionManagerTokenProgramMismatch,
 
+    /// The token vault program given does not match the token vault program on the auction manager!
+    #[error("The token vault program given does not match the token vault program on the auction manager!")]
+    AuctionManagerTokenVaultProgramMismatch,
+
     /// Only combined vaults may be used in auction managers!
     #[error("Only combined vaults may be used in auction managers!")]
     VaultNotCombined,
@@ -159,14 +163,6 @@ pub enum MetaplexError {
     #[error("The store in the safety deposit is empty, so you have nothing to auction!")]
     StoreIsEmpty,
 
-    /// Cannot auction off more than one of the master edition itself!
-    #[error("Cannot auction off more than one of the master edition itself!")]
-    CannotAuctionOffMoreThanOneOfMasterEditionItself,
-
-    /// Cannot auction off more than one of a limited edition!
-    #[error("Cannot auction off more than one of a limited edition!")]
-    CannotAuctionOffMoreThanOneOfLimitedEdition,
-
     /// Not enough tokens to supply winners!
     #[error("Not enough tokens to supply winners!")]
     NotEnoughTokensToSupplyWinners,
@@ -186,6 +182,18 @@ pub enum MetaplexError {
     /// The safety deposit box for your winning bid placement does not match the safety deposit box you provided!
     #[error("The safety deposit box for your winning bid placement does not match the safety deposit box you provided!")]
     SafetyDepositIndexMismatch,
+
+    /// This prize has already been claimed!
+    #[error("This prize has already been claimed!")]
+    PrizeAlreadyClaimed,
+
+    /// The bid redemption key does not match the expected PDA with seed ['metaplex', auction key, bidder metadata key]
+    #[error("The bid redemption key does not match the expected PDA with seed ['metaplex', auction key, bidder metadata key]")]
+    BidRedemptionMismatch,
+
+    /// This bid has already been redeemed!
+    #[error("This bid has already been redeemed!")]
+    BidAlreadyRedeemed,
 }
 
 impl PrintProgramError for MetaplexError {

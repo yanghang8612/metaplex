@@ -1,7 +1,10 @@
 use {
-    crate::{error::MetaplexError, state::AuctionManager},
+    crate::{
+        error::MetaplexError,
+        state::{AuctionManager, PREFIX},
+    },
     solana_program::{
-        account_info::AccountInfo,
+        account_info::{next_account_info, AccountInfo},
         entrypoint::ProgramResult,
         msg,
         program::{invoke, invoke_signed},
@@ -11,9 +14,12 @@ use {
         system_instruction,
         sysvar::{rent::Rent, Sysvar},
     },
-    spl_token_metadata::{instruction::transfer_update_authority, state::Metadata},
-    spl_token_vault::state::SafetyDepositBox,
-    std::convert::TryInto,
+    spl_token_metadata::{
+        instruction::{mint_new_edition_from_master_edition, transfer_update_authority},
+        state::Metadata,
+    },
+    spl_token_vault::{instruction::create_withdraw_tokens_instruction, state::SafetyDepositBox},
+    std::{convert::TryInto, slice::Iter},
 };
 
 /// assert initialized account
@@ -126,22 +132,117 @@ pub fn create_or_allocate_account_raw<'a>(
     Ok(())
 }
 
-pub fn transfer_safety_deposit_box_items<'a>(signer_seeds: &[&[u8]]) -> ProgramResult {
-    let transferring_obj = match metadata.non_unique_specific_update_authority {
-        Some(_) => metadata_info,
-        None => name_symbol_info,
-    };
+pub fn transfer_safety_deposit_box_items<'a>(
+    token_vault_program: AccountInfo<'a>,
+    destination: AccountInfo<'a>,
+    safety_deposit_box: AccountInfo<'a>,
+    store: AccountInfo<'a>,
+    vault: AccountInfo<'a>,
+    fraction_mint: AccountInfo<'a>,
+    vault_authority: AccountInfo<'a>,
+    transfer_authority: AccountInfo<'a>,
+    amount: u64,
+    signer_seeds: &[&[u8]],
+) -> ProgramResult {
     invoke_signed(
-        &transfer_update_authority(
-            *token_metadata_program.key,
-            *transferring_obj.key,
-            *update_authority.key,
-            *new_update_authority.key,
+        &create_withdraw_tokens_instruction(
+            *token_vault_program.key,
+            *destination.key,
+            *safety_deposit_box.key,
+            *store.key,
+            *vault.key,
+            *fraction_mint.key,
+            *vault_authority.key,
+            *transfer_authority.key,
+            amount,
         ),
         &[
-            update_authority,
-            new_update_authority,
-            transferring_obj,
+            token_vault_program,
+            destination,
+            safety_deposit_box,
+            store,
+            vault,
+            fraction_mint,
+            vault_authority,
+            transfer_authority,
+        ],
+        &[&signer_seeds],
+    )?;
+
+    Ok(())
+}
+
+pub fn mint_edition_from_account_iterator<'a>(
+    program_id: Pubkey,
+    auction_manager_info: &AccountInfo<'a>,
+    token_metadata_program_info: &AccountInfo<'a>,
+    payer_info: &AccountInfo<'a>,
+    account_info_iter: &mut Iter<AccountInfo<'a>>,
+) -> ProgramResult {
+    let new_metadata_info = next_account_info(account_info_iter)?;
+    let destination_mint_info = next_account_info(account_info_iter)?;
+    let destination_mint_authority_info = next_account_info(account_info_iter)?;
+    let master_metadata_info = next_account_info(account_info_iter)?;
+    let new_edition_info = next_account_info(account_info_iter)?;
+    let master_edition_info = next_account_info(account_info_iter)?;
+
+    let seeds = &[PREFIX.as_bytes(), &auction_manager_info.key.as_ref()];
+    let (_, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
+    let mint_seeds = &[
+        PREFIX.as_bytes(),
+        &auction_manager_info.key.as_ref(),
+        &[bump_seed],
+    ];
+
+    mint_edition(
+        token_metadata_program_info.clone(),
+        new_metadata_info.clone(),
+        new_edition_info.clone(),
+        master_edition_info.clone(),
+        destination_mint_info.clone(),
+        destination_mint_authority_info.clone(),
+        payer_info.clone(),
+        auction_manager_info.clone(),
+        master_metadata_info.clone(),
+        mint_seeds,
+    )?;
+
+    Ok(())
+}
+
+pub fn mint_edition<'a>(
+    token_metadata_program: AccountInfo<'a>,
+    metadata: AccountInfo<'a>,
+    edition: AccountInfo<'a>,
+    master_edition: AccountInfo<'a>,
+    mint: AccountInfo<'a>,
+    mint_authority: AccountInfo<'a>,
+    payer: AccountInfo<'a>,
+    master_update_authority: AccountInfo<'a>,
+    master_metadata: AccountInfo<'a>,
+    signer_seeds: &[&[u8]],
+) -> ProgramResult {
+    invoke_signed(
+        &mint_new_edition_from_master_edition(
+            *token_metadata_program.key,
+            *metadata.key,
+            *edition.key,
+            *master_edition.key,
+            *mint.key,
+            *mint_authority.key,
+            *payer.key,
+            *master_update_authority.key,
+            *master_metadata.key,
+        ),
+        &[
+            metadata,
+            edition,
+            master_edition,
+            mint,
+            mint_authority,
+            payer,
+            master_update_authority,
+            master_metadata,
             token_metadata_program,
         ],
         &[&signer_seeds],
@@ -154,14 +255,14 @@ pub fn transfer_metadata_ownership<'a>(
     metadata: &Metadata,
     token_metadata_program: AccountInfo<'a>,
     metadata_info: AccountInfo<'a>,
-    name_symbol_info: AccountInfo<'a>,
+    name_symbol: AccountInfo<'a>,
     update_authority: AccountInfo<'a>,
     new_update_authority: AccountInfo<'a>,
     signer_seeds: &[&[u8]],
 ) -> ProgramResult {
     let transferring_obj = match metadata.non_unique_specific_update_authority {
         Some(_) => metadata_info,
-        None => name_symbol_info,
+        None => name_symbol,
     };
     invoke_signed(
         &transfer_update_authority(

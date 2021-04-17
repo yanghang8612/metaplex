@@ -6,7 +6,7 @@ use {
 pub const PREFIX: &str = "metaplex";
 
 pub const MAX_WINNERS: usize = 200;
-pub const MAX_WINNER_SIZE: usize = 5 * MAX_WINNERS;
+pub const MAX_WINNER_SIZE: usize = 7 * MAX_WINNERS;
 pub const MAX_AUCTION_MANAGER_SIZE: usize =
     1 + 32 + 32 + 32 + 32 + 32 + 32 + 32 + 1 + 1 + 1 + 1 + MAX_WINNER_SIZE + 2 + 9;
 
@@ -56,6 +56,8 @@ pub struct AuctionManagerState {
     /// each time authority is delegated back to the owner or the new owner and when it hits 0 another condition
     /// is met for going to Finished state.
     pub master_editions_with_authorities_remaining_to_return: u8,
+
+    pub winning_config_states: Vec<WinningConfigState>,
 }
 
 #[repr(C)]
@@ -108,19 +110,28 @@ pub enum EditionType {
     MasterEdition,
     /// Means you are using the master edition to print off new editions during the auction (limited or open edition)
     MasterEditionAsTemplate,
-    /// Means you are indicating this is an Edition, not a Master Edition, and you are auctioning it
-    Edition,
 }
 
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize, Copy)]
 pub struct WinningConfig {
+    // Technically "validated" and "claimed" should be in State top level struct in a Vec of structs
+    // but for ease of programmer readability leaving them in this config struct.
     pub safety_deposit_box_index: u8,
     pub amount: u8,
-    /// Each safety deposit box needs to be validated via endpoint before auction manager will agree to let auction begin.
-    pub validated: bool,
     pub has_authority: bool,
     pub edition_type: EditionType,
+}
+
+#[repr(C)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, Copy)]
+pub struct WinningConfigState {
+    /// Used for cases of minting Limited Editions and keeping track of how many have been made so far.
+    pub amount_minted: u8,
+    /// Each safety deposit box needs to be validated via endpoint before auction manager will agree to let auction begin.
+    pub validated: bool,
+    /// Ticked to true when a prize is claimed
+    pub claimed: bool,
 }
 
 #[repr(C)]
