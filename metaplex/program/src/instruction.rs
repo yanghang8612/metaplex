@@ -84,39 +84,40 @@ pub enum MetaplexInstruction {
     ///   12. `[]` Token metadata program
     ///   13. `[]` Rent sysvar
     ///   14. `[]` System
+    ///   15. `[]` Clock sysvar.
     ///   
     ///   Case 1: Redeeming bid for normal token:
     ///
-    ///   15. `[]` PDA-based Transfer authority to move the tokens from the store to the destination seed ['vault', program_id]
+    ///   16. `[]` PDA-based Transfer authority to move the tokens from the store to the destination seed ['vault', program_id]
     ///        but please note that this is a PDA relative to the Token Vault program, with the 'vault' prefix
     ///
     ///   Case 2: Redeeming bid for Limited Edition:
     ///
-    ///   15. `[writable]` New Limited Edition Metadata (pda of ['metadata', program id, newly made mint id]) - remember PDA is relative to token metadata program
-    ///   16. `[writable]` Mint of destination account. This needs to be a newly created mint and the destination account
+    ///   16. `[writable]` New Limited Edition Metadata (pda of ['metadata', program id, newly made mint id]) - remember PDA is relative to token metadata program
+    ///   17. `[writable]` Mint of destination account. This needs to be a newly created mint and the destination account
     ///                   needs to have exactly one token in it already. We will simply "grant" the limited edition status on this token.
-    ///   17. `[signer]` Destination mint authority - this account is optional, and will only be used/checked if you are receiving a newly minted limited edition.
-    ///   18. `[]` Master Metadata (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   19. `[]` New Limited Edition (pda of ['metadata', program id, newly made mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   20. `[]` Master Edition (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   18. `[signer]` Destination mint authority - this account is optional, and will only be used/checked if you are receiving a newly minted limited edition.
+    ///   19. `[]` Master Metadata (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   20. `[]` New Limited Edition (pda of ['metadata', program id, newly made mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   21. `[]` Master Edition (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
     ///
     ///   Case 3: Redeeming a bid to gain ownership of a Master Edition itself:
     ///
-    ///   15. `[writable]` Master Metadata account (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   16. `[writable]` Name symbol tuple account
+    ///   16. `[writable]` Master Metadata account (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   17. `[writable]` Name symbol tuple account
     ///           (This account is optional, and will only be used if metadata is unique, otherwise this account key will be ignored no matter it's value)
-    ///   17. `[]` New authority for Master Metadata - If you are taking ownership of a Master Edition in and of itself, or a Limited Edition that isn't newly minted for you during this auction
+    ///   18. `[]` New authority for Master Metadata - If you are taking ownership of a Master Edition in and of itself, or a Limited Edition that isn't newly minted for you during this auction
     ///             ie someone else had it minted for themselves in a prior auction or through some other means, this is the account the metadata for these tokens will be delegated to
     ///             after this transaction. Otherwise this account will be ignored.
-    ///   18. `[]` PDA-based Transfer authority to move the tokens from the store to the destination seed ['vault', program_id]
+    ///   19. `[]` PDA-based Transfer authority to move the tokens from the store to the destination seed ['vault', program_id]
     ///        but please note that this is a PDA relative to the Token Vault program, with the 'vault' prefix
     ///
     ///
     ///   OPEN EDITIONS: FURTHERMORE, if you are expecting to receive an open edition token out of this, because this auction supports that, you'll need to add accounts of the same kind and order
     ///   as in Case 2 but for the Open Edition coin at the end of the list. This means that if you are expecting to get an open edition coin, make a destination account with a new mint,
     ///   slap a single coin in it, and then pass up the metadata pda key, new mint key, mint authority, payer, master metadata key, new edition key, and master edition in that order, just as in case 2,
-    ///   but for the open edition you expect to receive. This means that it is fully reasonable to make a RedeemBid call that has accounts #15-20 containing keys for the Limited Edition winning bid you won
-    ///   plus #20-25 containing keys for the Open Edition you got as a thank you for bidding, and at the end you'll have two tokens in two different accounts from two different mints, one a Limited Edition and one
+    ///   but for the open edition you expect to receive. This means that it is fully reasonable to make a RedeemBid call that has accounts #16-21 containing keys for the Limited Edition winning bid you won
+    ///   plus #21-26 containing keys for the Open Edition you got as a thank you for bidding, and at the end you'll have two tokens in two different accounts from two different mints, one a Limited Edition and one
     ///   an open edition.
     RedeemBid,
 }

@@ -101,6 +101,7 @@ pub fn create_auction(
         authority: *creator_act.key,
         bid_state: bid_state,
         end_time: args.end_time,
+        end_time_slot: Some(0u64),
         gap_time: args.gap_time,
         last_bid: None,
         resource: args.resource,

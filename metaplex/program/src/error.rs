@@ -194,6 +194,14 @@ pub enum MetaplexError {
     /// This bid has already been redeemed!
     #[error("This bid has already been redeemed!")]
     BidAlreadyRedeemed,
+
+    /// Auction has not ended yet!
+    #[error("Auction has not ended yet!")]
+    AuctionHasNotEnded,
+
+    /// Cannot redeem bids for an auction that has not ended!
+    #[error("Cannot redeem bids for an auction that has not ended!")]
+    AuctionHasNoEndTime,
 }
 
 impl PrintProgramError for MetaplexError {

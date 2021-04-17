@@ -1,3 +1,5 @@
+use solana_program::clock::Clock;
+
 use {
     crate::{
         error::MetaplexError,
@@ -73,6 +75,9 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
     let token_metadata_program_info = next_account_info(account_info_iter)?;
     let rent_info = next_account_info(account_info_iter)?;
     let system_info = next_account_info(account_info_iter)?;
+    let clock_info = next_account_info(account_info_iter)?;
+
+    let clock = &Clock::from_account_info(clock_info)?;
     let rent = &Rent::from_account_info(rent_info)?;
 
     if !bid_redemption_info.data_is_empty() {
@@ -116,6 +121,17 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
         return Err(MetaplexError::AuctionManagerTokenMetadataProgramMismatch.into());
     }
 
+    if let Some(end_time) = auction.end_time_slot {
+        if end_time < clock.slot {
+            return Err(MetaplexError::AuctionHasNotEnded.into());
+        }
+    } else {
+        return Err(MetaplexError::AuctionHasNoEndTime.into());
+    }
+
+    // No-op if already set.
+    auction_manager.state.status = AuctionManagerStatus::Disbursing;
+
     let redemption_path = [
         PREFIX.as_bytes(),
         auction_manager.auction.as_ref(),
@@ -147,7 +163,7 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
 
     // There is only one case where a follow up call needs to be made, and that's when we have multiple limited editions
     // that need to be minted across multiple destination accounts. To make this a little less complex, we set a switch
-    // to check at the end of the command to decide whether or not to make the pda to check to make the bid redemption account
+    // to check at the end of the command to decide whether or not to make the pda to check to make the bid redemption blocking account
     // or not.
     let mut needs_to_wait_on_another_call = false;
 
@@ -226,6 +242,8 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
                         if winning_config_state.amount_minted == winning_config.amount {
                             winning_config_state.claimed = true;
                         } else {
+                            // We need to allow the user to make another call to RedeemBid with a new destination_account
+                            // For another limited edition!
                             needs_to_wait_on_another_call = true;
                         }
                     }
@@ -323,6 +341,25 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
             redemption_seeds,
         )?;
     }
+
+    let mut open_claims = false;
+    for n in 0..auction_manager.state.winning_config_states.len() {
+        if !auction_manager.state.winning_config_states[n].claimed {
+            open_claims = true;
+            break;
+        }
+    }
+
+    if !open_claims
+        && auction_manager
+            .state
+            .master_editions_with_authorities_remaining_to_return
+            == 0
+    {
+        auction_manager.state.status = AuctionManagerStatus::Finished
+    }
+
+    auction_manager.serialize(&mut *auction_manager_info.data.borrow_mut())?;
 
     Ok(())
 }

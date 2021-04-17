@@ -42,6 +42,7 @@ pub struct AuctionData {
     pub resource: Pubkey,
     /// Whether or not the auction has started
     pub started: bool,
+    pub end_time_slot: Option<u64>,
     /// End time is the cut-off point that the auction is forced to end by.
     pub end_time: Option<UnixTimestamp>,
     /// Gap time is the amount of time after the previous bid at which the auction ends. Going
