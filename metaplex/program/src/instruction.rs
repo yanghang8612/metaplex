@@ -126,7 +126,22 @@ pub enum MetaplexInstruction {
     ///
     ///   OPEN EDITIONS: FURTHERMORE, if you are expecting to receive an open edition token out of this, because this auction supports that, you'll need to add accounts of the same kind and order
     ///   as in Case 2 but for the Open Edition coin at the end of the list. This means that if you are expecting to get an open edition coin, make a destination account with a new mint,
-    ///   slap a single coin in it, and then pass up the metadata pda key, new mint key, mint authority, payer, master metadata key, new edition key, and master edition in that order, just as in case 2,
+    ///   slap a single coin in it, and then pass up this:
+    ///
+    ///   x.    `[writable]` New Open Edition Metadata (pda of ['metadata', program id, newly made mint id]) - remember PDA is relative to token metadata program
+    ///   xi.   `[writable]` Mint of destination account. This needs to be a newly created mint and the destination account
+    ///                   needs to have exactly one token in it already. We will simply "grant" the limited edition status on this token.
+    ///   xii.  `[signer]` Destination mint authority - this account is optional, and will only be used/checked if you are receiving a newly minted limited edition.
+    ///   xiii. `[]` Master Metadata (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   xiii. `[]` Destination account with a single token in it
+    ///   xiv.  `[]` New Limited Edition (pda of ['metadata', program id, newly made mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   xv.   `[]` Master Edition (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   xvi.  `[]` Original authority on the Master Metadata, which can be gotten via reading off the key from lookup of OriginalAuthorityLookup struct with
+    ///            key of (pda of ['metaplex', auction key, master metadata key]).
+    ///            We'll use this to grant back authority to the owner of the master metadata if we no longer need it after this latest minting.
+    ///   xvii. `[]` Original authority Lookup key - pda of ['metaplex', auction key, master metadata key]
+    ///
+    ///   Notice this looks similar to case 2, except instead of a Name Symbol you're passing in an additional destination account,
     ///   but for the open edition you expect to receive. This means that it is fully reasonable to make a RedeemBid call that has accounts #16-24 containing keys for the Limited Edition winning bid you won
     ///   plus #24-30 containing keys for the Open Edition you got as a thank you for bidding, and at the end you'll have two tokens in two different accounts from two different mints, one a Limited Edition and one
     ///   an open edition.

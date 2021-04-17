@@ -409,9 +409,14 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
         let destination_mint_info = next_account_info(account_info_iter)?;
         let destination_mint_authority_info = next_account_info(account_info_iter)?;
         let master_metadata_info = next_account_info(account_info_iter)?;
-        let _ = next_account_info(account_info_iter)?;
+        let open_edition_destination_info = next_account_info(account_info_iter)?;
         let new_edition_info = next_account_info(account_info_iter)?;
         let master_edition_info = next_account_info(account_info_iter)?;
+
+        let _destination: Account = assert_initialized(open_edition_destination_info)?;
+
+        assert_owned_by(destination_info, token_program_info.key)?;
+        assert_rent_exempt(rent, destination_info)?;
 
         let seeds = &[PREFIX.as_bytes(), &auction_manager_info.key.as_ref()];
         let (_, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
