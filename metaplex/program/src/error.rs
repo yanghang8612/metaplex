@@ -210,6 +210,10 @@ pub enum MetaplexError {
     /// The original authority given does not match that on the original authority lookup account!
     #[error("The original authority given does not match that on the original authority lookup account!")]
     OriginalAuthorityMismatch,
+
+    /// The prize you are attempting to claim needs to be claimed from a different endpoint than this one.
+    #[error("The prize you are attempting to claim needs to be claimed from a different endpoint than this one.")]
+    WrongBidEndpointForPrize,
 }
 
 impl PrintProgramError for MetaplexError {

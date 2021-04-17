@@ -58,21 +58,8 @@ pub enum MetaplexInstruction {
     /// The auction manager will switch from Running state to Disbursing state. If you are the last, this may change
     /// the auction manager state to Finished provided that no authorities remain to be delegated for Master Edition tokens.
     ///
-    /// Multiple cases are covered here:
-    ///    1. You are redeeming a bid for a normal token
-    ///    2. You are looking to mint a Limited Edition from a Master Edition template
-    ///    3. You are looking to gain ownership of a Master Edition itself so you control the Master Edition going forward
-    ///    4. Not really a fourth case, but you may be receiving an open edition in all cases, and in cancelled bid case.
-    ///
-    /// NOTE: If you are redeeming a newly minted Limited Edition, you must actually supply a destination account containing a token from a brand new
-    /// mint. We do not provide the token to you. Our job with this action is to christen this mint + token combo as an official Limited Edition.
-    /// If you won "multiple" Limited Editions with a single bid, you will need to call this endpoint N times, for N Limited Editions, each with a different destination/mint combo.
-    /// Please realize this scenario is DIFFERENT FROM redeeming a Limited Edition that someone put up for auction that they themselves got somewhere else, like a previous auction.
-    /// In that case, you only need to provide a destination account of the same mint type of the Limited Edition mint, and it's just as if
-    /// it were any other token (case #1.)
-    ///
-    /// Depending on which case you are calling for, you will append a different set of accounts to the end of the account list, as each case requires
-    /// different information, and authorities, to complete it's work.* Please see a footnote at the bottom about Open editions.
+    /// NOTE: Please note that it is totally possible to redeem a bid 2x - once for a prize you won and once at the RedeemOpenEditionBid point for an open edition
+    /// that comes as a 'token of appreciation' for bidding. They are not mutually exclusive unless explicitly set to be that way.
     ///
     ///   0. `[writable]` Auction manager
     ///   1. `[writable]` Store of safety deposit box account
@@ -91,14 +78,79 @@ pub enum MetaplexInstruction {
     ///   13. `[]` Rent sysvar
     ///   14. `[]` System
     ///   15. `[]` Clock sysvar.
-    ///   
-    ///   Case 1: Redeeming bid for normal token:
-    ///
     ///   16. `[]` PDA-based Transfer authority to move the tokens from the store to the destination seed ['vault', program_id]
     ///        but please note that this is a PDA relative to the Token Vault program, with the 'vault' prefix
+    RedeemBid,
+
+    /// Note: This requires that auction manager be in a Running state.
     ///
-    ///   Case 2: Redeeming bid for Limited Edition:
+    /// If an auction is complete, you can redeem your bid for the actual Master Edition itself if it's for that prize here.
+    /// If you are the first to do this, the auction manager will switch from Running state to Disbursing state.
+    /// If you are the last, this may change the auction manager state to Finished provided that no authorities remain to be delegated for Master Edition tokens.
     ///
+    /// NOTE: Please note that it is totally possible to redeem a bid 2x - once for a prize you won and once at the RedeemOpenEditionBid point for an open edition
+    /// that comes as a 'token of appreciation' for bidding. They are not mutually exclusive unless explicitly set to be that way.
+    ///
+    ///   0. `[writable]` Auction manager
+    ///   1. `[writable]` Store of safety deposit box account
+    ///   2. `[writable]` Destination account.
+    ///   3. `[writable]` Bid redemption key -
+    ///        Just a PDA with seed ['metaplex', auction_key, bidder_metadata_key] that we will allocate to mark that you redeemed your bid
+    ///   4. `[]` Safety deposit box account
+    ///   5. `[]` Fraction mint of the vault
+    ///   6. `[]` Vault account
+    ///   7. `[]` Auction
+    ///   8. `[]` Your BidderMetadata account
+    ///   9. `[signer]` Payer
+    ///   10. `[]` Token program
+    ///   11. `[]` Token Vault program
+    ///   12. `[]` Token metadata program
+    ///   13. `[]` Rent sysvar
+    ///   14. `[]` System
+    ///   15. `[]` Clock sysvar.
+    ///   16. `[writable]` Master Metadata account (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   17. `[writable]` Name symbol tuple account
+    ///           (This account is optional, and will only be used if metadata is unique, otherwise this account key will be ignored no matter it's value)
+    ///   18. `[]` New authority for Master Metadata - If you are taking ownership of a Master Edition in and of itself, or a Limited Edition that isn't newly minted for you during this auction
+    ///             ie someone else had it minted for themselves in a prior auction or through some other means, this is the account the metadata for these tokens will be delegated to
+    ///             after this transaction. Otherwise this account will be ignored.
+    ///   19. `[]` PDA-based Transfer authority to move the tokens from the store to the destination seed ['vault', program_id]
+    ///        but please note that this is a PDA relative to the Token Vault program, with the 'vault' prefix
+    RedeemMasterEditionBid,
+
+    /// Note: This requires that auction manager be in a Running state.
+    ///
+    /// If an auction is complete, you can redeem your bid for a Limited Edition here if the bid is valid for that type. If you are the first to do this,
+    /// The auction manager will switch from Running state to Disbursing state. If you are the last, this may change
+    /// the auction manager state to Finished provided that no authorities remain to be delegated for Master Edition tokens.
+    ///
+    /// NOTE: Please note that it is totally possible to redeem a bid 2x - once for a prize you won and once at the RedeemOpenEditionBid point for an open edition
+    /// that comes as a 'token of appreciation' for bidding. They are not mutually exclusive unless explicitly set to be that way.
+    ///
+    /// NOTE: Since you are receiving a newly minted Limited Edition, you must actually supply a destination account containing a token from a brand new
+    /// mint. We do not provide the token to you. Our job with this action is to christen this mint + token combo as an official Limited Edition.
+    /// If you won "multiple" Limited Editions with a single bid, you will need to call this endpoint N times, for N Limited Editions, each with a different destination/mint combo.
+    /// Please realize this scenario is DIFFERENT FROM redeeming a Limited Edition that someone put up for auction that they themselves got somewhere else, like a previous auction.
+    /// In that case, you only need to provide a destination account of the same mint type of the Limited Edition mint, and it's just as if
+    /// it were any other token, so you would be using the RedeemBid endpoint, not this one.
+    ///
+    ///   0. `[writable]` Auction manager
+    ///   1. `[writable]` Store of safety deposit box account
+    ///   2. `[writable]` Destination account.
+    ///   3. `[writable]` Bid redemption key -
+    ///        Just a PDA with seed ['metaplex', auction_key, bidder_metadata_key] that we will allocate to mark that you redeemed your bid
+    ///   4. `[]` Safety deposit box account
+    ///   5. `[]` Fraction mint of the vault
+    ///   6. `[]` Vault account
+    ///   7. `[]` Auction
+    ///   8. `[]` Your BidderMetadata account
+    ///   9. `[signer]` Payer
+    ///   10. `[]` Token program
+    ///   11. `[]` Token Vault program
+    ///   12. `[]` Token metadata program
+    ///   13. `[]` Rent sysvar
+    ///   14. `[]` System
+    ///   15. `[]` Clock sysvar.
     ///   16. `[writable]` New Limited Edition Metadata (pda of ['metadata', program id, newly made mint id]) - remember PDA is relative to token metadata program
     ///   17. `[writable]` Mint of destination account. This needs to be a newly created mint and the destination account
     ///                   needs to have exactly one token in it already. We will simply "grant" the limited edition status on this token.
@@ -111,41 +163,50 @@ pub enum MetaplexInstruction {
     ///            key of (pda of ['metaplex', auction key, master metadata key]).
     ///            We'll use this to grant back authority to the owner of the master metadata if we no longer need it after this latest minting.
     ///   24. `[]` Original authority Lookup key - pda of ['metaplex', auction key, master metadata key]
+    RedeemLimitedEditionBid,
+
+    /// Note: This requires that auction manager be in a Running state.
     ///
-    ///   Case 3: Redeeming a bid to gain ownership of a Master Edition itself:
+    /// If an auction is complete, you can redeem your bid for an Open Edition token if it is eligible. If you are the first to do this,
+    /// The auction manager will switch from Running state to Disbursing state. If you are the last, this may change
+    /// the auction manager state to Finished provided that no authorities remain to be delegated for Master Edition tokens.
     ///
-    ///   16. `[writable]` Master Metadata account (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   17. `[writable]` Name symbol tuple account
-    ///           (This account is optional, and will only be used if metadata is unique, otherwise this account key will be ignored no matter it's value)
-    ///   18. `[]` New authority for Master Metadata - If you are taking ownership of a Master Edition in and of itself, or a Limited Edition that isn't newly minted for you during this auction
-    ///             ie someone else had it minted for themselves in a prior auction or through some other means, this is the account the metadata for these tokens will be delegated to
-    ///             after this transaction. Otherwise this account will be ignored.
-    ///   19. `[]` PDA-based Transfer authority to move the tokens from the store to the destination seed ['vault', program_id]
-    ///        but please note that this is a PDA relative to the Token Vault program, with the 'vault' prefix
+    /// NOTE: Please note that it is totally possible to redeem a bid 2x - once for a prize you won and once at this end point for a open edition
+    /// that comes as a 'token of appreciation' for bidding. They are not mutually exclusive unless explicitly set to be that way.
     ///
+    /// NOTE: If you are redeeming a newly minted Open Edition, you must actually supply a destination account containing a token from a brand new
+    /// mint. We do not provide the token to you. Our job with this action is to christen this mint + token combo as an official Open Edition.
     ///
-    ///   OPEN EDITIONS: FURTHERMORE, if you are expecting to receive an open edition token out of this, because this auction supports that, you'll need to add accounts of the same kind and order
-    ///   as in Case 2 but for the Open Edition coin at the end of the list. This means that if you are expecting to get an open edition coin, make a destination account with a new mint,
-    ///   slap a single coin in it, and then pass up this:
-    ///
-    ///   x.    `[writable]` New Open Edition Metadata (pda of ['metadata', program id, newly made mint id]) - remember PDA is relative to token metadata program
-    ///   xi.   `[writable]` Mint of destination account. This needs to be a newly created mint and the destination account
+    ///   0. `[writable]` Auction manager
+    ///   1. `[writable]` Store of safety deposit box account
+    ///   2. `[writable]` Destination account.
+    ///   3. `[writable]` Bid redemption key -
+    ///        Just a PDA with seed ['metaplex', auction_key, bidder_metadata_key] that we will allocate to mark that you redeemed your bid
+    ///   4. `[]` Safety deposit box account
+    ///   5. `[]` Fraction mint of the vault
+    ///   6. `[]` Vault account
+    ///   7. `[]` Auction
+    ///   8. `[]` Your BidderMetadata account
+    ///   9. `[signer]` Payer
+    ///   10. `[]` Token program
+    ///   11. `[]` Token Vault program
+    ///   12. `[]` Token metadata program
+    ///   13. `[]` Rent sysvar
+    ///   14. `[]` System
+    ///   15. `[]` Clock sysvar.
+    ///   16. `[writable]` New Open Edition Metadata (pda of ['metadata', program id, newly made mint id]) - remember PDA is relative to token metadata program
+    ///   17. `[writable]` Mint of destination account. This needs to be a newly created mint and the destination account
     ///                   needs to have exactly one token in it already. We will simply "grant" the limited edition status on this token.
-    ///   xii.  `[signer]` Destination mint authority - this account is optional, and will only be used/checked if you are receiving a newly minted limited edition.
-    ///   xiii. `[]` Master Metadata (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   xiii. `[]` Destination account with a single token in it
-    ///   xiv.  `[]` New Limited Edition (pda of ['metadata', program id, newly made mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   xv.   `[]` Master Edition (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   xvi.  `[]` Original authority on the Master Metadata, which can be gotten via reading off the key from lookup of OriginalAuthorityLookup struct with
+    ///   18. `[signer]` Destination mint authority - this account is optional, and will only be used/checked if you are receiving a newly minted limited edition.
+    ///   19. `[]` Master Metadata (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   20. `[]` Destination account with a single token in it
+    ///   21. `[]` New Limited Edition (pda of ['metadata', program id, newly made mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   22. `[]` Master Edition (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   23. `[]` Original authority on the Master Metadata, which can be gotten via reading off the key from lookup of OriginalAuthorityLookup struct with
     ///            key of (pda of ['metaplex', auction key, master metadata key]).
     ///            We'll use this to grant back authority to the owner of the master metadata if we no longer need it after this latest minting.
-    ///   xvii. `[]` Original authority Lookup key - pda of ['metaplex', auction key, master metadata key]
-    ///
-    ///   Notice this looks similar to case 2, except instead of a Name Symbol you're passing in an additional destination account,
-    ///   but for the open edition you expect to receive. This means that it is fully reasonable to make a RedeemBid call that has accounts #16-24 containing keys for the Limited Edition winning bid you won
-    ///   plus #24-30 containing keys for the Open Edition you got as a thank you for bidding, and at the end you'll have two tokens in two different accounts from two different mints, one a Limited Edition and one
-    ///   an open edition.
-    RedeemBid,
+    ///   24. `[]` Original authority Lookup key - pda of ['metaplex', auction key, master metadata key]
+    RedeemOpenEditionBid,
 }
 /*
 /// Creates an InitMetaplex instruction

@@ -109,7 +109,7 @@ pub enum EditionType {
     /// Means you are auctioning off the master edition record
     MasterEdition,
     /// Means you are using the master edition to print off new editions during the auction (limited or open edition)
-    MasterEditionAsTemplate,
+    LimitedEdition,
 }
 
 #[repr(C)]
@@ -148,4 +148,11 @@ pub enum AuctionManagerStatus {
 #[derive(Clone, BorshSerialize, BorshDeserialize, Copy)]
 pub struct OriginalAuthorityLookup {
     pub original_authority: Pubkey,
+}
+
+#[repr(C)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, Copy)]
+pub struct BidRedemptionTicket {
+    pub open_edition_redeemed: bool,
+    pub bid_redeemed: bool,
 }
