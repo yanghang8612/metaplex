@@ -4012,6 +4012,7 @@ dependencies = [
 name = "spl-token-metaplex-test-client"
 version = "0.1.0"
 dependencies = [
+ "arrayref",
  "bincode",
  "borsh 0.8.2",
  "clap",

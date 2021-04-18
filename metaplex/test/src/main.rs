@@ -42,10 +42,12 @@ use {
         },
     },
     std::{convert::TryInto, str::FromStr},
+    validate_safety_deposits::validate_safety_deposits,
     vault_utils::{activate_vault, add_token_to_vault, combine_vault, initialize_vault},
 };
 mod initialize_auction_manager;
 mod settings_utils;
+mod validate_safety_deposits;
 mod vault_utils;
 
 pub const VAULT_PROGRAM_PUBKEY: &str = "94wRaYAQdC2gYF76AUTYSugNJ3rAC4EimjAMPwM7uYry";
@@ -93,7 +95,7 @@ fn main() {
                     Arg::with_name("external_price_account")
                         .long("external_price_account")
                         .value_name("EXTERNAL_PRICE_ACCOUNT")
-                        .required(true)
+                        .required(false)
                         .validator(is_valid_pubkey)
                         .takes_value(true)
                         .help("Pubkey of external price account, if one not provided, one will be made. Needs to be same as the one on the Vault."),
@@ -102,7 +104,7 @@ fn main() {
                     Arg::with_name("vault")
                         .long("vault")
                         .value_name("VAULT")
-                        .required(true)
+                        .required(false)
                         .validator(is_valid_pubkey)
                         .takes_value(true)
                         .help("Pubkey of vault. If one not provided, one will be made."),
@@ -111,7 +113,7 @@ fn main() {
                     Arg::with_name("auction")
                         .long("auction")
                         .value_name("AUCTION")
-                        .required(true)
+                        .required(false)
                         .validator(is_valid_pubkey)
                         .takes_value(true)
                         .help("Pubkey of auction. If one not provided, one will be made."),
@@ -139,6 +141,44 @@ fn main() {
                         .required(true)
                         .help("File path or uri to settings file (json) for setting up Auction Managers. See settings_sample.json, and you can follow the JSON structs in settings_utils.rs to customize the AuctionManagerSetting struct that gets created for shipping."),
                 ),
+        ).subcommand(
+            SubCommand::with_name("validate")
+                .about("Validate one (or all) of the winning configurations of your auction manager by slot.")
+                .arg(
+                    Arg::with_name("authority")
+                        .long("authority")
+                        .value_name("AUTHORITY")
+                        .required(false)
+                        .validator(is_valid_signer)
+                        .takes_value(true)
+                        .help("Pubkey of authority, defaults to you otherwise"),
+                )
+                .arg(
+                    Arg::with_name("metadata_authority")
+                        .long("metadata_authority")
+                        .value_name("METADATA_AUTHORITY")
+                        .required(false)
+                        .validator(is_valid_signer)
+                        .takes_value(true)
+                        .help("Pubkey of the metadata authority on the given winning configuration(s), defaults to you otherwise"),
+                )
+                .arg(
+                    Arg::with_name("auction_manager")
+                        .long("auction_manager")
+                        .value_name("AUCTION_MANAGER")
+                        .required(true)
+                        .validator(is_valid_pubkey)
+                        .takes_value(true)
+                        .help("Pubkey of auction manager."),
+                )
+                .arg(
+                    Arg::with_name("winner_config_slot")
+                        .long("winner_config_slot")
+                        .value_name("WINNER_CONFIG_SLOT")
+                        .required(true)
+                        .takes_value(true)
+                        .help("Pass in -1 for all (default), or a specific 0-indexed slot in the array to validate that slot."),
+                )
         )
         .get_matches();
 
@@ -160,6 +200,10 @@ fn main() {
                 "Created auction manager with address {:?} and output {:?}",
                 key, manager
             );
+        }
+        ("validate", Some(arg_matches)) => {
+            validate_safety_deposits(arg_matches, payer, client);
+            println!("Validated all winning configs passed in.",);
         }
 
         _ => unreachable!(),
