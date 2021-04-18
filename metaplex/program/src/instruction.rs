@@ -214,7 +214,7 @@ pub enum MetaplexInstruction {
 
 /// Creates an InitAuctionManager instruction
 #[allow(clippy::too_many_arguments)]
-pub fn create_init_vault_instruction(
+pub fn create_init_auction_manager_instruction(
     program_id: Pubkey,
     auction_manager: Pubkey,
     vault: Pubkey,
@@ -225,7 +225,6 @@ pub fn create_init_vault_instruction(
     auction_manager_authority: Pubkey,
     payer: Pubkey,
     token_vault_program: Pubkey,
-    token_metadata_program: Pubkey,
     auction_program: Pubkey,
     settings: AuctionManagerSettings,
 ) -> Instruction {
@@ -242,7 +241,7 @@ pub fn create_init_vault_instruction(
             AccountMeta::new_readonly(payer, true),
             AccountMeta::new_readonly(spl_token::id(), false),
             AccountMeta::new_readonly(token_vault_program, false),
-            AccountMeta::new_readonly(token_metadata_program, false),
+            AccountMeta::new_readonly(spl_token_metadata::id(), false),
             AccountMeta::new_readonly(auction_program, false),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
@@ -269,7 +268,6 @@ pub fn create_validate_safety_deposit_box_instruction(
     auction_manager_authority: Pubkey,
     metadata_authority: Pubkey,
     payer: Pubkey,
-    token_metadata_program: Pubkey,
 ) -> Instruction {
     Instruction {
         program_id,
@@ -286,7 +284,7 @@ pub fn create_validate_safety_deposit_box_instruction(
             AccountMeta::new_readonly(auction_manager_authority, true),
             AccountMeta::new_readonly(metadata_authority, true),
             AccountMeta::new_readonly(payer, true),
-            AccountMeta::new_readonly(token_metadata_program, false),
+            AccountMeta::new_readonly(spl_token_metadata::id(), false),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
         ],
@@ -311,7 +309,6 @@ pub fn create_redeem_bid_instruction(
     bidder_metadata: Pubkey,
     payer: Pubkey,
     token_vault_program: Pubkey,
-    token_metadata_program: Pubkey,
     transfer_authority: Pubkey,
 ) -> Instruction {
     Instruction {
@@ -329,7 +326,7 @@ pub fn create_redeem_bid_instruction(
             AccountMeta::new_readonly(payer, true),
             AccountMeta::new_readonly(spl_token::id(), false),
             AccountMeta::new_readonly(token_vault_program, false),
-            AccountMeta::new_readonly(token_metadata_program, false),
+            AccountMeta::new_readonly(spl_token_metadata::id(), false),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
             AccountMeta::new_readonly(sysvar::clock::id(), false),
@@ -354,7 +351,6 @@ pub fn create_redeem_master_edition_bid_instruction(
     bidder_metadata: Pubkey,
     payer: Pubkey,
     token_vault_program: Pubkey,
-    token_metadata_program: Pubkey,
     master_metadata: Pubkey,
     master_name_symbol: Pubkey,
     new_metadata_authority: Pubkey,
@@ -375,7 +371,7 @@ pub fn create_redeem_master_edition_bid_instruction(
             AccountMeta::new_readonly(payer, true),
             AccountMeta::new_readonly(spl_token::id(), false),
             AccountMeta::new_readonly(token_vault_program, false),
-            AccountMeta::new_readonly(token_metadata_program, false),
+            AccountMeta::new_readonly(spl_token_metadata::id(), false),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
             AccountMeta::new_readonly(sysvar::clock::id(), false),
@@ -405,7 +401,6 @@ pub fn create_redeem_limited_edition_bid_instruction(
     bidder_metadata: Pubkey,
     payer: Pubkey,
     token_vault_program: Pubkey,
-    token_metadata_program: Pubkey,
     new_limited_edition_metadata: Pubkey,
     destination_mint: Pubkey,
     destination_mint_authority: Pubkey,
@@ -431,7 +426,7 @@ pub fn create_redeem_limited_edition_bid_instruction(
             AccountMeta::new_readonly(payer, true),
             AccountMeta::new_readonly(spl_token::id(), false),
             AccountMeta::new_readonly(token_vault_program, false),
-            AccountMeta::new_readonly(token_metadata_program, false),
+            AccountMeta::new_readonly(spl_token_metadata::id(), false),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
             AccountMeta::new_readonly(sysvar::clock::id(), false),
@@ -466,7 +461,6 @@ pub fn create_redeem_open_edition_bid_instruction(
     bidder_metadata: Pubkey,
     payer: Pubkey,
     token_vault_program: Pubkey,
-    token_metadata_program: Pubkey,
     new_open_edition_metadata: Pubkey,
     destination_mint: Pubkey,
     destination_mint_authority: Pubkey,
@@ -489,7 +483,7 @@ pub fn create_redeem_open_edition_bid_instruction(
             AccountMeta::new_readonly(payer, true),
             AccountMeta::new_readonly(spl_token::id(), false),
             AccountMeta::new_readonly(token_vault_program, false),
-            AccountMeta::new_readonly(token_metadata_program, false),
+            AccountMeta::new_readonly(spl_token_metadata::id(), false),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
             AccountMeta::new_readonly(sysvar::clock::id(), false),

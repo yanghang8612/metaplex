@@ -4009,6 +4009,28 @@ dependencies = [
 ]
 
 [[package]]
+name = "spl-token-metaplex-test-client"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "borsh 0.8.2",
+ "clap",
+ "serde",
+ "serde_derive",
+ "serde_json",
+ "solana-clap-utils",
+ "solana-cli-config",
+ "solana-client",
+ "solana-program",
+ "solana-sdk",
+ "spl-auction",
+ "spl-metaplex",
+ "spl-token 3.1.0",
+ "spl-token-metadata",
+ "spl-token-vault",
+]
+
+[[package]]
 name = "spl-token-swap"
 version = "2.1.0"
 dependencies = [

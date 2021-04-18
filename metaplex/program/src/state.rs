@@ -11,7 +11,7 @@ pub const MAX_AUCTION_MANAGER_SIZE: usize =
     1 + 32 + 32 + 32 + 32 + 32 + 32 + 32 + 1 + 1 + 1 + 1 + MAX_WINNER_SIZE + 2 + 9;
 
 #[repr(C)]
-#[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq, Debug)]
 pub enum Key {
     AuctionManagerV1,
 }
@@ -21,7 +21,7 @@ pub enum Key {
 /// as opposed to the pubkeys to save on space. Ordering of safety deposits is guaranteed fixed by vault
 /// implementation.
 #[repr(C)]
-#[derive(Clone, BorshSerialize, BorshDeserialize)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, Debug)]
 pub struct AuctionManager {
     pub key: Key,
 
@@ -45,7 +45,7 @@ pub struct AuctionManager {
 }
 
 #[repr(C)]
-#[derive(Clone, BorshSerialize, BorshDeserialize)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, Debug)]
 pub struct AuctionManagerState {
     pub status: AuctionManagerStatus,
     /// When all configs are validated the auction is started and auction manager moves to Running
@@ -61,7 +61,7 @@ pub struct AuctionManagerState {
 }
 
 #[repr(C)]
-#[derive(Clone, BorshSerialize, BorshDeserialize)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, Debug)]
 pub struct AuctionManagerSettings {
     /// Setups:
     /// 1. Winners get open edition + not charged extra
@@ -87,14 +87,14 @@ pub struct AuctionManagerSettings {
 }
 
 #[repr(C)]
-#[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq, Debug)]
 pub enum WinningConstraint {
     NoOpenEdition,
     OpenEditionGiven,
 }
 
 #[repr(C)]
-#[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq, Debug)]
 pub enum NonWinningConstraint {
     NoOpenEdition,
     GivenForFixedPrice,
@@ -102,7 +102,7 @@ pub enum NonWinningConstraint {
 }
 
 #[repr(C)]
-#[derive(Clone, PartialEq, BorshSerialize, BorshDeserialize, Copy)]
+#[derive(Clone, PartialEq, BorshSerialize, BorshDeserialize, Copy, Debug)]
 pub enum EditionType {
     // Not an edition
     NA,
@@ -113,18 +113,15 @@ pub enum EditionType {
 }
 
 #[repr(C)]
-#[derive(Clone, BorshSerialize, BorshDeserialize, Copy)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, Copy, Debug)]
 pub struct WinningConfig {
-    // Technically "validated" and "claimed" should be in State top level struct in a Vec of structs
-    // but for ease of programmer readability leaving them in this config struct.
     pub safety_deposit_box_index: u8,
     pub amount: u8,
-    pub has_authority: bool,
     pub edition_type: EditionType,
 }
 
 #[repr(C)]
-#[derive(Clone, BorshSerialize, BorshDeserialize, Copy)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, Copy, Debug)]
 pub struct WinningConfigState {
     /// Used for cases of minting Limited Editions and keeping track of how many have been made so far.
     pub amount_minted: u8,
@@ -135,7 +132,7 @@ pub struct WinningConfigState {
 }
 
 #[repr(C)]
-#[derive(Clone, BorshSerialize, BorshDeserialize)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, Debug)]
 pub enum AuctionManagerStatus {
     Initialized,
     Validated,

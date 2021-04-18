@@ -808,10 +808,6 @@ pub fn process_validate_safety_deposit_box(
                 Some(val) => val,
                 None => return Err(MetaplexError::NumericalOverflowError.into()),
             };
-
-            for n in 0..winning_configs.len() {
-                winning_configs[n].has_authority = true;
-            }
         }
         _ => {}
     }
