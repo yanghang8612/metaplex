@@ -55,6 +55,7 @@ pub fn process_instruction(
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
 pub struct AuctionTiming {}
 
+pub const BASE_AUCTION_DATA_SIZE: usize = 32 + 32 + 32 + 1 + 9 + 9 + 9 + 9;
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
 pub struct AuctionData {
