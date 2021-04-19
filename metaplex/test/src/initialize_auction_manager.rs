@@ -97,14 +97,16 @@ fn find_or_initialize_external_account<'a>(
 
 fn find_or_initialize_auction(
     app_matches: &ArgMatches,
-    program_key: &Pubkey,
     vault_key: &Pubkey,
     auction_program_key: &Pubkey,
     payer_mint_key: &Pubkey,
-    instructions: &mut Vec<Instruction>,
+    payer: &Keypair,
+    client: &RpcClient,
 ) -> Pubkey {
     let auction_key: Pubkey;
     if !app_matches.is_present("auction") {
+        let signers: Vec<&Keypair> = vec![&payer];
+
         let winner_limit = app_matches
             .value_of("winner_limit")
             .unwrap_or("0")
@@ -133,9 +135,9 @@ fn find_or_initialize_auction(
         // user to provide.
         let (actual_auction_key, _) =
             Pubkey::find_program_address(&auction_path, auction_program_key);
-        instructions.push(create_auction_instruction(
+        let instructions = [create_auction_instruction(
             *auction_program_key,
-            *program_key,
+            payer.pubkey(),
             CreateAuctionArgs {
                 resource: *vault_key,
                 end_auction_at: Some(end_time),
@@ -146,8 +148,13 @@ fn find_or_initialize_auction(
                 },
                 token_mint: *payer_mint_key,
             },
-        ));
+        )];
 
+        let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
+        let recent_blockhash = client.get_recent_blockhash().unwrap().0;
+
+        transaction.sign(&signers, recent_blockhash);
+        client.send_and_confirm_transaction(&transaction).unwrap();
         auction_key = actual_auction_key;
     } else {
         auction_key = pubkey_of(app_matches, "auction").unwrap();
@@ -268,11 +275,11 @@ pub fn initialize_auction_manager(
 
     let auction_key = find_or_initialize_auction(
         app_matches,
-        &program_key,
         &vault_key,
         &auction_program_key,
         &payer_mint_key.pubkey(),
-        &mut instructions,
+        &payer,
+        &client,
     );
 
     let seeds = &[
