@@ -19,9 +19,9 @@ use {
 };
 
 pub const VAULT_PROGRAM_PUBKEY: &str = "94wRaYAQdC2gYF76AUTYSugNJ3rAC4EimjAMPwM7uYry";
-pub const AUCTION_PROGRAM_PUBKEY: &str = "94wRaYAQdC2gYF76AUTYSugNJ3rAC4EimjAMPwM7uYry";
+pub const AUCTION_PROGRAM_PUBKEY: &str = "CkdQf5r7mvYqPycYxmXjMnx2swATN4Vz5KVeowL1vvuc";
 
-pub const PROGRAM_PUBKEY: &str = "94wRaYAQdC2gYF76AUTYSugNJ3rAC4EimjAMPwM7uYry";
+pub const PROGRAM_PUBKEY: &str = "EPtpKdKW8qciGVd1UFyGjgbBHTbSAyvbY61h9uQGVgeu";
 
 pub const TOKEN_PROGRAM_PUBKEY: &str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 
@@ -105,7 +105,7 @@ fn main() {
                     Arg::with_name("settings_file")
                         .long("settings_file")
                         .value_name("SETTINGS_FILE")
-                        .takes_value(false)
+                        .takes_value(true)
                         .required(true)
                         .help("File path or uri to settings file (json) for setting up Auction Managers. See settings_sample.json, and you can follow the JSON structs in settings_utils.rs to customize the AuctionManagerSetting struct that gets created for shipping."),
                 ),

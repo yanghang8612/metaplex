@@ -35,14 +35,14 @@ fn find_or_initialize_external_account<'a>(
     payer: &Keypair,
     vault_program_key: &Pubkey,
     token_key: &Pubkey,
-    instructions: &mut Vec<Instruction>,
-    signers: &'a mut Vec<&'a Keypair>,
     client: &RpcClient,
     payer_mint_key: &'a Keypair,
     external_keypair: &'a Keypair,
-) -> (Pubkey, Vec<&'a Keypair>) {
+) -> Pubkey {
     let external_key: Pubkey;
     if !app_matches.is_present("external_price_account") {
+        let mut instructions: Vec<Instruction> = vec![];
+        let mut signers: Vec<&Keypair> = vec![&payer, &external_keypair];
         instructions.push(create_account(
             &payer.pubkey(),
             &payer_mint_key.pubkey(),
@@ -81,16 +81,18 @@ fn find_or_initialize_external_account<'a>(
 
         signers.push(&payer_mint_key);
         signers.push(&external_keypair);
+
+        let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
+        let recent_blockhash = client.get_recent_blockhash().unwrap().0;
+
+        transaction.sign(&signers, recent_blockhash);
+        client.send_and_confirm_transaction(&transaction).unwrap();
         external_key = external_keypair.pubkey();
     } else {
         external_key = pubkey_of(app_matches, "external_price_account").unwrap();
     }
 
-    let mut new_signers: Vec<&Keypair> = vec![];
-    for n in 0..signers.len() {
-        new_signers.push(signers[n]);
-    }
-    (external_key, new_signers)
+    external_key
 }
 
 fn find_or_initialize_auction(
@@ -239,21 +241,19 @@ pub fn initialize_auction_manager(
     let token_key = Pubkey::from_str(TOKEN_PROGRAM_PUBKEY).unwrap();
     let authority = pubkey_of(app_matches, "authority").unwrap_or_else(|| payer.pubkey());
 
-    let (settings, json_settings) = parse_settings(app_matches.value_of("settings").unwrap());
+    let (settings, json_settings) = parse_settings(app_matches.value_of("settings_file").unwrap());
 
     let vault_key: Pubkey;
     let mut instructions: Vec<Instruction> = vec![];
-    let mut signers: Vec<&Keypair> = vec![&payer];
+    let signers: Vec<&Keypair> = vec![&payer];
 
     let payer_mint_key = Keypair::new();
     let external_keypair = Keypair::new();
-    let (external_key, signers) = find_or_initialize_external_account(
+    let external_key = find_or_initialize_external_account(
         app_matches,
         &payer,
         &vault_program_key,
         &token_key,
-        &mut instructions,
-        &mut signers,
         &client,
         &payer_mint_key,
         &external_keypair,

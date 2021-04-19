@@ -239,7 +239,7 @@ pub fn activate_vault(
     let vault: Vault = try_from_slice_unchecked(&vault_account.data).unwrap();
 
     let seeds = &[
-        spl_token_metadata::state::PREFIX.as_bytes(),
+        spl_token_vault::state::PREFIX.as_bytes(),
         &program_key.as_ref(),
     ];
     let (mint_authority, _) = Pubkey::find_program_address(seeds, &program_key);
@@ -290,7 +290,7 @@ pub fn combine_vault(
     let payment_account = Keypair::new();
 
     let seeds = &[
-        spl_token_metadata::state::PREFIX.as_bytes(),
+        spl_token_vault::state::PREFIX.as_bytes(),
         &program_key.as_ref(),
     ];
     let (uncirculated_burn_authority, _) = Pubkey::find_program_address(seeds, &program_key);
@@ -426,7 +426,7 @@ pub fn initialize_vault(
     let allow_further_share_creation = false;
 
     let seeds = &[
-        spl_token_metadata::state::PREFIX.as_bytes(),
+        spl_token_vault::state::PREFIX.as_bytes(),
         &program_key.as_ref(),
     ];
     let (authority, _) = Pubkey::find_program_address(seeds, &program_key);

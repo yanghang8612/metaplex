@@ -1,5 +1,5 @@
 [package]
-name = "spl-token-metaplex-test-client"
+name = "spl-metaplex-test-client"
 version = "0.1.0"
 description = "Solana Program Library Metaplex Test Client"
 authors = ["Solana Maintainers <maintainers@solana.foundation>"]
