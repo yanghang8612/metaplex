@@ -9,10 +9,11 @@ use {
         },
         utils::{
             assert_authority_correct, assert_initialized, assert_owned_by, assert_rent_exempt,
-            assert_store_safety_vault_manager_match, common_redeem_checks, common_redeem_finish,
-            common_winning_config_checks, create_or_allocate_account_raw, issue_start_auction,
-            mint_edition, shift_authority_back_to_originating_user, transfer_metadata_ownership,
-            transfer_safety_deposit_box_items, CommonRedeemReturn, CommonWinningConfigCheckReturn,
+            assert_store_safety_vault_manager_match, charge_bidder, common_redeem_checks,
+            common_redeem_finish, common_winning_config_checks, create_or_allocate_account_raw,
+            issue_start_auction, mint_edition, shift_authority_back_to_originating_user,
+            transfer_metadata_ownership, transfer_safety_deposit_box_items, CommonRedeemReturn,
+            CommonWinningConfigCheckReturn,
         },
     },
     borsh::{BorshDeserialize, BorshSerialize},
@@ -167,6 +168,16 @@ pub fn process_redeem_open_edition_bid(
             master_metadata_info.clone(),
             mint_seeds,
         )?;
+
+        if let Some(open_edition_fixed_price) = auction_manager.settings.open_edition_fixed_price {
+            charge_bidder(
+                program_id,
+                bidder_info,
+                auction_manager_info,
+                &auction_manager,
+                open_edition_fixed_price,
+            )?;
+        }
     }
 
     common_redeem_finish(

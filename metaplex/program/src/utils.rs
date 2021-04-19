@@ -567,3 +567,29 @@ pub fn shift_authority_back_to_originating_user<'a>(
 
     Ok(())
 }
+
+pub fn charge_bidder<'a>(
+    program_id: &Pubkey,
+    bidder_act: &AccountInfo<'a>,
+    auction_manager_act: &AccountInfo<'a>,
+    auction_manager: &AuctionManager,
+    amount: u64,
+) -> ProgramResult {
+    let seeds = [PREFIX.as_bytes(), auction_manager.auction.as_ref()];
+
+    let (_, bump_seed) = Pubkey::find_program_address(&seeds, &program_id);
+
+    let authority_seeds = [
+        PREFIX.as_bytes(),
+        auction_manager.auction.as_ref(),
+        &[bump_seed],
+    ];
+
+    invoke_signed(
+        &system_instruction::transfer(&bidder_act.key, &auction_manager_act.key, amount),
+        &[bidder_act.clone(), auction_manager_act.clone()],
+        &[&authority_seeds],
+    )?;
+
+    Ok(())
+}
