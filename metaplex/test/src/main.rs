@@ -1,54 +1,20 @@
-use {
-    clap::{crate_description, crate_name, crate_version, App, Arg, ArgMatches, SubCommand},
-    initialize_auction_manager::initialize_auction_manager,
-    serde::{Deserialize, Serialize},
-    serde_json::Result,
-    settings_utils::parse_settings,
-    solana_clap_utils::{
-        input_parsers::pubkey_of,
-        input_validators::{is_url, is_valid_pubkey, is_valid_signer},
-    },
-    solana_client::rpc_client::RpcClient,
-    solana_program::{borsh::try_from_slice_unchecked, program_pack::Pack},
-    solana_sdk::{
-        pubkey::Pubkey,
-        signature::{read_keypair_file, Keypair, Signer},
-        system_instruction::create_account,
-        transaction::Transaction,
-    },
-    spl_auction::{
-        instruction::create_auction,
-        processor::{create_auction::CreateAuctionArgs, WinnerLimit},
-    },
-    spl_metaplex::{
-        instruction::create_init_auction_manager_instruction,
-        state::{AuctionManager, AuctionManagerSettings, EditionType, WinningConfig},
-    },
-    spl_token::{
-        instruction::{approve, initialize_account, initialize_mint, mint_to},
-        state::{Account, Mint},
-    },
-    spl_token_metadata::state::EDITION,
-    spl_token_vault::{
-        instruction::{
-            create_activate_vault_instruction, create_add_shares_instruction,
-            create_add_token_to_inactive_vault_instruction, create_combine_vault_instruction,
-            create_init_vault_instruction, create_mint_shares_instruction,
-            create_redeem_shares_instruction, create_update_external_price_account_instruction,
-            create_withdraw_shares_instruction, create_withdraw_tokens_instruction,
-        },
-        state::{
-            ExternalPriceAccount, SafetyDepositBox, MAX_EXTERNAL_ACCOUNT_SIZE, MAX_VAULT_SIZE,
-        },
-    },
-    std::{convert::TryInto, str::FromStr},
-    validate_safety_deposits::validate_safety_deposits,
-    vault_utils::{activate_vault, add_token_to_vault, combine_vault, initialize_vault},
-};
 mod initialize_auction_manager;
+mod place_bid;
+mod redeem_bid;
 mod settings_utils;
 mod validate_safety_deposits;
 mod vault_utils;
+
+use {
+    clap::{crate_description, crate_name, crate_version, App, Arg, SubCommand},
+    initialize_auction_manager::initialize_auction_manager,
+    place_bid::make_bid,
+    redeem_bid::redeem_bid_wrapper,
+    solana_clap_utils::input_validators::{is_url, is_valid_pubkey, is_valid_signer},
+    solana_client::rpc_client::RpcClient,
+    solana_sdk::signature::read_keypair_file,
+    validate_safety_deposits::validate_safety_deposits,
+};
 
 pub const VAULT_PROGRAM_PUBKEY: &str = "94wRaYAQdC2gYF76AUTYSugNJ3rAC4EimjAMPwM7uYry";
 pub const AUCTION_PROGRAM_PUBKEY: &str = "94wRaYAQdC2gYF76AUTYSugNJ3rAC4EimjAMPwM7uYry";
@@ -179,6 +145,54 @@ fn main() {
                         .takes_value(true)
                         .help("Pass in -1 for all (default), or a specific 0-indexed slot in the array to validate that slot."),
                 )
+        ).subcommand(
+            SubCommand::with_name("place_bid")
+                .about("Place a bid on a specific slot, receive a bidder metadata address in return.")
+                .arg(
+                    Arg::with_name("auction_manager")
+                        .long("auction_manager")
+                        .value_name("AUCTION_MANAGER")
+                        .required(true)
+                        .validator(is_valid_pubkey)
+                        .takes_value(true)
+                        .help("Pubkey of auction manager."),
+                ).arg(
+                    Arg::with_name("wallet")
+                        .long("wallet")
+                        .value_name("WALLET")
+                        .required(false)
+                        .validator(is_valid_signer)
+                        .takes_value(true)
+                        .help("Valid wallet with SOL, defaults to you."),
+                )
+                .arg(
+                    Arg::with_name("price")
+                        .long("price")
+                        .value_name("PRICE")
+                        .required(true)
+                        .takes_value(true)
+                        .help("The price in sol you want to bid"),
+                )
+        ).subcommand(
+            SubCommand::with_name("redeem_bid")
+                .about("Redeem a bid")
+                .arg(
+                    Arg::with_name("auction_manager")
+                        .long("auction_manager")
+                        .value_name("AUCTION_MANAGER")
+                        .required(true)
+                        .validator(is_valid_pubkey)
+                        .takes_value(true)
+                        .help("Pubkey of auction manager."),
+                ).arg(
+                    Arg::with_name("wallet")
+                        .long("wallet")
+                        .value_name("WALLET")
+                        .required(false)
+                        .validator(is_valid_signer)
+                        .takes_value(true)
+                        .help("Wallet that placed the bid, defaults to you."),
+                )
         )
         .get_matches();
 
@@ -204,6 +218,12 @@ fn main() {
         ("validate", Some(arg_matches)) => {
             validate_safety_deposits(arg_matches, payer, client);
             println!("Validated all winning configs passed in.",);
+        }
+        ("place_bid", Some(arg_matches)) => {
+            make_bid(arg_matches, payer, client);
+        }
+        ("redeem_bid", Some(arg_matches)) => {
+            redeem_bid_wrapper(arg_matches, payer, client);
         }
 
         _ => unreachable!(),

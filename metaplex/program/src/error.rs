@@ -220,6 +220,14 @@ pub enum MetaplexError {
     /// The prize you are attempting to claim needs to be claimed from a different endpoint than this one.
     #[error("The prize you are attempting to claim needs to be claimed from a different endpoint than this one.")]
     WrongBidEndpointForPrize,
+
+    /// The bidder given is not the bidder on the bidder metadata!
+    #[error("The bidder given is not the bidder on the bidder metadata!")]
+    BidderMetadataBidderMismatch,
+
+    /// The bidder is not the signer on this transaction!
+    #[error("The bidder is not the signer on this transaction!")]
+    BidderIsNotSigner,
 }
 
 impl PrintProgramError for MetaplexError {

@@ -87,6 +87,7 @@ pub fn process_redeem_open_edition_bid(
     let vault_info = next_account_info(account_info_iter)?;
     let auction_info = next_account_info(account_info_iter)?;
     let bidder_metadata_info = next_account_info(account_info_iter)?;
+    let bidder_info = next_account_info(account_info_iter)?;
     let payer_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
     let token_vault_program_info = next_account_info(account_info_iter)?;
@@ -108,7 +109,7 @@ pub fn process_redeem_open_edition_bid(
         bidder_metadata,
         safety_deposit: _safety_deposit,
         auction,
-        rent,
+        rent: _rent,
     } = common_redeem_checks(
         program_id,
         auction_manager_info,
@@ -120,6 +121,7 @@ pub fn process_redeem_open_edition_bid(
         vault_info,
         auction_info,
         bidder_metadata_info,
+        bidder_info,
         payer_info,
         token_program_info,
         token_vault_program_info,
@@ -129,7 +131,6 @@ pub fn process_redeem_open_edition_bid(
         clock_info,
         true,
     )?;
-    let rent = &rent;
 
     let mut gets_open_edition = auction_manager.settings.open_edition_config != None
         && auction_manager.settings.open_edition_non_winning_constraint
@@ -199,6 +200,7 @@ pub fn process_redeem_master_edition_bid(
     let vault_info = next_account_info(account_info_iter)?;
     let auction_info = next_account_info(account_info_iter)?;
     let bidder_metadata_info = next_account_info(account_info_iter)?;
+    let bidder_info = next_account_info(account_info_iter)?;
     let payer_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
     let token_vault_program_info = next_account_info(account_info_iter)?;
@@ -230,6 +232,7 @@ pub fn process_redeem_master_edition_bid(
         vault_info,
         auction_info,
         bidder_metadata_info,
+        bidder_info,
         payer_info,
         token_program_info,
         token_vault_program_info,
@@ -349,6 +352,7 @@ pub fn process_redeem_limited_edition_bid(
     let vault_info = next_account_info(account_info_iter)?;
     let auction_info = next_account_info(account_info_iter)?;
     let bidder_metadata_info = next_account_info(account_info_iter)?;
+    let bidder_info = next_account_info(account_info_iter)?;
     let payer_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
     let token_vault_program_info = next_account_info(account_info_iter)?;
@@ -385,6 +389,7 @@ pub fn process_redeem_limited_edition_bid(
         vault_info,
         auction_info,
         bidder_metadata_info,
+        bidder_info,
         payer_info,
         token_program_info,
         token_vault_program_info,
@@ -509,6 +514,7 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
     let vault_info = next_account_info(account_info_iter)?;
     let auction_info = next_account_info(account_info_iter)?;
     let bidder_metadata_info = next_account_info(account_info_iter)?;
+    let bidder_info = next_account_info(account_info_iter)?;
     let payer_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
     let token_vault_program_info = next_account_info(account_info_iter)?;
@@ -537,6 +543,7 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
         vault_info,
         auction_info,
         bidder_metadata_info,
+        bidder_info,
         payer_info,
         token_program_info,
         token_vault_program_info,

@@ -297,6 +297,7 @@ pub fn common_redeem_checks(
     vault_info: &AccountInfo,
     auction_info: &AccountInfo,
     bidder_metadata_info: &AccountInfo,
+    bidder_info: &AccountInfo,
     _payer_info: &AccountInfo,
     token_program_info: &AccountInfo,
     token_vault_program_info: &AccountInfo,
@@ -390,6 +391,14 @@ pub fn common_redeem_checks(
 
     if meta_key != *bidder_metadata_info.key {
         return Err(MetaplexError::InvalidBidderMetadata.into());
+    }
+
+    if bidder_metadata.bidder_pubkey != *bidder_info.key {
+        return Err(MetaplexError::BidderMetadataBidderMismatch.into());
+    }
+
+    if !bidder_info.is_signer {
+        return Err(MetaplexError::BidderIsNotSigner.into());
     }
 
     Ok(CommonRedeemReturn {

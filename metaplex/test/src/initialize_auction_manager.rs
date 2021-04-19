@@ -114,6 +114,12 @@ fn find_or_initialize_auction(
             .parse::<u64>()
             .unwrap();
 
+        let end_time = app_matches
+            .value_of("end_time")
+            .unwrap_or("1200")
+            .parse::<u64>()
+            .unwrap();
+
         let auction_path = [
             spl_auction::PREFIX.as_bytes(),
             auction_program_key.as_ref(),
@@ -129,7 +135,7 @@ fn find_or_initialize_auction(
             *program_key,
             CreateAuctionArgs {
                 resource: *vault_key,
-                end_time: None,
+                end_time: Some(end_time.try_into().unwrap()),
                 gap_time: Some(gap_time.try_into().unwrap()),
                 winners: match winner_limit {
                     0 => WinnerLimit::Unlimited,
