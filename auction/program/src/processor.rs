@@ -131,20 +131,20 @@ pub enum BidState {
 /// Open Edition: All bids are accepted, cancellations return money to the bidder and always
 /// succeed.
 impl BidState {
-    fn new_english(n: usize) -> Self {
+    pub fn new_english(n: usize) -> Self {
         BidState::EnglishAuction {
             bids: vec![],
             max: n,
         }
     }
 
-    fn new_open_edition() -> Self {
+    pub fn new_open_edition() -> Self {
         BidState::OpenEdition
     }
 
     /// Push a new bid into the state, this succeeds only if the bid is larger than the current top
     /// winner stored. Crappy list information to start with.
-    fn place_bid(&mut self, bid: Bid) -> Result<(), ProgramError> {
+    pub fn place_bid(&mut self, bid: Bid) -> Result<(), ProgramError> {
         match self {
             // In a capped auction, track the limited number of winners.
             BidState::EnglishAuction { ref mut bids, max } => match bids.last() {
@@ -173,7 +173,7 @@ impl BidState {
 
     /// Cancels a bid, if the bid was a winning bid it is removed, if the bid is invalid the
     /// function simple no-ops.
-    fn cancel_bid(&mut self, key: Pubkey) -> Result<(), ProgramError> {
+    pub fn cancel_bid(&mut self, key: Pubkey) -> Result<(), ProgramError> {
         match self {
             BidState::EnglishAuction { ref mut bids, max } => {
                 bids.retain(|b| b.0 != key);
@@ -187,7 +187,7 @@ impl BidState {
     }
 
     /// Check if a pubkey is currently a winner.
-    fn is_winner(&self, key: Pubkey) -> Option<usize> {
+    pub fn is_winner(&self, key: Pubkey) -> Option<usize> {
         match self {
             // Presense in the winner list is enough to check win state.
             BidState::EnglishAuction { ref bids, max } => bids.iter().position(|bid| bid.0 == key),
