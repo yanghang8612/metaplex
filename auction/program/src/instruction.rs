@@ -34,7 +34,7 @@ pub fn create_auction_instruction(
     Instruction {
         program_id,
         accounts: vec![
-            AccountMeta::new(creator_pubkey, false),
+            AccountMeta::new(creator_pubkey, true),
             AccountMeta::new(auction_pubkey, false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
