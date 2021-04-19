@@ -21,7 +21,7 @@ use {
         sysvar::{rent::Rent, Sysvar},
     },
     spl_auction::{
-        instruction::start_auction,
+        instruction::start_auction_instruction,
         processor::{start_auction::StartAuctionArgs, AuctionData, BidderMetadata},
     },
     spl_token::state::Account,
@@ -231,7 +231,7 @@ pub fn issue_start_auction<'a>(
     signer_seeds: &[&[u8]],
 ) -> ProgramResult {
     invoke_signed(
-        &start_auction(
+        &start_auction_instruction(
             *auction_program.key,
             *authority.key,
             StartAuctionArgs {
@@ -357,7 +357,7 @@ pub fn common_redeem_checks(
         return Err(MetaplexError::AuctionManagerTokenMetadataProgramMismatch.into());
     }
 
-    if let Some(end_time) = auction.end_time_slot {
+    if let Some(end_time) = auction.end_time {
         if end_time < clock.slot {
             return Err(MetaplexError::AuctionHasNotEnded.into());
         }
