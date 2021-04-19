@@ -98,6 +98,7 @@ fn find_or_initialize_external_account<'a>(
 fn find_or_initialize_auction(
     app_matches: &ArgMatches,
     vault_key: &Pubkey,
+    program_key: &Pubkey,
     auction_program_key: &Pubkey,
     payer_mint_key: &Pubkey,
     payer: &Keypair,
@@ -135,12 +136,20 @@ fn find_or_initialize_auction(
         // user to provide.
         let (actual_auction_key, _) =
             Pubkey::find_program_address(&auction_path, auction_program_key);
+
+        // You'll notice that the authority IS what will become the auction manager ;)
+        let authority_seeds = &[
+            spl_metaplex::state::PREFIX.as_bytes(),
+            &actual_auction_key.as_ref(),
+        ];
+        let (auction_manager_key, _) = Pubkey::find_program_address(authority_seeds, &program_key);
+
         let instructions = [create_auction_instruction(
             *auction_program_key,
             payer.pubkey(),
             CreateAuctionArgs {
                 resource: *vault_key,
-                authority: payer.pubkey(),
+                authority: auction_manager_key,
                 end_auction_at: Some(end_time),
                 end_auction_gap: Some(gap_time),
                 winners: match winner_limit {
@@ -277,12 +286,12 @@ pub fn initialize_auction_manager(
     let auction_key = find_or_initialize_auction(
         app_matches,
         &vault_key,
+        &program_key,
         &auction_program_key,
         &payer_mint_key.pubkey(),
         &payer,
         &client,
     );
-
     let seeds = &[
         spl_metaplex::state::PREFIX.as_bytes(),
         &auction_key.as_ref(),
@@ -312,7 +321,6 @@ pub fn initialize_auction_manager(
         auction_manager_key,
         vault_key,
         auction_key,
-        external_key,
         edition_key,
         open_edition_mint_key,
         authority,

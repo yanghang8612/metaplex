@@ -16,17 +16,16 @@ pub enum MetaplexInstruction {
     ///   1. `[]` Activated vault account with authority set to auction manager account (this will be checked)
     ///           Note in addition that this vault account should have authority set to this program's pda of ['metaplex', auction_key]
     ///   2. `[]` Auction with auctioned item being set to the vault given and authority set to this program's pda of ['metaplex', auction_key]
-    ///   3. `[]` External Pricing Account which must be owned by this program
-    ///   4. `[]` Open edition MasterEdition account (optional - only if using this feature)
-    ///   5. `[]` Open edition Mint account (optional - only if using this feature)
-    ///   6. `[]` Authority for the Auction Manager
-    ///   7. `[signer]` Payer
-    ///   8. `[]` Token program
-    ///   9. `[]` Token vault program
-    ///   10. `[]` Token metadata program
-    ///   11. `[]` Auction program
-    ///   12. `[]` System sysvar
-    ///   13. `[]` Rent sysvar
+    ///   3. `[]` Open edition MasterEdition account (optional - only if using this feature)
+    ///   4. `[]` Open edition Mint account (optional - only if using this feature)
+    ///   5. `[]` Authority for the Auction Manager
+    ///   6. `[signer]` Payer
+    ///   7. `[]` Token program
+    ///   8. `[]` Token vault program
+    ///   9. `[]` Token metadata program
+    ///   10. `[]` Auction program
+    ///   11. `[]` System sysvar    
+    ///   12. `[]` Rent sysvar
     InitAuctionManager(AuctionManagerSettings),
 
     /// Validates that a given safety deposit box has in it contents that match the expected WinningConfig in the auction manager.
@@ -225,7 +224,6 @@ pub fn create_init_auction_manager_instruction(
     auction_manager: Pubkey,
     vault: Pubkey,
     auction: Pubkey,
-    external_pricing_account: Pubkey,
     open_edition_master_edition: Pubkey,
     open_edition_mint: Pubkey,
     auction_manager_authority: Pubkey,
@@ -240,7 +238,6 @@ pub fn create_init_auction_manager_instruction(
             AccountMeta::new(auction_manager, false),
             AccountMeta::new_readonly(vault, false),
             AccountMeta::new_readonly(auction, false),
-            AccountMeta::new_readonly(external_pricing_account, false),
             AccountMeta::new_readonly(open_edition_master_edition, false),
             AccountMeta::new_readonly(open_edition_mint, false),
             AccountMeta::new_readonly(auction_manager_authority, false),

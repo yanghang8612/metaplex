@@ -67,14 +67,6 @@ pub enum MetaplexError {
     )]
     AuctionManagerKeyMismatch,
 
-    /// External Price Account Owner must be this program
-    #[error("External Price Account Owner must be this program")]
-    ExternalPriceAccountOwnerMismatch,
-
-    /// Vault's external pricing account needs to match the external pricing account given
-    #[error("Vault's external pricing account needs to match the external pricing account given")]
-    VaultExternalPricingMismatch,
-
     /// Auction is not auctioning off the vault given!
     #[error("Auction is not auctioning off the vault given!")]
     AuctionVaultMismatch,

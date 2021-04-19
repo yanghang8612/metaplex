@@ -8,7 +8,7 @@ use {
             WinningConstraint, MAX_AUCTION_MANAGER_SIZE, PREFIX,
         },
         utils::{
-            assert_authority_correct, assert_initialized, assert_owned_by, assert_rent_exempt,
+            assert_authority_correct, assert_initialized, assert_owned_by,
             assert_store_safety_vault_manager_match, common_redeem_checks, common_redeem_finish,
             common_winning_config_checks, create_or_allocate_account_raw, issue_start_auction,
             mint_edition, shift_authority_back_to_originating_user, spl_token_transfer,
@@ -23,8 +23,6 @@ use {
         entrypoint::ProgramResult,
         msg,
         pubkey::Pubkey,
-        rent::Rent,
-        sysvar::Sysvar,
     },
     spl_auction::processor::AuctionData,
     spl_token::state::{Account, Mint},
@@ -32,7 +30,7 @@ use {
         state::{MasterEdition, Metadata},
         utils::assert_update_authority_is_correct,
     },
-    spl_token_vault::state::{ExternalPriceAccount, SafetyDepositBox, Vault, VaultState},
+    spl_token_vault::state::{SafetyDepositBox, Vault, VaultState},
 };
 
 pub fn process_instruction(
@@ -910,7 +908,6 @@ pub fn process_init_auction_manager(
     let auction_manager_info = next_account_info(account_info_iter)?;
     let vault_info = next_account_info(account_info_iter)?;
     let auction_info = next_account_info(account_info_iter)?;
-    let external_pricing_account_info = next_account_info(account_info_iter)?;
     let open_master_edition_info = next_account_info(account_info_iter)?;
     let open_master_edition_mint_info = next_account_info(account_info_iter)?;
     let authority_info = next_account_info(account_info_iter)?;
@@ -921,16 +918,11 @@ pub fn process_init_auction_manager(
     let auction_program_info = next_account_info(account_info_iter)?;
     let system_info = next_account_info(account_info_iter)?;
     let rent_info = next_account_info(account_info_iter)?;
-    let rent = &Rent::from_account_info(rent_info)?;
 
-    // Just verifying this is a real account that serializes
-    let _external_price_account: ExternalPriceAccount =
-        try_from_slice_unchecked(&external_pricing_account_info.data.borrow_mut())?;
     let vault: Vault = try_from_slice_unchecked(&vault_info.data.borrow_mut())?;
     let auction: AuctionData = try_from_slice_unchecked(&auction_info.data.borrow_mut())?;
     assert_owned_by(vault_info, token_vault_program_info.key)?;
     assert_owned_by(auction_info, auction_program_info.key)?;
-    assert_rent_exempt(rent, external_pricing_account_info)?;
 
     let seeds = &[PREFIX.as_bytes(), &auction_info.key.as_ref()];
     let (auction_authority, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
@@ -945,14 +937,6 @@ pub fn process_init_auction_manager(
 
     if auction.authority != auction_authority {
         return Err(MetaplexError::AuctionAuthorityMismatch.into());
-    }
-
-    if external_pricing_account_info.owner != program_id {
-        return Err(MetaplexError::ExternalPriceAccountOwnerMismatch.into());
-    }
-
-    if vault.pricing_lookup_address != *external_pricing_account_info.key {
-        return Err(MetaplexError::VaultExternalPricingMismatch.into());
     }
 
     if auction.resource != *vault_info.key {

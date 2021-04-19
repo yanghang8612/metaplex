@@ -19,7 +19,7 @@ use {
 };
 
 pub const VAULT_PROGRAM_PUBKEY: &str = "94wRaYAQdC2gYF76AUTYSugNJ3rAC4EimjAMPwM7uYry";
-pub const AUCTION_PROGRAM_PUBKEY: &str = "CkdQf5r7mvYqPycYxmXjMnx2swATN4Vz5KVeowL1vvuc";
+pub const AUCTION_PROGRAM_PUBKEY: &str = "C9nHkL6BfGx9M9MyYrJqAD5hPsGJd1fHpp1uAJA6vTCn";
 
 pub const PROGRAM_PUBKEY: &str = "EPtpKdKW8qciGVd1UFyGjgbBHTbSAyvbY61h9uQGVgeu";
 
