@@ -140,6 +140,7 @@ fn find_or_initialize_auction(
             payer.pubkey(),
             CreateAuctionArgs {
                 resource: *vault_key,
+                authority: payer.pubkey(),
                 end_auction_at: Some(end_time),
                 end_auction_gap: Some(gap_time),
                 winners: match winner_limit {
