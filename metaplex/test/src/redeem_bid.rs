@@ -309,6 +309,7 @@ fn redeem_bid_limited_edition_type<'a>(
 
 fn redeem_bid_open_edition_type<'a>(
     base_account_list: BaseAccountList,
+    manager: &AuctionManager,
     new_mint: &'a Keypair,
     safety_deposit: &SafetyDepositBox,
     program_id: &Pubkey,
@@ -317,6 +318,7 @@ fn redeem_bid_open_edition_type<'a>(
     signers: &'a mut Vec<&'a Keypair>,
     token_metadata_key: &Pubkey,
     client: &RpcClient,
+    transfer_authority: &Keypair,
 ) -> (Vec<Instruction>, Vec<&'a Keypair>) {
     println!("You are redeeming an open edition.");
     let BaseAccountList {
@@ -370,6 +372,19 @@ fn redeem_bid_open_edition_type<'a>(
     ];
     let (new_edition_key, _) = Pubkey::find_program_address(new_edition_seeds, &token_metadata_key);
 
+    if let Some(price) = manager.settings.open_edition_fixed_price {
+        instructions.push(
+            approve(
+                token_program,
+                &base_account_list.bidder,
+                &transfer_authority.pubkey(),
+                &base_account_list.bidder,
+                &[&base_account_list.bidder],
+                price,
+            )
+            .unwrap(),
+        );
+    }
     instructions.push(create_account(
         &payer,
         &new_mint.pubkey(),
@@ -436,6 +451,7 @@ fn redeem_bid_open_edition_type<'a>(
         master_metadata_key,
         new_edition_key,
         master_edition_key,
+        transfer_authority.pubkey(),
     ));
 
     let mut new_instructions: Vec<Instruction> = vec![];
@@ -704,7 +720,8 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
         let new_mint = Keypair::new();
         let safety_deposit = &safety_deposit_result.0;
         let safety_deposit_key = safety_deposit_result.1;
-        let mut signers: Vec<&Keypair> = vec![&wallet, &destination];
+        let transfer_authority = Keypair::new();
+        let mut signers: Vec<&Keypair> = vec![&wallet, &destination, &transfer_authority];
         let mut instructions: Vec<Instruction> = vec![];
         let base_account_list = BaseAccountList {
             auction_manager: auction_manager_key,
@@ -722,6 +739,7 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
         };
         let (instructions, signers) = redeem_bid_open_edition_type(
             base_account_list,
+            &manager,
             &new_mint,
             safety_deposit,
             &program_key,
@@ -730,6 +748,7 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
             &mut signers,
             &token_metadata_key,
             &client,
+            &transfer_authority,
         );
 
         let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));

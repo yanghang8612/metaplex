@@ -165,7 +165,13 @@ fn main() {
                         .required(false)
                         .validator(is_valid_signer)
                         .takes_value(true)
-                        .help("Valid wallet with SOL, defaults to you."),
+                        .help("Valid wallet, defaults to you."),
+                ).arg(
+                    Arg::with_name("mint_it")
+                        .long("mint_it")
+                        .value_name("MINT_IT")
+                        .required(false)
+                        .help("Attempts to mint the tokens. Useful on devnet and you need to have authority as payer over the token_mint on the auction."),
                 )
                 .arg(
                     Arg::with_name("price")

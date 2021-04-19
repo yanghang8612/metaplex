@@ -17,7 +17,7 @@ use {
         transaction::Transaction,
     },
     spl_auction::{
-        instruction::create_auction,
+        instruction::create_auction_instruction,
         processor::{create_auction::CreateAuctionArgs, WinnerLimit},
     },
     spl_metaplex::{instruction::create_init_auction_manager_instruction, state::AuctionManager},
@@ -98,6 +98,7 @@ fn find_or_initialize_auction(
     program_key: &Pubkey,
     vault_key: &Pubkey,
     auction_program_key: &Pubkey,
+    payer_mint_key: &Pubkey,
     instructions: &mut Vec<Instruction>,
 ) -> Pubkey {
     let auction_key: Pubkey;
@@ -130,17 +131,18 @@ fn find_or_initialize_auction(
         // user to provide.
         let (actual_auction_key, _) =
             Pubkey::find_program_address(&auction_path, auction_program_key);
-        instructions.push(create_auction(
+        instructions.push(create_auction_instruction(
             *auction_program_key,
             *program_key,
             CreateAuctionArgs {
                 resource: *vault_key,
-                end_time: Some(end_time.try_into().unwrap()),
-                gap_time: Some(gap_time.try_into().unwrap()),
+                end_auction_at: Some(end_time),
+                end_auction_gap: Some(gap_time),
                 winners: match winner_limit {
                     0 => WinnerLimit::Unlimited,
                     val => WinnerLimit::Capped(val.try_into().unwrap()),
                 },
+                token_mint: *payer_mint_key,
             },
         ));
 
@@ -269,6 +271,7 @@ pub fn initialize_auction_manager(
         &program_key,
         &vault_key,
         &auction_program_key,
+        &payer_mint_key.pubkey(),
         &mut instructions,
     );
 

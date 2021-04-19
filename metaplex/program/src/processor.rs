@@ -9,11 +9,11 @@ use {
         },
         utils::{
             assert_authority_correct, assert_initialized, assert_owned_by, assert_rent_exempt,
-            assert_store_safety_vault_manager_match, charge_bidder, common_redeem_checks,
-            common_redeem_finish, common_winning_config_checks, create_or_allocate_account_raw,
-            issue_start_auction, mint_edition, shift_authority_back_to_originating_user,
+            assert_store_safety_vault_manager_match, common_redeem_checks, common_redeem_finish,
+            common_winning_config_checks, create_or_allocate_account_raw, issue_start_auction,
+            mint_edition, shift_authority_back_to_originating_user, spl_token_transfer,
             transfer_metadata_ownership, transfer_safety_deposit_box_items, CommonRedeemReturn,
-            CommonWinningConfigCheckReturn,
+            CommonWinningConfigCheckReturn, TokenTransferParams,
         },
     },
     borsh::{BorshDeserialize, BorshSerialize},
@@ -103,6 +103,7 @@ pub fn process_redeem_open_edition_bid(
     let master_metadata_info = next_account_info(account_info_iter)?;
     let new_edition_info = next_account_info(account_info_iter)?;
     let master_edition_info = next_account_info(account_info_iter)?;
+    let transfer_authority_info = next_account_info(account_info_iter)?;
 
     let CommonRedeemReturn {
         mut auction_manager,
@@ -170,13 +171,18 @@ pub fn process_redeem_open_edition_bid(
         )?;
 
         if let Some(open_edition_fixed_price) = auction_manager.settings.open_edition_fixed_price {
-            charge_bidder(
-                program_id,
-                bidder_info,
-                auction_manager_info,
-                &auction_manager,
-                open_edition_fixed_price,
-            )?;
+            let seeds = &[PREFIX.as_bytes(), &auction_info.key.as_ref()];
+            let (_, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
+            let authority_seeds = &[PREFIX.as_bytes(), &auction_info.key.as_ref(), &[bump_seed]];
+
+            spl_token_transfer(TokenTransferParams {
+                source: bidder_info.clone(),
+                destination: auction_manager_info.clone(),
+                amount: open_edition_fixed_price,
+                authority: transfer_authority_info.clone(),
+                authority_signer_seeds: authority_seeds,
+                token_program: token_program_info.clone(),
+            })?
         }
     }
 

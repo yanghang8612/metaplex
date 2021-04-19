@@ -357,12 +357,12 @@ pub fn common_redeem_checks(
         return Err(MetaplexError::AuctionManagerTokenMetadataProgramMismatch.into());
     }
 
-    if let Some(end_time) = auction.end_time {
+    if let Some(end_time) = auction.ended_at {
         if end_time < clock.slot {
             return Err(MetaplexError::AuctionHasNotEnded.into());
         }
     } else {
-        return Err(MetaplexError::AuctionHasNoEndTime.into());
+        return Err(MetaplexError::AuctionHasNotEnded.into());
     }
 
     // No-op if already set.
@@ -568,28 +568,45 @@ pub fn shift_authority_back_to_originating_user<'a>(
     Ok(())
 }
 
-pub fn charge_bidder<'a>(
-    program_id: &Pubkey,
-    bidder_act: &AccountInfo<'a>,
-    auction_manager_act: &AccountInfo<'a>,
-    auction_manager: &AuctionManager,
-    amount: u64,
-) -> ProgramResult {
-    let seeds = [PREFIX.as_bytes(), auction_manager.auction.as_ref()];
+///TokenTransferParams
+pub struct TokenTransferParams<'a: 'b, 'b> {
+    /// source
+    pub source: AccountInfo<'a>,
+    /// destination
+    pub destination: AccountInfo<'a>,
+    /// amount
+    pub amount: u64,
+    /// authority
+    pub authority: AccountInfo<'a>,
+    /// authority_signer_seeds
+    pub authority_signer_seeds: &'b [&'b [u8]],
+    /// token_program
+    pub token_program: AccountInfo<'a>,
+}
 
-    let (_, bump_seed) = Pubkey::find_program_address(&seeds, &program_id);
+#[inline(always)]
+pub fn spl_token_transfer(params: TokenTransferParams<'_, '_>) -> ProgramResult {
+    let TokenTransferParams {
+        source,
+        destination,
+        authority,
+        token_program,
+        amount,
+        authority_signer_seeds,
+    } = params;
 
-    let authority_seeds = [
-        PREFIX.as_bytes(),
-        auction_manager.auction.as_ref(),
-        &[bump_seed],
-    ];
+    let result = invoke_signed(
+        &spl_token::instruction::transfer(
+            token_program.key,
+            source.key,
+            destination.key,
+            authority.key,
+            &[],
+            amount,
+        )?,
+        &[source, destination, authority, token_program],
+        &[authority_signer_seeds],
+    );
 
-    invoke_signed(
-        &system_instruction::transfer(&bidder_act.key, &auction_manager_act.key, amount),
-        &[bidder_act.clone(), auction_manager_act.clone()],
-        &[&authority_seeds],
-    )?;
-
-    Ok(())
+    result.map_err(|_| MetaplexError::TokenTransferFailed.into())
 }

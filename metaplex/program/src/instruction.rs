@@ -190,20 +190,23 @@ pub enum MetaplexInstruction {
     ///   6. `[]` Vault account
     ///   7. `[]` Auction
     ///   8. `[]` Your BidderMetadata account
-    ///   9. `[signer]` Payer
-    ///   10. `[]` Token program
-    ///   11. `[]` Token Vault program
-    ///   12. `[]` Token metadata program
-    ///   13. `[]` System
-    ///   14. `[]` Rent sysvar
-    ///   15. `[]` Clock sysvar.
-    ///   16. `[writable]` New Open Edition Metadata (pda of ['metadata', program id, newly made mint id]) - remember PDA is relative to token metadata program
-    ///   17. `[writable]` Mint of destination account. This needs to be a newly created mint and the destination account
+    ///   9. `[signer]` Your Bidder account
+    ///   10. `[signer]` Payer
+    ///   11. `[]` Token program
+    ///   12. `[]` Token Vault program
+    ///   13. `[]` Token metadata program
+    ///   14. `[]` System
+    ///   15. `[]` Rent sysvar
+    ///   16. `[]` Clock sysvar.
+    ///   17. `[writable]` New Open Edition Metadata (pda of ['metadata', program id, newly made mint id]) - remember PDA is relative to token metadata program
+    ///   18. `[writable]` Mint of destination account. This needs to be a newly created mint and the destination account
     ///                   needs to have exactly one token in it already. We will simply "grant" the open edition status on this token.
-    ///   18. `[signer]` Destination mint authority - this account is optional, and will only be used/checked if you are receiving a newly minted open edition.
-    ///   19. `[]` Master Metadata (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   20. `[]` New Open Edition (pda of ['metadata', program id, newly made mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   21. `[]` Master Edition (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   19. `[signer]` Destination mint authority - this account is optional, and will only be used/checked if you are receiving a newly minted open edition.
+    ///   20. `[]` Master Metadata (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   21. `[]` New Open Edition (pda of ['metadata', program id, newly made mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   22. `[]` Master Edition (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   23. `[signer]` Transfer authority to move the payment in the auction's token_mint coin from the bidder account for the open_edition_fixed_price
+    ///             on the auction manager to the auction manager account itself.
     RedeemOpenEditionBid,
 
     /// If the auction manager is in Validated state, it can invoke the start command via calling this command here.
@@ -477,6 +480,7 @@ pub fn create_redeem_open_edition_bid_instruction(
     master_metadata: Pubkey,
     new_open_edition: Pubkey,
     master_edition: Pubkey,
+    transfer_authority: Pubkey,
 ) -> Instruction {
     Instruction {
         program_id,
@@ -504,6 +508,7 @@ pub fn create_redeem_open_edition_bid_instruction(
             AccountMeta::new_readonly(master_metadata, false),
             AccountMeta::new_readonly(new_open_edition, false),
             AccountMeta::new_readonly(master_edition, false),
+            AccountMeta::new_readonly(transfer_authority, true),
         ],
         data: MetaplexInstruction::RedeemOpenEditionBid
             .try_to_vec()

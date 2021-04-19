@@ -40,12 +40,6 @@ pub enum MetaplexError {
     /// Token transfer failed
     #[error("Token transfer failed")]
     TokenTransferFailed,
-    /// Token mint to failed
-    #[error("Token mint to failed")]
-    TokenMintToFailed,
-    /// Token burn failed
-    #[error("Token burn failed")]
-    TokenBurnFailed,
 
     /// Invalid transfer authority provided
     #[error("Invalid transfer authority provided")]
@@ -204,10 +198,6 @@ pub enum MetaplexError {
     /// Auction has not ended yet!
     #[error("Auction has not ended yet!")]
     AuctionHasNotEnded,
-
-    /// Cannot redeem bids for an auction that has not ended!
-    #[error("Cannot redeem bids for an auction that has not ended!")]
-    AuctionHasNoEndTime,
 
     /// The original authority lookup does not match the expected PDA of ['metaplex', auction key, metadata key]
     #[error("The original authority lookup does not match the expected PDA of ['metaplex', auction key, metadata key]")]
