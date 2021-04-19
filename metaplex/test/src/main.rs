@@ -2,6 +2,7 @@ mod initialize_auction_manager;
 mod place_bid;
 mod redeem_bid;
 mod settings_utils;
+mod start_auction;
 mod validate_safety_deposits;
 mod vault_utils;
 
@@ -13,6 +14,7 @@ use {
     solana_clap_utils::input_validators::{is_url, is_valid_pubkey, is_valid_signer},
     solana_client::rpc_client::RpcClient,
     solana_sdk::signature::read_keypair_file,
+    start_auction::send_start_auction,
     validate_safety_deposits::validate_safety_deposits,
 };
 
@@ -193,7 +195,28 @@ fn main() {
                         .takes_value(true)
                         .help("Wallet that placed the bid, defaults to you."),
                 )
+        ).subcommand(
+            SubCommand::with_name("start_auction")
+                .about("Starts an auction on an auction manager that has been fully validated")
+                .arg(
+                    Arg::with_name("auction_manager")
+                        .long("auction_manager")
+                        .value_name("AUCTION_MANAGER")
+                        .required(true)
+                        .validator(is_valid_pubkey)
+                        .takes_value(true)
+                        .help("Pubkey of auction manager."),
+                ).arg(
+                    Arg::with_name("authority")
+                        .long("authority")
+                        .value_name("AUTHORITY")
+                        .required(false)
+                        .validator(is_valid_signer)
+                        .takes_value(true)
+                        .help("Pubkey of authority, defaults to you otherwise"),
+                )
         )
+
         .get_matches();
 
     let client = RpcClient::new(
@@ -224,6 +247,9 @@ fn main() {
         }
         ("redeem_bid", Some(arg_matches)) => {
             redeem_bid_wrapper(arg_matches, payer, client);
+        }
+        ("start_auction", Some(arg_matches)) => {
+            send_start_auction(arg_matches, payer, client);
         }
 
         _ => unreachable!(),
