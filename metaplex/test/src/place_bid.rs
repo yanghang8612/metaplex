@@ -3,7 +3,7 @@ use {
     clap::ArgMatches,
     solana_clap_utils::input_parsers::pubkey_of,
     solana_client::rpc_client::RpcClient,
-    solana_program::{account_info::AccountInfo, borsh::try_from_slice_unchecked},
+    solana_program::borsh::try_from_slice_unchecked,
     solana_sdk::{
         pubkey::Pubkey,
         signature::{read_keypair_file, Keypair, Signer},
@@ -13,8 +13,8 @@ use {
         instruction::place_bid_instruction,
         processor::{place_bid::PlaceBidArgs, AuctionData, BidderMetadata},
     },
-    spl_metaplex::{state::AuctionManager, utils::assert_initialized},
-    spl_token::{instruction::mint_to, state::Mint},
+    spl_metaplex::state::AuctionManager,
+    spl_token::instruction::{approve, mint_to},
     std::str::FromStr,
 };
 
@@ -42,24 +42,12 @@ pub fn make_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
 
     let auction_account = client.get_account(&manager.auction).unwrap();
     let auction: AuctionData = try_from_slice_unchecked(&auction_account.data).unwrap();
-    let mut mint_data = client.get_account(&auction.token_mint).unwrap();
-    let data = mint_data.data.as_mut_slice();
-    let lamports = &mut 0;
-    let mint_info = AccountInfo::new(
-        &auction.token_mint,
-        false,
-        false,
-        lamports,
-        data,
-        &token_key,
-        false,
-        0,
-    );
-    let mint: Mint = assert_initialized(&mint_info).unwrap();
+
     let mut instructions = vec![];
 
     // Make sure you can afford the bid.
 
+    let transfer_authority = Keypair::new();
     if app_matches.is_present("mint_it") {
         instructions.push(
             mint_to(
@@ -74,19 +62,30 @@ pub fn make_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
         )
     }
 
+    instructions.push(
+        approve(
+            &token_key,
+            &wallet.pubkey(),
+            &transfer_authority.pubkey(),
+            &wallet.pubkey(),
+            &[&wallet.pubkey()],
+            amount,
+        )
+        .unwrap(),
+    );
+
     instructions.push(place_bid_instruction(
         auction_program_key,
         wallet.pubkey(),
-        wallet.pubkey(),
         auction.token_mint,
-        mint.mint_authority.unwrap(),
+        transfer_authority.pubkey(),
         PlaceBidArgs {
             amount,
             resource: manager.vault,
         },
     ));
 
-    let signers = [&wallet];
+    let signers = [&wallet, &transfer_authority];
     let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
     let recent_blockhash = client.get_recent_blockhash().unwrap().0;
 
