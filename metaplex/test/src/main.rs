@@ -143,9 +143,9 @@ fn main() {
                     Arg::with_name("winner_config_slot")
                         .long("winner_config_slot")
                         .value_name("WINNER_CONFIG_SLOT")
-                        .required(true)
+                        .required(false)
                         .takes_value(true)
-                        .help("Pass in -1 for all (default), or a specific 0-indexed slot in the array to validate that slot."),
+                        .help("Pass in a specific 0-indexed slot in the array to validate that slot, if not passed, all will be validated."),
                 )
         ).subcommand(
             SubCommand::with_name("place_bid")

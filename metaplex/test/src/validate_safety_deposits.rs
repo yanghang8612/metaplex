@@ -46,6 +46,7 @@ pub fn validate_safety_deposits(app_matches: &ArgMatches, payer: Keypair, client
 
     for n in 0..all_vault_accounts.len() {
         let obj = &all_vault_accounts[n].1;
+        let obj_key = &all_vault_accounts[n].0;
         let type_of_obj = obj.data[0];
 
         if type_of_obj == SAFETY_DEPOSIT_KEY {
@@ -53,7 +54,7 @@ pub fn validate_safety_deposits(app_matches: &ArgMatches, payer: Keypair, client
             let pubkey = Pubkey::new_from_array(*pubkey_arr);
             if pubkey == manager.vault {
                 let safety_deposit: SafetyDepositBox = try_from_slice_unchecked(&obj.data).unwrap();
-                safety_deposits.insert(safety_deposit.order, (safety_deposit, pubkey));
+                safety_deposits.insert(safety_deposit.order, (safety_deposit, *obj_key));
             }
         }
     }
