@@ -13,7 +13,7 @@ use {
     },
     spl_auction::{
         instruction::place_bid_instruction,
-        processor::{place_bid::PlaceBidArgs, AuctionData, BidderMetadata},
+        processor::{place_bid::PlaceBidArgs, AuctionData, BidderMetadata, BidderPot},
     },
     spl_metaplex::state::AuctionManager,
     spl_token::{
@@ -47,12 +47,55 @@ pub fn make_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
 
     let auction_account = client.get_account(&manager.auction).unwrap();
     let auction: AuctionData = try_from_slice_unchecked(&auction_account.data).unwrap();
+    let wallet_key = wallet.pubkey();
+    let bidder_pot_seeds = &[
+        spl_auction::PREFIX.as_bytes(),
+        &auction_program_key.as_ref(),
+        manager.auction.as_ref(),
+        wallet_key.as_ref(),
+    ];
+    let (bidder_pot_pubkey, _) =
+        Pubkey::find_program_address(bidder_pot_seeds, &auction_program_key);
+    let bidder_pot_account = client.get_account(&bidder_pot_pubkey);
 
+    let transfer_authority = Keypair::new();
+    let mut signers = vec![&wallet, &transfer_authority, &payer];
     let mut instructions = vec![];
+
+    let bidder_pot_token: Pubkey;
+    let new_bidder_pot = Keypair::new();
+    match bidder_pot_account {
+        Ok(val) => {
+            let bidder_pot: BidderPot = try_from_slice_unchecked(&val.data).unwrap();
+            bidder_pot_token = bidder_pot.bidder_pot;
+        }
+        Err(_) => {
+            bidder_pot_token = new_bidder_pot.pubkey();
+            signers.push(&new_bidder_pot);
+            instructions.push(create_account(
+                &payer.pubkey(),
+                &new_bidder_pot.pubkey(),
+                client
+                    .get_minimum_balance_for_rent_exemption(Account::LEN)
+                    .unwrap(),
+                Account::LEN as u64,
+                &token_key,
+            ));
+
+            instructions.push(
+                initialize_account(
+                    &token_key,
+                    &new_bidder_pot.pubkey(),
+                    &auction.token_mint,
+                    &auction_program_key,
+                )
+                .unwrap(),
+            );
+        }
+    }
 
     // Make sure you can afford the bid.
 
-    let transfer_authority = Keypair::new();
     if app_matches.is_present("mint_it") {
         if !app_matches.is_present("wallet") {
             instructions.push(create_account(
@@ -104,6 +147,7 @@ pub fn make_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
     instructions.push(place_bid_instruction(
         auction_program_key,
         wallet.pubkey(),
+        bidder_pot_token,
         auction.token_mint,
         transfer_authority.pubkey(),
         payer.pubkey(),
@@ -113,7 +157,6 @@ pub fn make_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
         },
     ));
 
-    let signers = [&wallet, &transfer_authority, &payer];
     let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
     let recent_blockhash = client.get_recent_blockhash().unwrap().0;
 
