@@ -212,8 +212,9 @@ pub enum MetaplexInstruction {
     ///
     ///   0. `[writable]` Auction manager
     ///   1. `[writable]` Auction
-    ///   2. `[signer]` Auction manager authority
-    ///   3. `[]` Auction program
+    ///   3. `[signer]` Auction manager authority
+    ///   4. `[]` Auction program
+    ///   5. `[]` Clock sysvar
     StartAuction,
 }
 
@@ -529,6 +530,7 @@ pub fn create_start_auction_instruction(
             AccountMeta::new(auction, false),
             AccountMeta::new_readonly(auction_manager_authority, true),
             AccountMeta::new_readonly(auction_program, false),
+            AccountMeta::new_readonly(sysvar::clock::id(), false),
         ],
         data: MetaplexInstruction::StartAuction.try_to_vec().unwrap(),
     }

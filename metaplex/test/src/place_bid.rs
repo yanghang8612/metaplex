@@ -3,7 +3,9 @@ use {
     clap::ArgMatches,
     solana_clap_utils::input_parsers::pubkey_of,
     solana_client::rpc_client::RpcClient,
-    solana_program::borsh::try_from_slice_unchecked,
+    solana_program::{
+        borsh::try_from_slice_unchecked, program_pack::Pack, system_instruction::create_account,
+    },
     solana_sdk::{
         pubkey::Pubkey,
         signature::{read_keypair_file, Keypair, Signer},
@@ -14,20 +16,23 @@ use {
         processor::{place_bid::PlaceBidArgs, AuctionData, BidderMetadata},
     },
     spl_metaplex::state::AuctionManager,
-    spl_token::instruction::{approve, mint_to},
-    std::str::FromStr,
+    spl_token::{
+        instruction::{approve, initialize_account, mint_to},
+        state::Account,
+    },
+    std::{fs::File, io::Write, str::FromStr},
 };
 
 pub fn make_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
     let auction_program_key = Pubkey::from_str(AUCTION_PROGRAM_PUBKEY).unwrap();
     let token_key = Pubkey::from_str(TOKEN_PROGRAM_PUBKEY).unwrap();
 
-    let wallet = read_keypair_file(
-        app_matches
-            .value_of("wallet")
-            .unwrap_or_else(|| app_matches.value_of("keypair").unwrap()),
-    )
-    .unwrap();
+    let wallet: Keypair;
+    if !app_matches.is_present("wallet") {
+        wallet = Keypair::new();
+    } else {
+        wallet = read_keypair_file(app_matches.value_of("wallet").unwrap()).unwrap();
+    }
 
     let amount = app_matches
         .value_of("price")
@@ -49,6 +54,28 @@ pub fn make_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
 
     let transfer_authority = Keypair::new();
     if app_matches.is_present("mint_it") {
+        if !app_matches.is_present("wallet") {
+            instructions.push(create_account(
+                &payer.pubkey(),
+                &wallet.pubkey(),
+                client
+                    .get_minimum_balance_for_rent_exemption(Account::LEN)
+                    .unwrap(),
+                Account::LEN as u64,
+                &token_key,
+            ));
+
+            instructions.push(
+                initialize_account(
+                    &token_key,
+                    &wallet.pubkey(),
+                    &auction.token_mint,
+                    &payer.pubkey(),
+                )
+                .unwrap(),
+            );
+        }
+
         instructions.push(
             mint_to(
                 &token_key,
@@ -59,7 +86,7 @@ pub fn make_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
                 amount,
             )
             .unwrap(),
-        )
+        );
     }
 
     instructions.push(
@@ -67,8 +94,8 @@ pub fn make_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
             &token_key,
             &wallet.pubkey(),
             &transfer_authority.pubkey(),
-            &wallet.pubkey(),
-            &[&wallet.pubkey()],
+            &payer.pubkey(),
+            &[&payer.pubkey()],
             amount,
         )
         .unwrap(),
@@ -85,7 +112,7 @@ pub fn make_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
         },
     ));
 
-    let signers = [&wallet, &transfer_authority];
+    let signers = [&wallet, &transfer_authority, &payer];
     let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
     let recent_blockhash = client.get_recent_blockhash().unwrap().0;
 
@@ -103,6 +130,11 @@ pub fn make_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
     let (meta_key, _) = Pubkey::find_program_address(&meta_path, &manager.auction_program);
     let bidding_metadata = client.get_account(&meta_key).unwrap();
     let _bid: BidderMetadata = try_from_slice_unchecked(&bidding_metadata.data).unwrap();
-
+    let mut file = File::create(wallet.pubkey().to_string() + ".json").unwrap();
+    file.write_all(&wallet.to_bytes()).unwrap();
+    println!(
+        "Because no wallet provided, created new one at {:?}.json, it was used to place the bid. Please use it for redemption as a signer.",
+        wallet.pubkey()
+    );
     println!("Created bid {:?}", meta_key);
 }

@@ -228,17 +228,17 @@ pub fn issue_start_auction<'a>(
     auction_program: AccountInfo<'a>,
     authority: AccountInfo<'a>,
     auction: AccountInfo<'a>,
+    clock: AccountInfo<'a>,
+    vault: Pubkey,
     signer_seeds: &[&[u8]],
 ) -> ProgramResult {
     invoke_signed(
         &start_auction_instruction(
             *auction_program.key,
             *authority.key,
-            StartAuctionArgs {
-                resource: *auction.key,
-            },
+            StartAuctionArgs { resource: vault },
         ),
-        &[auction_program, authority, auction],
+        &[auction_program, authority, auction, clock],
         &[&signer_seeds],
     )?;
 

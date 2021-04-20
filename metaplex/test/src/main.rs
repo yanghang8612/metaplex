@@ -171,6 +171,7 @@ fn main() {
                         .long("mint_it")
                         .value_name("MINT_IT")
                         .required(false)
+                        .takes_value(false)
                         .help("Attempts to mint the tokens. Useful on devnet and you need to have authority as payer over the token_mint on the auction."),
                 )
                 .arg(

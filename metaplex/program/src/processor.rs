@@ -860,17 +860,17 @@ pub fn process_validate_safety_deposit_box(
 
 pub fn process_start_auction(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
-
     let auction_manager_info = next_account_info(account_info_iter)?;
     let auction_info = next_account_info(account_info_iter)?;
     let authority_info = next_account_info(account_info_iter)?;
     let auction_program_info = next_account_info(account_info_iter)?;
+    let clock_info = next_account_info(account_info_iter)?;
 
     let mut auction_manager: AuctionManager =
         try_from_slice_unchecked(&auction_manager_info.data.borrow_mut())?;
     assert_authority_correct(&auction_manager, authority_info)?;
 
-    assert_owned_by(auction_info, auction_program_info.key)?;
+    assert_owned_by(auction_info, &auction_manager.auction_program)?;
     assert_owned_by(auction_manager_info, program_id)?;
 
     if auction_manager.auction != *auction_info.key {
@@ -880,15 +880,21 @@ pub fn process_start_auction(program_id: &Pubkey, accounts: &[AccountInfo]) -> P
     if auction_manager.auction_program != *auction_program_info.key {
         return Err(MetaplexError::AuctionManagerAuctionProgramMismatch.into());
     }
-    let seeds = &[PREFIX.as_bytes(), &auction_info.key.as_ref()];
+    let seeds = &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()];
     let (_, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
-    let _ = &[PREFIX.as_bytes(), &auction_info.key.as_ref(), &[bump_seed]];
+    let authority_seeds = &[
+        PREFIX.as_bytes(),
+        &auction_manager.auction.as_ref(),
+        &[bump_seed],
+    ];
 
     issue_start_auction(
         auction_program_info.clone(),
         auction_manager_info.clone(),
         auction_info.clone(),
-        seeds,
+        clock_info.clone(),
+        auction_manager.vault,
+        authority_seeds,
     )?;
 
     auction_manager.state.status = AuctionManagerStatus::Running;
