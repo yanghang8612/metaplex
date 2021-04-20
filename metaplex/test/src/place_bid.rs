@@ -106,6 +106,7 @@ pub fn make_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
         wallet.pubkey(),
         auction.token_mint,
         transfer_authority.pubkey(),
+        payer.pubkey(),
         PlaceBidArgs {
             amount,
             resource: manager.vault,
