@@ -46,24 +46,23 @@ pub fn add_token_to_vault(
     let transfer_authority = Keypair::new();
 
     let mut instructions = vec![];
-    let mut signers = vec![payer, &store, &vault_authority, &transfer_authority];
+    let signers = [payer, &store, &vault_authority, &transfer_authority];
     let token_mint = Keypair::new();
 
     let mint_key = match existing_mint {
         None => {
-            signers.push(&token_mint);
-
-            instructions.push(create_account(
-                &payer.pubkey(),
-                &token_mint.pubkey(),
-                client
-                    .get_minimum_balance_for_rent_exemption(Mint::LEN)
-                    .unwrap(),
-                Mint::LEN as u64,
-                &token_key,
-            ));
-
-            instructions.push(
+            // Due to txn size limits, need to do this in a separate one.
+            let create_signers = [&payer, &token_mint];
+            let create_mint_instructions = [
+                create_account(
+                    &payer.pubkey(),
+                    &token_mint.pubkey(),
+                    client
+                        .get_minimum_balance_for_rent_exemption(Mint::LEN)
+                        .unwrap(),
+                    Mint::LEN as u64,
+                    &token_key,
+                ),
                 initialize_mint(
                     &token_key,
                     &token_mint.pubkey(),
@@ -72,7 +71,12 @@ pub fn add_token_to_vault(
                     0,
                 )
                 .unwrap(),
-            );
+            ];
+            let mut transaction =
+                Transaction::new_with_payer(&create_mint_instructions, Some(&payer.pubkey()));
+            let recent_blockhash = client.get_recent_blockhash().unwrap().0;
+            transaction.sign(&create_signers, recent_blockhash);
+            client.send_and_confirm_transaction(&transaction).unwrap();
             token_mint.pubkey()
         }
         Some(val) => val,
@@ -115,17 +119,18 @@ pub fn add_token_to_vault(
     let token_account = Keypair::new();
     let token_account_key = match existing_account {
         None => {
-            signers.push(&token_account);
-            instructions.push(create_account(
-                &payer.pubkey(),
-                &token_account.pubkey(),
-                client
-                    .get_minimum_balance_for_rent_exemption(Account::LEN)
-                    .unwrap(),
-                Account::LEN as u64,
-                &token_key,
-            ));
-            instructions.push(
+            // Due to txn size limits, need to do this in a separate one.
+            let create_signers = [&payer, &token_account];
+            let create_account_instructions = [
+                create_account(
+                    &payer.pubkey(),
+                    &token_account.pubkey(),
+                    client
+                        .get_minimum_balance_for_rent_exemption(Account::LEN)
+                        .unwrap(),
+                    Account::LEN as u64,
+                    &token_key,
+                ),
                 initialize_account(
                     &token_key,
                     &token_account.pubkey(),
@@ -133,9 +138,6 @@ pub fn add_token_to_vault(
                     &payer.pubkey(),
                 )
                 .unwrap(),
-            );
-
-            instructions.push(
                 mint_to(
                     &token_key,
                     &mint_key,
@@ -145,7 +147,13 @@ pub fn add_token_to_vault(
                     amount,
                 )
                 .unwrap(),
-            );
+            ];
+
+            let mut transaction =
+                Transaction::new_with_payer(&create_account_instructions, Some(&payer.pubkey()));
+            let recent_blockhash = client.get_recent_blockhash().unwrap().0;
+            transaction.sign(&create_signers, recent_blockhash);
+            client.send_and_confirm_transaction(&transaction).unwrap();
             token_account.pubkey()
         }
         Some(val) => val,

@@ -8,6 +8,7 @@ use {
     },
     solana_sdk::{
         pubkey::Pubkey,
+        signature::write_keypair_file,
         signature::{read_keypair_file, Keypair, Signer},
         transaction::Transaction,
     },
@@ -20,7 +21,7 @@ use {
         instruction::{approve, initialize_account, mint_to},
         state::Account,
     },
-    std::{fs::File, io::Write, str::FromStr},
+    std::str::FromStr,
 };
 
 pub fn make_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
@@ -174,8 +175,7 @@ pub fn make_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
     let (meta_key, _) = Pubkey::find_program_address(&meta_path, &manager.auction_program);
     let bidding_metadata = client.get_account(&meta_key).unwrap();
     let _bid: BidderMetadata = try_from_slice_unchecked(&bidding_metadata.data).unwrap();
-    let mut file = File::create(wallet.pubkey().to_string() + ".json").unwrap();
-    file.write_all(&wallet.to_bytes()).unwrap();
+    write_keypair_file(&wallet, wallet.pubkey().to_string() + ".json").unwrap();
     println!(
         "Because no wallet provided, created new one at {:?}.json, it was used to place the bid. Please use it for redemption as a signer.",
         wallet.pubkey()

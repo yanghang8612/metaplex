@@ -10,6 +10,8 @@
       "edition_type": 0
     }
   ],
-  "open_edition_config": null,
+  "open_edition_config": {
+    "safety_deposit_box_index": 1
+  },
   "open_edition_fixed_price": null
 }

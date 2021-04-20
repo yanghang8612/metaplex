@@ -53,9 +53,8 @@ fn redeem_bid_na_type<'a>(
     program_id: &Pubkey,
     token_program: &Pubkey,
     instructions: &'a mut Vec<Instruction>,
-    signers: &'a mut Vec<&'a Keypair>,
     client: &RpcClient,
-) -> (Vec<Instruction>, Vec<&'a Keypair>) {
+) -> Vec<Instruction> {
     println!("You are redeeming a normal token.");
 
     let BaseAccountList {
@@ -130,11 +129,7 @@ fn redeem_bid_na_type<'a>(
     for n in 0..instructions.len() {
         new_instructions.push(instructions[n].clone());
     }
-    let mut new_signers: Vec<&Keypair> = vec![];
-    for n in 0..signers.len() {
-        new_signers.push(signers[n]);
-    }
-    (new_instructions, new_signers)
+    new_instructions
 }
 
 fn redeem_bid_limited_edition_type<'a>(
@@ -142,13 +137,12 @@ fn redeem_bid_limited_edition_type<'a>(
     new_mint: &'a Keypair,
     safety_deposit: &SafetyDepositBox,
     program_id: &Pubkey,
-    token_program: &Pubkey,
     instructions: &'a mut Vec<Instruction>,
-    signers: &'a mut Vec<&'a Keypair>,
     token_metadata_key: &Pubkey,
     client: &RpcClient,
-) -> (Vec<Instruction>, Vec<&'a Keypair>) {
+) -> Vec<Instruction> {
     println!("You are redeeming a limited edition.");
+
     let BaseAccountList {
         auction_manager,
         store,
@@ -194,7 +188,6 @@ fn redeem_bid_limited_edition_type<'a>(
     let (master_edition_key, _) =
         Pubkey::find_program_address(master_edition_seeds, &token_metadata_key);
 
-    signers.push(new_mint);
     let new_mint_key = new_mint.pubkey();
 
     let new_metadata_seeds = &[
@@ -225,52 +218,6 @@ fn redeem_bid_limited_edition_type<'a>(
     let original_lookup: OriginalAuthorityLookup =
         try_from_slice_unchecked(&original_lookup_account.data).unwrap();
 
-    instructions.push(create_account(
-        &payer,
-        &new_mint.pubkey(),
-        client
-            .get_minimum_balance_for_rent_exemption(Mint::LEN)
-            .unwrap(),
-        Mint::LEN as u64,
-        &token_program,
-    ));
-
-    instructions.push(
-        initialize_mint(
-            &token_program,
-            &new_mint.pubkey(),
-            &bidder,
-            Some(&bidder),
-            0,
-        )
-        .unwrap(),
-    );
-
-    instructions.push(create_account(
-        &payer,
-        &destination,
-        client
-            .get_minimum_balance_for_rent_exemption(Account::LEN)
-            .unwrap(),
-        Account::LEN as u64,
-        &token_program,
-    ));
-    instructions.push(
-        initialize_account(&token_program, &destination, &new_mint.pubkey(), &bidder).unwrap(),
-    );
-
-    instructions.push(
-        mint_to(
-            &token_program,
-            &new_mint.pubkey(),
-            &destination,
-            &payer,
-            &[&payer],
-            1,
-        )
-        .unwrap(),
-    );
-
     instructions.push(create_redeem_limited_edition_bid_instruction(
         *program_id,
         auction_manager,
@@ -287,7 +234,7 @@ fn redeem_bid_limited_edition_type<'a>(
         token_vault_program,
         new_metadata_key,
         new_mint.pubkey(),
-        bidder,
+        payer,
         master_metadata_key,
         master_name_symbol_key,
         new_edition_key,
@@ -300,11 +247,72 @@ fn redeem_bid_limited_edition_type<'a>(
     for n in 0..instructions.len() {
         new_instructions.push(instructions[n].clone());
     }
-    let mut new_signers: Vec<&Keypair> = vec![];
-    for n in 0..signers.len() {
-        new_signers.push(signers[n]);
-    }
-    (new_instructions, new_signers)
+    new_instructions
+}
+
+fn create_ancillary_accounts(
+    base_account_list: &BaseAccountList,
+    new_mint: &Keypair,
+    destination_keypair: &Keypair,
+    token_program: &Pubkey,
+    client: &RpcClient,
+    payer_keypair: &Keypair,
+) {
+    let BaseAccountList {
+        auction_manager: _a,
+        store: _s,
+        destination,
+        bid_redemption: _b,
+        safety_deposit_box: _sa,
+        fraction_mint: _f,
+        vault: _v,
+        auction: _au,
+        bidder_metadata: _bi,
+        bidder,
+        payer,
+        token_vault_program: _to,
+    } = base_account_list;
+
+    // Had to split these out and make them a separate txn because of txn size limits..
+    let ancillary_signers = vec![payer_keypair, new_mint, destination_keypair];
+    let create_ancillary_account_instructions = [
+        create_account(
+            &payer,
+            &new_mint.pubkey(),
+            client
+                .get_minimum_balance_for_rent_exemption(Mint::LEN)
+                .unwrap(),
+            Mint::LEN as u64,
+            &token_program,
+        ),
+        initialize_mint(&token_program, &new_mint.pubkey(), &payer, Some(&payer), 0).unwrap(),
+        create_account(
+            &payer,
+            &destination,
+            client
+                .get_minimum_balance_for_rent_exemption(Account::LEN)
+                .unwrap(),
+            Account::LEN as u64,
+            &token_program,
+        ),
+        initialize_account(&token_program, &destination, &new_mint.pubkey(), &bidder).unwrap(),
+        mint_to(
+            &token_program,
+            &new_mint.pubkey(),
+            &destination,
+            &payer,
+            &[&payer],
+            1,
+        )
+        .unwrap(),
+    ];
+
+    let mut transaction =
+        Transaction::new_with_payer(&create_ancillary_account_instructions, Some(&payer));
+    let recent_blockhash = client.get_recent_blockhash().unwrap().0;
+
+    transaction.sign(&ancillary_signers, recent_blockhash);
+    client.send_and_confirm_transaction(&transaction).unwrap();
 }
 
 fn redeem_bid_open_edition_type<'a>(
@@ -315,12 +323,11 @@ fn redeem_bid_open_edition_type<'a>(
     program_id: &Pubkey,
     token_program: &Pubkey,
     instructions: &'a mut Vec<Instruction>,
-    signers: &'a mut Vec<&'a Keypair>,
     token_metadata_key: &Pubkey,
-    client: &RpcClient,
     transfer_authority: &Keypair,
-) -> (Vec<Instruction>, Vec<&'a Keypair>) {
+) -> Vec<Instruction> {
     println!("You are redeeming an open edition.");
+
     let BaseAccountList {
         auction_manager,
         store,
@@ -353,7 +360,6 @@ fn redeem_bid_open_edition_type<'a>(
     let (master_edition_key, _) =
         Pubkey::find_program_address(master_edition_seeds, &token_metadata_key);
 
-    signers.push(new_mint);
     let new_mint_key = new_mint.pubkey();
 
     let new_metadata_seeds = &[
@@ -385,51 +391,6 @@ fn redeem_bid_open_edition_type<'a>(
             .unwrap(),
         );
     }
-    instructions.push(create_account(
-        &payer,
-        &new_mint.pubkey(),
-        client
-            .get_minimum_balance_for_rent_exemption(Mint::LEN)
-            .unwrap(),
-        Mint::LEN as u64,
-        &token_program,
-    ));
-
-    instructions.push(
-        initialize_mint(
-            &token_program,
-            &new_mint.pubkey(),
-            &bidder,
-            Some(&bidder),
-            0,
-        )
-        .unwrap(),
-    );
-
-    instructions.push(create_account(
-        &payer,
-        &destination,
-        client
-            .get_minimum_balance_for_rent_exemption(Account::LEN)
-            .unwrap(),
-        Account::LEN as u64,
-        &token_program,
-    ));
-    instructions.push(
-        initialize_account(&token_program, &destination, &new_mint.pubkey(), &bidder).unwrap(),
-    );
-
-    instructions.push(
-        mint_to(
-            &token_program,
-            &new_mint.pubkey(),
-            &destination,
-            &payer,
-            &[&payer],
-            1,
-        )
-        .unwrap(),
-    );
 
     instructions.push(create_redeem_open_edition_bid_instruction(
         *program_id,
@@ -447,7 +408,7 @@ fn redeem_bid_open_edition_type<'a>(
         token_vault_program,
         new_metadata_key,
         new_mint.pubkey(),
-        bidder,
+        payer,
         master_metadata_key,
         new_edition_key,
         master_edition_key,
@@ -458,11 +419,8 @@ fn redeem_bid_open_edition_type<'a>(
     for n in 0..instructions.len() {
         new_instructions.push(instructions[n].clone());
     }
-    let mut new_signers: Vec<&Keypair> = vec![];
-    for n in 0..signers.len() {
-        new_signers.push(signers[n]);
-    }
-    (new_instructions, new_signers)
+
+    new_instructions
 }
 
 fn redeem_bid_master_edition_type<'a>(
@@ -471,10 +429,9 @@ fn redeem_bid_master_edition_type<'a>(
     program_id: &Pubkey,
     token_program: &Pubkey,
     instructions: &'a mut Vec<Instruction>,
-    signers: &'a mut Vec<&'a Keypair>,
     token_metadata_key: &Pubkey,
     client: &RpcClient,
-) -> (Vec<Instruction>, Vec<&'a Keypair>) {
+) -> Vec<Instruction> {
     println!("You are redeeming a master edition.");
     let BaseAccountList {
         auction_manager,
@@ -573,11 +530,7 @@ fn redeem_bid_master_edition_type<'a>(
     for n in 0..instructions.len() {
         new_instructions.push(instructions[n].clone());
     }
-    let mut new_signers: Vec<&Keypair> = vec![];
-    for n in 0..signers.len() {
-        new_signers.push(signers[n]);
-    }
-    (new_instructions, new_signers)
+    new_instructions
 }
 
 pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
@@ -604,6 +557,7 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
 
     for n in 0..all_vault_accounts.len() {
         let obj = &all_vault_accounts[n].1;
+        let obj_key = &all_vault_accounts[n].0;
         let type_of_obj = obj.data[0];
 
         if type_of_obj == SAFETY_DEPOSIT_KEY {
@@ -611,7 +565,7 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
             let pubkey = Pubkey::new_from_array(*pubkey_arr);
             if pubkey == manager.vault {
                 let safety_deposit: SafetyDepositBox = try_from_slice_unchecked(&obj.data).unwrap();
-                safety_deposits.insert(safety_deposit.order, (safety_deposit, pubkey));
+                safety_deposits.insert(safety_deposit.order, (safety_deposit, obj_key));
             }
         }
     }
@@ -623,6 +577,7 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
         wallet_key.as_ref(),
         "metadata".as_bytes(),
     ];
+
     let (meta_key, _) = Pubkey::find_program_address(&meta_path, &manager.auction_program);
     let bidding_metadata = client.get_account(&meta_key).unwrap();
     let auction_data = client.get_account(&manager.auction).unwrap();
@@ -630,7 +585,10 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
     let auction: AuctionData = try_from_slice_unchecked(&auction_data.data).unwrap();
     let bid: BidderMetadata = try_from_slice_unchecked(&bidding_metadata.data).unwrap();
     let vault: Vault = try_from_slice_unchecked(&vault_data.data).unwrap();
-
+    println!(
+        "My calculated key is {:?} the actual key is {:?}",
+        meta_key, bid.bidder_pubkey
+    );
     let redemption_path = [
         spl_metaplex::state::PREFIX.as_bytes(),
         manager.auction.as_ref(),
@@ -646,7 +604,8 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
             .unwrap();
         let safety_deposit = &safety_deposit_result.0;
         let safety_deposit_key = safety_deposit_result.1;
-        let mut signers: Vec<&Keypair> = vec![&wallet, &destination];
+        let new_mint = Keypair::new();
+        let mut signers: Vec<&Keypair> = vec![&wallet, &payer];
         let mut instructions: Vec<Instruction> = vec![];
 
         let base_account_list = BaseAccountList {
@@ -654,7 +613,7 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
             store: safety_deposit.store,
             destination: destination.pubkey(),
             bid_redemption: bid_redemption_key,
-            safety_deposit_box: safety_deposit_key,
+            safety_deposit_box: *safety_deposit_key,
             fraction_mint: vault.fraction_mint,
             vault: manager.vault,
             auction: manager.auction,
@@ -664,39 +623,52 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
             token_vault_program,
         };
 
-        let new_mint = Keypair::new();
-        let (instructions, signers) = match winning_config.edition_type {
-            spl_metaplex::state::EditionType::NA => redeem_bid_na_type(
-                base_account_list,
-                winning_config,
-                safety_deposit,
-                &program_key,
-                &token_key,
-                &mut instructions,
-                &mut signers,
-                &client,
-            ),
-            spl_metaplex::state::EditionType::LimitedEdition => redeem_bid_limited_edition_type(
-                base_account_list,
-                &new_mint,
-                safety_deposit,
-                &program_key,
-                &token_key,
-                &mut instructions,
-                &mut signers,
-                &token_metadata_key,
-                &client,
-            ),
-            spl_metaplex::state::EditionType::MasterEdition => redeem_bid_master_edition_type(
-                base_account_list,
-                safety_deposit,
-                &program_key,
-                &token_key,
-                &mut instructions,
-                &mut signers,
-                &token_metadata_key,
-                &client,
-            ),
+        let instructions = match winning_config.edition_type {
+            spl_metaplex::state::EditionType::NA => {
+                signers.push(&destination);
+                redeem_bid_na_type(
+                    base_account_list,
+                    winning_config,
+                    safety_deposit,
+                    &program_key,
+                    &token_key,
+                    &mut instructions,
+                    &client,
+                )
+            }
+            spl_metaplex::state::EditionType::LimitedEdition => {
+                // Destination made in separate txn here. No need to add signers.
+                create_ancillary_accounts(
+                    &base_account_list,
+                    &new_mint,
+                    &destination,
+                    &token_key,
+                    &client,
+                    &payer,
+                );
+
+                redeem_bid_limited_edition_type(
+                    base_account_list,
+                    &new_mint,
+                    safety_deposit,
+                    &program_key,
+                    &mut instructions,
+                    &token_metadata_key,
+                    &client,
+                )
+            }
+            spl_metaplex::state::EditionType::MasterEdition => {
+                signers.push(&destination);
+                redeem_bid_master_edition_type(
+                    base_account_list,
+                    safety_deposit,
+                    &program_key,
+                    &token_key,
+                    &mut instructions,
+                    &token_metadata_key,
+                    &client,
+                )
+            }
         };
 
         let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
@@ -721,14 +693,14 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
         let safety_deposit = &safety_deposit_result.0;
         let safety_deposit_key = safety_deposit_result.1;
         let transfer_authority = Keypair::new();
-        let mut signers: Vec<&Keypair> = vec![&wallet, &destination, &transfer_authority];
+        let signers = vec![&wallet, &transfer_authority, &payer];
         let mut instructions: Vec<Instruction> = vec![];
         let base_account_list = BaseAccountList {
             auction_manager: auction_manager_key,
             store: safety_deposit.store,
             destination: destination.pubkey(),
             bid_redemption: bid_redemption_key,
-            safety_deposit_box: safety_deposit_key,
+            safety_deposit_box: *safety_deposit_key,
             fraction_mint: vault.fraction_mint,
             vault: manager.vault,
             auction: manager.auction,
@@ -737,7 +709,17 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
             payer: payer.pubkey(),
             token_vault_program,
         };
-        let (instructions, signers) = redeem_bid_open_edition_type(
+
+        create_ancillary_accounts(
+            &base_account_list,
+            &new_mint,
+            &destination,
+            &token_key,
+            &client,
+            &payer,
+        );
+
+        let instructions = redeem_bid_open_edition_type(
             base_account_list,
             &manager,
             &new_mint,
@@ -745,9 +727,7 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
             &program_key,
             &token_key,
             &mut instructions,
-            &mut signers,
             &token_metadata_key,
-            &client,
             &transfer_authority,
         );
 

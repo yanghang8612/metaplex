@@ -5,6 +5,7 @@ mod settings_utils;
 mod start_auction;
 mod validate_safety_deposits;
 mod vault_utils;
+mod show;
 
 use {
     clap::{crate_description, crate_name, crate_version, App, Arg, SubCommand},
@@ -15,6 +16,7 @@ use {
     solana_client::rpc_client::RpcClient,
     solana_sdk::signature::read_keypair_file,
     start_auction::send_start_auction,
+    show::send_show,
     validate_safety_deposits::validate_safety_deposits,
 };
 
@@ -156,6 +158,20 @@ fn main() {
                         .help("Pass in a specific 0-indexed slot in the array to validate that slot, if not passed, all will be validated."),
                 )
         ).subcommand(
+            SubCommand::with_name("show")
+                .about("Print out the manager data for a given manager address.")
+                
+                .arg(
+                    Arg::with_name("auction_manager")
+                        .long("auction_manager")
+                        .value_name("AUCTION_MANAGER")
+                        .required(true)
+                        .validator(is_valid_pubkey)
+                        .takes_value(true)
+                        .help("Pubkey of auction manager."),
+                )
+               
+        ).subcommand(
             SubCommand::with_name("place_bid")
                 .about("Place a bid on a specific slot, receive a bidder metadata address in return.")
                 .arg(
@@ -265,6 +281,9 @@ fn main() {
         }
         ("start_auction", Some(arg_matches)) => {
             send_start_auction(arg_matches, payer, client);
+        }
+        ("show", Some(arg_matches)) => {
+            send_show(arg_matches, payer, client);
         }
 
         _ => unreachable!(),

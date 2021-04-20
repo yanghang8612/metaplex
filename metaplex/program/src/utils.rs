@@ -358,7 +358,7 @@ pub fn common_redeem_checks(
     }
 
     if let Some(end_time) = auction.ended_at {
-        if end_time < clock.slot {
+        if end_time > clock.slot {
             return Err(MetaplexError::AuctionHasNotEnded.into());
         }
     } else {
