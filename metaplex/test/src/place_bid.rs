@@ -126,7 +126,7 @@ pub fn make_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
                 &wallet.pubkey(),
                 &payer.pubkey(),
                 &[&payer.pubkey()],
-                amount,
+                amount + 1,
             )
             .unwrap(),
         );
