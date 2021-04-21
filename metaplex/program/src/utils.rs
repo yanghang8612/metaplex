@@ -26,8 +26,8 @@ use {
     },
     spl_token::state::Account,
     spl_token_metadata::{
-        instruction::{mint_new_edition_from_master_edition, transfer_update_authority},
-        state::Metadata,
+        instruction::transfer_update_authority,
+        state::{MasterEdition, Metadata, EDITION},
     },
     spl_token_vault::{instruction::create_withdraw_tokens_instruction, state::SafetyDepositBox},
     std::convert::TryInto,
@@ -183,53 +183,6 @@ pub fn transfer_safety_deposit_box_items<'a>(
     Ok(())
 }
 
-pub fn mint_edition<'a>(
-    token_metadata_program: AccountInfo<'a>,
-    metadata: AccountInfo<'a>,
-    edition: AccountInfo<'a>,
-    master_edition: AccountInfo<'a>,
-    mint: AccountInfo<'a>,
-    mint_authority: AccountInfo<'a>,
-    payer: AccountInfo<'a>,
-    master_update_authority: AccountInfo<'a>,
-    master_metadata: AccountInfo<'a>,
-    token: AccountInfo<'a>,
-    system: AccountInfo<'a>,
-    rent: AccountInfo<'a>,
-    signer_seeds: &[&[u8]],
-) -> ProgramResult {
-    invoke_signed(
-        &mint_new_edition_from_master_edition(
-            *token_metadata_program.key,
-            *metadata.key,
-            *edition.key,
-            *master_edition.key,
-            *mint.key,
-            *mint_authority.key,
-            *payer.key,
-            *master_update_authority.key,
-            *master_metadata.key,
-        ),
-        &[
-            metadata,
-            edition,
-            master_edition,
-            mint,
-            mint_authority,
-            payer,
-            master_update_authority,
-            master_metadata,
-            token_metadata_program,
-            token,
-            system,
-            rent,
-        ],
-        &[&signer_seeds],
-    )?;
-
-    Ok(())
-}
-
 pub fn issue_start_auction<'a>(
     auction_program: AccountInfo<'a>,
     authority: AccountInfo<'a>,
@@ -290,6 +243,7 @@ pub struct CommonRedeemReturn {
     pub auction: AuctionData,
     pub bidder_metadata: BidderMetadata,
     pub rent: Rent,
+    pub destination: Account,
 }
 
 pub fn common_redeem_checks(
@@ -334,7 +288,7 @@ pub fn common_redeem_checks(
     let bidder_metadata: BidderMetadata =
         try_from_slice_unchecked(&bidder_metadata_info.data.borrow_mut())?;
     // Is it initialized and an actual Account?
-    let _destination: Account = assert_initialized(destination_info)?;
+    let destination: Account = assert_initialized(destination_info)?;
 
     assert_owned_by(destination_info, token_program_info.key)?;
     assert_owned_by(auction_manager_info, program_id)?;
@@ -414,6 +368,7 @@ pub fn common_redeem_checks(
         bidder_metadata,
         safety_deposit,
         rent: *rent,
+        destination,
     })
 }
 
@@ -615,4 +570,101 @@ pub fn spl_token_transfer(params: TokenTransferParams<'_, '_>) -> ProgramResult 
     );
 
     result.map_err(|_| MetaplexError::TokenTransferFailed.into())
+}
+
+pub fn common_metadata_checks(
+    master_metadata_info: &AccountInfo,
+    master_edition_info: &AccountInfo,
+    token_metadata_program_info: &AccountInfo,
+    master_mint_info: &AccountInfo,
+    safety_deposit: &SafetyDepositBox,
+    destination: &Account,
+) -> ProgramResult {
+    let master_metadata: Metadata =
+        try_from_slice_unchecked(&master_metadata_info.data.borrow_mut())?;
+    let master_edition: MasterEdition =
+        try_from_slice_unchecked(&master_edition_info.data.borrow_mut())?;
+
+    if safety_deposit.token_mint != master_metadata.mint {
+        return Err(MetaplexError::SafetyDepositBoxMetadataMismatch.into());
+    }
+
+    assert_edition_valid(
+        &token_metadata_program_info.key,
+        &master_metadata.mint,
+        master_edition_info,
+    )?;
+
+    if master_edition.master_mint != *master_mint_info.key {
+        return Err(MetaplexError::MasterEditionMintMismatch.into());
+    }
+
+    if master_edition.master_mint != *master_mint_info.key {
+        return Err(MetaplexError::MasterEditionMintMismatch.into());
+    }
+
+    if destination.mint != master_edition.master_mint {
+        return Err(MetaplexError::DestinationMintMismatch.into());
+    }
+
+    Ok(())
+}
+
+pub fn assert_edition_valid(
+    program_id: &Pubkey,
+    mint: &Pubkey,
+    edition_account_info: &AccountInfo,
+) -> ProgramResult {
+    let edition_seeds = &[
+        PREFIX.as_bytes(),
+        program_id.as_ref(),
+        &mint.as_ref(),
+        EDITION.as_bytes(),
+    ];
+    let (edition_key, _) = Pubkey::find_program_address(edition_seeds, program_id);
+    if edition_key != *edition_account_info.key {
+        return Err(MetaplexError::InvalidEditionKey.into());
+    }
+
+    Ok(())
+}
+
+pub fn spl_token_mint_to(params: TokenMintToParams<'_, '_>) -> ProgramResult {
+    let TokenMintToParams {
+        mint,
+        destination,
+        authority,
+        token_program,
+        amount,
+        authority_signer_seeds,
+    } = params;
+    let result = invoke_signed(
+        &spl_token::instruction::mint_to(
+            token_program.key,
+            mint.key,
+            destination.key,
+            authority.key,
+            &[],
+            amount,
+        )?,
+        &[mint, destination, authority, token_program],
+        &[authority_signer_seeds],
+    );
+    result.map_err(|_| MetaplexError::TokenMintToFailed.into())
+}
+
+/// TokenMintToParams
+pub struct TokenMintToParams<'a: 'b, 'b> {
+    /// mint
+    pub mint: AccountInfo<'a>,
+    /// destination
+    pub destination: AccountInfo<'a>,
+    /// amount
+    pub amount: u64,
+    /// authority
+    pub authority: AccountInfo<'a>,
+    /// authority_signer_seeds
+    pub authority_signer_seeds: &'b [&'b [u8]],
+    /// token_program
+    pub token_program: AccountInfo<'a>,
 }

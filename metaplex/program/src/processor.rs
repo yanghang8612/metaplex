@@ -9,11 +9,12 @@ use {
         },
         utils::{
             assert_authority_correct, assert_initialized, assert_owned_by,
-            assert_store_safety_vault_manager_match, common_redeem_checks, common_redeem_finish,
-            common_winning_config_checks, create_or_allocate_account_raw, issue_start_auction,
-            mint_edition, shift_authority_back_to_originating_user, spl_token_transfer,
-            transfer_metadata_ownership, transfer_safety_deposit_box_items, CommonRedeemReturn,
-            CommonWinningConfigCheckReturn, TokenTransferParams,
+            assert_store_safety_vault_manager_match, common_metadata_checks, common_redeem_checks,
+            common_redeem_finish, common_winning_config_checks, create_or_allocate_account_raw,
+            issue_start_auction, shift_authority_back_to_originating_user, spl_token_mint_to,
+            spl_token_transfer, transfer_metadata_ownership, transfer_safety_deposit_box_items,
+            CommonRedeemReturn, CommonWinningConfigCheckReturn, TokenMintToParams,
+            TokenTransferParams,
         },
     },
     borsh::{BorshDeserialize, BorshSerialize},
@@ -95,21 +96,20 @@ pub fn process_redeem_open_edition_bid(
     let rent_info = next_account_info(account_info_iter)?;
     let clock_info = next_account_info(account_info_iter)?;
 
-    let new_metadata_info = next_account_info(account_info_iter)?;
-    let destination_mint_info = next_account_info(account_info_iter)?;
-    let destination_mint_authority_info = next_account_info(account_info_iter)?;
+    // add checks for master mint/metadata/master edition combo. pull
+    // assert
     let master_metadata_info = next_account_info(account_info_iter)?;
-    let new_edition_info = next_account_info(account_info_iter)?;
+    let master_mint_info = next_account_info(account_info_iter)?;
     let master_edition_info = next_account_info(account_info_iter)?;
     let transfer_authority_info = next_account_info(account_info_iter)?;
-
     let CommonRedeemReturn {
         mut auction_manager,
         redemption_bump_seed,
         bidder_metadata,
-        safety_deposit: _safety_deposit,
+        safety_deposit,
         auction,
         rent: _rent,
+        destination,
     } = common_redeem_checks(
         program_id,
         auction_manager_info,
@@ -132,6 +132,15 @@ pub fn process_redeem_open_edition_bid(
         true,
     )?;
 
+    common_metadata_checks(
+        master_metadata_info,
+        master_edition_info,
+        token_metadata_program_info,
+        master_mint_info,
+        &safety_deposit,
+        &destination,
+    )?;
+
     let mut gets_open_edition = auction_manager.settings.open_edition_config != None
         && auction_manager.settings.open_edition_non_winning_constraint
             != NonWinningConstraint::NoOpenEdition;
@@ -148,28 +157,21 @@ pub fn process_redeem_open_edition_bid(
 
     if gets_open_edition {
         let seeds = &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()];
-        let (_, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
+        let (authority, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
         let mint_seeds = &[
             PREFIX.as_bytes(),
             &auction_manager.auction.as_ref(),
             &[bump_seed],
         ];
 
-        mint_edition(
-            token_metadata_program_info.clone(),
-            new_metadata_info.clone(),
-            new_edition_info.clone(),
-            master_edition_info.clone(),
-            destination_mint_info.clone(),
-            destination_mint_authority_info.clone(),
-            payer_info.clone(),
-            auction_manager_info.clone(),
-            master_metadata_info.clone(),
-            token_program_info.clone(),
-            system_info.clone(),
-            rent_info.clone(),
-            mint_seeds,
-        )?;
+        spl_token_mint_to(TokenMintToParams {
+            mint: master_mint_info.clone(),
+            destination: destination_info.clone(),
+            amount: 1,
+            authority: auction_manager_info.clone(),
+            authority_signer_seeds: mint_seeds,
+            token_program: token_program_info.clone(),
+        })?;
 
         if let Some(open_edition_fixed_price) = auction_manager.settings.open_edition_fixed_price {
             spl_token_transfer(TokenTransferParams {
@@ -235,6 +237,7 @@ pub fn process_redeem_master_edition_bid(
         safety_deposit,
         auction,
         rent: _rent,
+        destination: _destination,
     } = common_redeem_checks(
         program_id,
         auction_manager_info,
@@ -375,12 +378,9 @@ pub fn process_redeem_limited_edition_bid(
     let rent_info = next_account_info(account_info_iter)?;
     let clock_info = next_account_info(account_info_iter)?;
 
-    let new_metadata_info = next_account_info(account_info_iter)?;
-    let destination_mint_info = next_account_info(account_info_iter)?;
-    let destination_mint_authority_info = next_account_info(account_info_iter)?;
     let master_metadata_info = next_account_info(account_info_iter)?;
     let master_name_symbol_info = next_account_info(account_info_iter)?;
-    let new_edition_info = next_account_info(account_info_iter)?;
+    let master_mint_info = next_account_info(account_info_iter)?;
     let master_edition_info = next_account_info(account_info_iter)?;
     let original_authority = next_account_info(account_info_iter)?;
     let original_authority_lookup_info = next_account_info(account_info_iter)?;
@@ -392,6 +392,7 @@ pub fn process_redeem_limited_edition_bid(
         safety_deposit,
         auction,
         rent: _rent,
+        destination,
     } = common_redeem_checks(
         program_id,
         auction_manager_info,
@@ -412,6 +413,15 @@ pub fn process_redeem_limited_edition_bid(
         system_info,
         clock_info,
         false,
+    )?;
+
+    common_metadata_checks(
+        master_metadata_info,
+        master_edition_info,
+        token_metadata_program_info,
+        master_mint_info,
+        &safety_deposit,
+        &destination,
     )?;
 
     // There is only one case where a follow up call needs to be made, and that's when we have multiple limited editions
@@ -442,21 +452,14 @@ pub fn process_redeem_limited_edition_bid(
                     &[bump_seed],
                 ];
 
-                mint_edition(
-                    token_metadata_program_info.clone(),
-                    new_metadata_info.clone(),
-                    new_edition_info.clone(),
-                    master_edition_info.clone(),
-                    destination_mint_info.clone(),
-                    destination_mint_authority_info.clone(),
-                    payer_info.clone(),
-                    auction_manager_info.clone(),
-                    master_metadata_info.clone(),
-                    token_program_info.clone(),
-                    system_info.clone(),
-                    rent_info.clone(),
-                    mint_seeds,
-                )?;
+                spl_token_mint_to(TokenMintToParams {
+                    mint: master_mint_info.clone(),
+                    destination: destination_info.clone(),
+                    amount: 1,
+                    authority: auction_manager_info.clone(),
+                    authority_signer_seeds: mint_seeds,
+                    token_program: token_program_info.clone(),
+                })?;
 
                 winning_config_state.amount_minted =
                     match winning_config_state.amount_minted.checked_add(1) {
@@ -549,6 +552,7 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
         safety_deposit,
         auction,
         rent: _rent,
+        destination: _destination,
     } = common_redeem_checks(
         program_id,
         auction_manager_info,

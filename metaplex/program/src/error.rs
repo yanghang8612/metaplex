@@ -210,6 +210,22 @@ pub enum MetaplexError {
     /// The bidder is not the signer on this transaction!
     #[error("The bidder is not the signer on this transaction!")]
     BidderIsNotSigner,
+
+    /// Master mint given does not match the mint on master edition!
+    #[error("Master mint given does not match the mint on master edition!")]
+    MasterEditionMintMismatch,
+
+    /// Destination does not have the proper mint!
+    #[error("Destination does not have the proper mint!")]
+    DestinationMintMismatch,
+
+    /// Invalid edition key
+    #[error("Invalid edition key")]
+    InvalidEditionKey,
+
+    /// Token mint to failed
+    #[error("Token mint to failed")]
+    TokenMintToFailed,
 }
 
 impl PrintProgramError for MetaplexError {

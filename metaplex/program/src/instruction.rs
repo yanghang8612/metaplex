@@ -141,7 +141,7 @@ pub enum MetaplexInstruction {
     ///
     ///   0. `[writable]` Auction manager
     ///   1. `[writable]` Store of safety deposit box account
-    ///   2. `[writable]` Destination account.
+    ///   2. `[writable]` Destination account for limited edition authority token. Must be same mint as master edition master mint.
     ///   3. `[writable]` Bid redemption key -
     ///        Just a PDA with seed ['metaplex', auction_key, bidder_metadata_key] that we will allocate to mark that you redeemed your bid
     ///   4. `[]` Safety deposit box account
@@ -157,18 +157,14 @@ pub enum MetaplexInstruction {
     ///   14. `[]` System
     ///   15. `[]` Rent sysvar
     ///   16. `[]` Clock sysvar.
-    ///   17. `[writable]` New Limited Edition Metadata (pda of ['metadata', program id, newly made mint id]) - remember PDA is relative to token metadata program
-    ///   18. `[writable]` Mint of destination account. This needs to be a newly created mint and the destination account
-    ///                   needs to have exactly one token in it already. We will simply "grant" the limited edition status on this token.
-    ///   19. `[signer]` Destination mint authority - this account is optional, and will only be used/checked if you are receiving a newly minted limited edition.
-    ///   20. `[]` Master Metadata (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   21. `[]` Master Name-Symbol (pda of ['metadata', program id, name, symbol']) - remember PDA is relative to token metadata program
-    ///   22. `[]` New Limited Edition (pda of ['metadata', program id, newly made mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   23. `[writable]` Master Edition (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   24. `[]` Original authority on the Master Metadata, which can be gotten via reading off the key from lookup of OriginalAuthorityLookup struct with
+    ///   17. `[]` Master Metadata (pda of ['metadata', program id, metadata mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   18. `[]` Master Name-Symbol (pda of ['metadata', program id, name, symbol']) - remember PDA is relative to token metadata program
+    ///   19. `[]` Master mint on the master edition - this is the mint used to produce one-time use tokens to give permission to make one limited edition.
+    ///   20. `[writable]` Master Edition (pda of ['metadata', program id, metadata mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   22. `[]` Original authority on the Master Metadata, which can be gotten via reading off the key from lookup of OriginalAuthorityLookup struct with
     ///            key of (pda of ['metaplex', auction key, master metadata key]).
     ///            We'll use this to grant back authority to the owner of the master metadata if we no longer need it after this latest minting.
-    ///   25. `[]` Original authority Lookup key - pda of ['metaplex', auction key, master metadata key]
+    ///   23. `[]` Original authority Lookup key - pda of ['metaplex', auction key, master metadata key]
     RedeemLimitedEditionBid,
 
     /// Note: This requires that auction manager be in a Running state.
@@ -185,7 +181,7 @@ pub enum MetaplexInstruction {
     ///
     ///   0. `[writable]` Auction manager
     ///   1. `[writable]` Store of safety deposit box account
-    ///   2. `[writable]` Destination account.
+    ///   2. `[writable]` Destination account for limited edition authority token. Must be same mint as master edition master mint.
     ///   3. `[writable]` Bid redemption key -
     ///        Just a PDA with seed ['metaplex', auction_key, bidder_metadata_key] that we will allocate to mark that you redeemed your bid
     ///   4. `[]` Safety deposit box account
@@ -201,14 +197,10 @@ pub enum MetaplexInstruction {
     ///   14. `[]` System
     ///   15. `[]` Rent sysvar
     ///   16. `[]` Clock sysvar.
-    ///   17. `[writable]` New Open Edition Metadata (pda of ['metadata', program id, newly made mint id]) - remember PDA is relative to token metadata program
-    ///   18. `[writable]` Mint of destination account. This needs to be a newly created mint and the destination account
-    ///                   needs to have exactly one token in it already. We will simply "grant" the open edition status on this token.
-    ///   19. `[signer]` Destination mint authority - this account is optional, and will only be used/checked if you are receiving a newly minted open edition.
-    ///   20. `[]` Master Metadata (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   21. `[]` New Open Edition (pda of ['metadata', program id, newly made mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   22. `[writable]` Master Edition (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   23. `[signer]` Transfer authority to move the payment in the auction's token_mint coin from the bidder account for the open_edition_fixed_price
+    ///   17. `[]` Master Metadata (pda of ['metadata', program id, metadata mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   18. `[]` Master mint on the master edition - this is the mint used to produce one-time use tokens to give permission to make one limited edition.
+    ///   19. `[writable]` Master Edition (pda of ['metadata', program id, metadata mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   20. `[signer]` Transfer authority to move the payment in the auction's token_mint coin from the bidder account for the open_edition_fixed_price
     ///             on the auction manager to the auction manager account itself.
     RedeemOpenEditionBid,
 
@@ -420,12 +412,9 @@ pub fn create_redeem_limited_edition_bid_instruction(
     bidder: Pubkey,
     payer: Pubkey,
     token_vault_program: Pubkey,
-    new_limited_edition_metadata: Pubkey,
-    destination_mint: Pubkey,
-    destination_mint_authority: Pubkey,
     master_metadata: Pubkey,
     master_name_symbol: Pubkey,
-    new_limited_edition: Pubkey,
+    master_mint: Pubkey,
     master_edition: Pubkey,
     original_authority: Pubkey,
     original_authority_lookup: Pubkey,
@@ -450,12 +439,9 @@ pub fn create_redeem_limited_edition_bid_instruction(
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
             AccountMeta::new_readonly(sysvar::clock::id(), false),
-            AccountMeta::new(new_limited_edition_metadata, false),
-            AccountMeta::new(destination_mint, false),
-            AccountMeta::new_readonly(destination_mint_authority, true),
             AccountMeta::new_readonly(master_metadata, false),
             AccountMeta::new_readonly(master_name_symbol, false),
-            AccountMeta::new(new_limited_edition, false),
+            AccountMeta::new(master_mint, false),
             AccountMeta::new(master_edition, false),
             AccountMeta::new_readonly(original_authority, false),
             AccountMeta::new_readonly(original_authority_lookup, false),
@@ -482,11 +468,8 @@ pub fn create_redeem_open_edition_bid_instruction(
     bidder: Pubkey,
     payer: Pubkey,
     token_vault_program: Pubkey,
-    new_open_edition_metadata: Pubkey,
-    destination_mint: Pubkey,
-    destination_mint_authority: Pubkey,
     master_metadata: Pubkey,
-    new_open_edition: Pubkey,
+    master_mint: Pubkey,
     master_edition: Pubkey,
     transfer_authority: Pubkey,
 ) -> Instruction {
@@ -510,11 +493,8 @@ pub fn create_redeem_open_edition_bid_instruction(
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
             AccountMeta::new_readonly(sysvar::clock::id(), false),
-            AccountMeta::new(new_open_edition_metadata, false),
-            AccountMeta::new(destination_mint, false),
-            AccountMeta::new_readonly(destination_mint_authority, true),
             AccountMeta::new_readonly(master_metadata, false),
-            AccountMeta::new(new_open_edition, false),
+            AccountMeta::new(master_mint, false),
             AccountMeta::new(master_edition, false),
             AccountMeta::new_readonly(transfer_authority, true),
         ],
