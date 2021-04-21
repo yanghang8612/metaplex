@@ -154,12 +154,7 @@ pub fn process_redeem_open_edition_bid(
             &auction_manager.auction.as_ref(),
             &[bump_seed],
         ];
-        msg!("new metadata is {:?}, new_edition_info is {:?}, destination_mint_info is {:?}, destination_mint_authority_info is {:?} auction_manager_info is {:?} master_metadata_info is {:?} payer is {:?}", new_metadata_info.key, new_edition_info.key, destination_mint_info.key, destination_mint_authority_info.key, auction_manager_info.key, master_metadata_info.key, payer_info.key);
-        msg!(
-            "Is destination a sifgner? {:?} {:?}",
-            destination_mint_authority_info.is_signer,
-            destination_mint_authority_info.is_writable
-        );
+
         mint_edition(
             token_metadata_program_info.clone(),
             new_metadata_info.clone(),
@@ -175,7 +170,6 @@ pub fn process_redeem_open_edition_bid(
             rent_info.clone(),
             mint_seeds,
         )?;
-        msg!("got to here");
 
         if let Some(open_edition_fixed_price) = auction_manager.settings.open_edition_fixed_price {
             spl_token_transfer(TokenTransferParams {
