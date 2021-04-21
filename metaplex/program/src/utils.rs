@@ -15,6 +15,7 @@ use {
         msg,
         program::{invoke, invoke_signed},
         program_error::ProgramError,
+        program_option::COption,
         program_pack::{IsInitialized, Pack},
         pubkey::Pubkey,
         system_instruction,
@@ -24,7 +25,10 @@ use {
         instruction::start_auction_instruction,
         processor::{start_auction::StartAuctionArgs, AuctionData, BidderMetadata},
     },
-    spl_token::state::Account,
+    spl_token::{
+        instruction::{set_authority, AuthorityType},
+        state::{Account, Mint},
+    },
     spl_token_metadata::{
         instruction::transfer_update_authority,
         state::{MasterEdition, Metadata, EDITION},
@@ -231,6 +235,121 @@ pub fn transfer_metadata_ownership<'a>(
             token_metadata_program,
         ],
         &[&signer_seeds],
+    )?;
+
+    Ok(())
+}
+
+pub fn check_and_transfer_edition_master_mint<'a>(
+    master_edition_mint_info: &AccountInfo<'a>,
+    master_edition_master_mint_info: &AccountInfo<'a>,
+    master_edition_info: &AccountInfo<'a>,
+    auction_manager_info: &AccountInfo<'a>,
+    token_metadata_program_info: &AccountInfo<'a>,
+    token_program_info: &AccountInfo<'a>,
+    master_edition_master_mint_authority_info: &AccountInfo<'a>,
+    authority_seeds: &[&[u8]],
+) -> ProgramResult {
+    // Make sure it's a real mint
+    let _mint: Mint = assert_initialized(master_edition_mint_info)?;
+    let master_mint: Mint = assert_initialized(master_edition_master_mint_info)?;
+
+    let edition_seeds = &[
+        spl_token_metadata::state::PREFIX.as_bytes(),
+        token_metadata_program_info.key.as_ref(),
+        &master_edition_mint_info.key.as_ref(),
+        spl_token_metadata::state::EDITION.as_bytes(),
+    ];
+
+    let (edition_key, _) =
+        Pubkey::find_program_address(edition_seeds, &token_metadata_program_info.key);
+    if edition_key != *master_edition_info.key {
+        return Err(MetaplexError::InvalidEditionAddress.into());
+    }
+
+    let master_edition: MasterEdition =
+        try_from_slice_unchecked(&master_edition_info.data.borrow_mut())?;
+    if let Some(_) = master_edition.max_supply {
+        return Err(MetaplexError::CantUseLimitedSupplyEditionsWithOpenEditionAuction.into());
+    }
+
+    if master_edition.master_mint != *master_edition_master_mint_info.key {
+        return Err(MetaplexError::MasterEditionMasterMintMismatch.into());
+    }
+
+    if !master_edition_master_mint_authority_info.is_signer {
+        return Err(MetaplexError::MasterMintAuthorityMustBeSigner.into());
+    }
+
+    if let COption::Some(authority) = master_mint.mint_authority {
+        if authority != *master_edition_master_mint_authority_info.key {
+            return Err(MetaplexError::MasterMintAuthorityMismatch.into());
+        }
+    }
+
+    if let COption::Some(authority) = master_mint.freeze_authority {
+        if authority != *master_edition_master_mint_authority_info.key {
+            return Err(MetaplexError::MasterMintAuthorityMismatch.into());
+        }
+    }
+
+    transfer_mint_authority(
+        authority_seeds,
+        auction_manager_info.key,
+        &auction_manager_info,
+        &master_edition_master_mint_info,
+        &master_edition_master_mint_authority_info,
+        token_program_info,
+    )?;
+
+    Ok(())
+}
+
+pub fn transfer_mint_authority<'a>(
+    new_authority_seeds: &[&[u8]],
+    new_authority_key: &Pubkey,
+    new_authority_info: &AccountInfo<'a>,
+    mint_info: &AccountInfo<'a>,
+    mint_authority_info: &AccountInfo<'a>,
+    token_program_info: &AccountInfo<'a>,
+) -> ProgramResult {
+    msg!("Setting mint authority");
+    invoke_signed(
+        &set_authority(
+            token_program_info.key,
+            mint_info.key,
+            Some(new_authority_key),
+            AuthorityType::MintTokens,
+            mint_authority_info.key,
+            &[&mint_authority_info.key],
+        )
+        .unwrap(),
+        &[
+            mint_authority_info.clone(),
+            mint_info.clone(),
+            token_program_info.clone(),
+            new_authority_info.clone(),
+        ],
+        &[new_authority_seeds],
+    )?;
+    msg!("Setting freeze authority");
+    invoke_signed(
+        &set_authority(
+            token_program_info.key,
+            mint_info.key,
+            Some(&new_authority_key),
+            AuthorityType::FreezeAccount,
+            mint_authority_info.key,
+            &[&mint_authority_info.key],
+        )
+        .unwrap(),
+        &[
+            mint_authority_info.clone(),
+            mint_info.clone(),
+            token_program_info.clone(),
+            new_authority_info.clone(),
+        ],
+        &[new_authority_seeds],
     )?;
 
     Ok(())
@@ -482,10 +601,11 @@ pub fn shift_authority_back_to_originating_user<'a>(
     auction_manager: &AuctionManager,
     auction_manager_info: &AccountInfo<'a>,
     master_metadata_info: &AccountInfo<'a>,
-    master_name_symbol_info: &AccountInfo<'a>,
     original_authority: &AccountInfo<'a>,
     original_authority_lookup_info: &AccountInfo<'a>,
-    token_metadata_program_info: &AccountInfo<'a>,
+    master_mint_info: &AccountInfo<'a>,
+    token_program_info: &AccountInfo<'a>,
+    authority_seeds: &[&[u8]],
 ) -> ProgramResult {
     let original_authority_lookup_seeds = &[
         PREFIX.as_bytes(),
@@ -493,15 +613,8 @@ pub fn shift_authority_back_to_originating_user<'a>(
         master_metadata_info.key.as_ref(),
     ];
 
-    let (expected_key, original_bump_seed) =
+    let (expected_key, _) =
         Pubkey::find_program_address(original_authority_lookup_seeds, &program_id);
-
-    let original_authority_seeds = &[
-        PREFIX.as_bytes(),
-        &auction_manager.auction.as_ref(),
-        master_metadata_info.key.as_ref(),
-        &[original_bump_seed],
-    ];
 
     if expected_key != *original_authority_lookup_info.key {
         return Err(MetaplexError::OriginalAuthorityLookupKeyMismatch.into());
@@ -512,18 +625,13 @@ pub fn shift_authority_back_to_originating_user<'a>(
     if original_authority_lookup.original_authority != *original_authority.key {
         return Err(MetaplexError::OriginalAuthorityMismatch.into());
     }
-
-    let master_metadata: Metadata =
-        try_from_slice_unchecked(&master_metadata_info.data.borrow_mut())?;
-
-    transfer_metadata_ownership(
-        &master_metadata,
-        token_metadata_program_info.clone(),
-        master_metadata_info.clone(),
-        master_name_symbol_info.clone(),
-        auction_manager_info.clone(),
-        original_authority.clone(),
-        original_authority_seeds,
+    transfer_mint_authority(
+        authority_seeds,
+        original_authority.key,
+        original_authority,
+        master_mint_info,
+        auction_manager_info,
+        token_program_info,
     )?;
 
     Ok(())
@@ -616,7 +724,7 @@ pub fn assert_edition_valid(
     edition_account_info: &AccountInfo,
 ) -> ProgramResult {
     let edition_seeds = &[
-        PREFIX.as_bytes(),
+        spl_token_metadata::state::PREFIX.as_bytes(),
         program_id.as_ref(),
         &mint.as_ref(),
         EDITION.as_bytes(),

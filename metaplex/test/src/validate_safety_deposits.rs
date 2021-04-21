@@ -14,7 +14,7 @@ use {
         instruction::create_validate_safety_deposit_box_instruction,
         state::{AuctionManager, WinningConfig},
     },
-    spl_token_metadata::state::{Metadata, EDITION},
+    spl_token_metadata::state::{Key, MasterEdition, Metadata, EDITION},
     spl_token_vault::state::{SafetyDepositBox, SAFETY_DEPOSIT_KEY},
     std::{collections::HashMap, str::FromStr},
 };
@@ -114,6 +114,27 @@ pub fn validate_safety_deposits(app_matches: &ArgMatches, payer: Keypair, client
         let (original_authority_key, _) =
             Pubkey::find_program_address(original_authority_seeds, &program_key);
 
+        let master_edition_account = client.get_account(&edition_key);
+        let edition_master_mint: Option<Pubkey>;
+        let edition_master_mint_authority: Option<Pubkey>;
+        match master_edition_account {
+            Ok(acct) => {
+                if acct.data[0] == Key::MasterEditionV1 as u8 {
+                    let master_edition: MasterEdition =
+                        try_from_slice_unchecked(&acct.data).unwrap();
+                    edition_master_mint = Some(master_edition.master_mint);
+                    edition_master_mint_authority = Some(payer.pubkey());
+                } else {
+                    edition_master_mint = None;
+                    edition_master_mint_authority = None;
+                }
+            }
+            Err(_) => {
+                edition_master_mint = None;
+                edition_master_mint_authority = None;
+            }
+        }
+
         let instructions = [create_validate_safety_deposit_box_instruction(
             program_key,
             auction_manager_key,
@@ -128,7 +149,10 @@ pub fn validate_safety_deposits(app_matches: &ArgMatches, payer: Keypair, client
             authority.pubkey(),
             metadata_authority.pubkey(),
             payer.pubkey(),
+            edition_master_mint,
+            edition_master_mint_authority,
         )];
+
         let signers = [&payer, &authority, &metadata_authority];
         let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
         let recent_blockhash = client.get_recent_blockhash().unwrap().0;

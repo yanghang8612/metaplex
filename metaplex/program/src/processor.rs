@@ -9,12 +9,12 @@ use {
         },
         utils::{
             assert_authority_correct, assert_initialized, assert_owned_by,
-            assert_store_safety_vault_manager_match, common_metadata_checks, common_redeem_checks,
-            common_redeem_finish, common_winning_config_checks, create_or_allocate_account_raw,
-            issue_start_auction, shift_authority_back_to_originating_user, spl_token_mint_to,
-            spl_token_transfer, transfer_metadata_ownership, transfer_safety_deposit_box_items,
-            CommonRedeemReturn, CommonWinningConfigCheckReturn, TokenMintToParams,
-            TokenTransferParams,
+            assert_store_safety_vault_manager_match, check_and_transfer_edition_master_mint,
+            common_metadata_checks, common_redeem_checks, common_redeem_finish,
+            common_winning_config_checks, create_or_allocate_account_raw, issue_start_auction,
+            shift_authority_back_to_originating_user, spl_token_mint_to, spl_token_transfer,
+            transfer_metadata_ownership, transfer_safety_deposit_box_items, CommonRedeemReturn,
+            CommonWinningConfigCheckReturn, TokenMintToParams, TokenTransferParams,
         },
     },
     borsh::{BorshDeserialize, BorshSerialize},
@@ -157,7 +157,7 @@ pub fn process_redeem_open_edition_bid(
 
     if gets_open_edition {
         let seeds = &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()];
-        let (authority, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
+        let (_, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
         let mint_seeds = &[
             PREFIX.as_bytes(),
             &auction_manager.auction.as_ref(),
@@ -379,7 +379,6 @@ pub fn process_redeem_limited_edition_bid(
     let clock_info = next_account_info(account_info_iter)?;
 
     let master_metadata_info = next_account_info(account_info_iter)?;
-    let master_name_symbol_info = next_account_info(account_info_iter)?;
     let master_mint_info = next_account_info(account_info_iter)?;
     let master_edition_info = next_account_info(account_info_iter)?;
     let original_authority = next_account_info(account_info_iter)?;
@@ -491,10 +490,11 @@ pub fn process_redeem_limited_edition_bid(
                             &auction_manager,
                             auction_manager_info,
                             master_metadata_info,
-                            master_name_symbol_info,
                             original_authority,
                             original_authority_lookup_info,
-                            token_metadata_program_info,
+                            master_mint_info,
+                            token_program_info,
+                            mint_seeds,
                         )?;
                     }
                 } else {
@@ -652,6 +652,7 @@ pub fn process_validate_safety_deposit_box(
     let metadata_authority_info = next_account_info(account_info_iter)?;
     let payer_info = next_account_info(account_info_iter)?;
     let token_metadata_program_info = next_account_info(account_info_iter)?;
+    let token_program_info = next_account_info(account_info_iter)?;
     let system_info = next_account_info(account_info_iter)?;
     let rent_info = next_account_info(account_info_iter)?;
 
@@ -771,26 +772,6 @@ pub fn process_validate_safety_deposit_box(
                 return Err(MetaplexError::StoreIsEmpty.into());
             }
 
-            let seeds = &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()];
-            let (_, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
-            let authority_seeds = &[
-                PREFIX.as_bytes(),
-                &auction_manager.auction.as_ref(),
-                &[bump_seed],
-            ];
-
-            // If we're doing as template, we need minting power, if we're auctioning off the master record
-            //  we need to pass on ownership, for that we NEED ownership.
-            transfer_metadata_ownership(
-                &metadata,
-                token_metadata_program_info.clone(),
-                metadata_info.clone(),
-                name_symbol_info.clone(),
-                metadata_authority_info.clone(),
-                auction_manager_info.clone(),
-                authority_seeds,
-            )?;
-
             let original_authority_lookup_seeds = &[
                 PREFIX.as_bytes(),
                 &auction_manager.auction.as_ref(),
@@ -822,10 +803,51 @@ pub fn process_validate_safety_deposit_box(
 
             let mut original_authority_lookup: OriginalAuthorityLookup =
                 try_from_slice_unchecked(&original_authority_lookup_info.data.borrow_mut())?;
-            original_authority_lookup.original_authority = *metadata_authority_info.key;
+
+            let seeds = &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()];
+            let (_, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
+            let authority_seeds = &[
+                PREFIX.as_bytes(),
+                &auction_manager.auction.as_ref(),
+                &[bump_seed],
+            ];
+
+            match edition_type {
+                EditionType::MasterEdition => {
+                    original_authority_lookup.original_authority = *metadata_authority_info.key;
+
+                    transfer_metadata_ownership(
+                        &metadata,
+                        token_metadata_program_info.clone(),
+                        metadata_info.clone(),
+                        name_symbol_info.clone(),
+                        metadata_authority_info.clone(),
+                        auction_manager_info.clone(),
+                        authority_seeds,
+                    )?;
+                }
+                EditionType::LimitedEdition => {
+                    let master_mint_info = next_account_info(account_info_iter)?;
+                    let master_mint_authority_info = next_account_info(account_info_iter)?;
+                    // For limited edition we dont need ownership, just minting power for authorization tokens.
+                    original_authority_lookup.original_authority = *master_mint_authority_info.key;
+
+                    check_and_transfer_edition_master_mint(
+                        mint_info,
+                        master_mint_info,
+                        edition_info,
+                        auction_manager_info,
+                        token_metadata_program_info,
+                        token_program_info,
+                        master_mint_authority_info,
+                        authority_seeds,
+                    )?;
+                }
+                _ => {}
+            }
+
             original_authority_lookup
                 .serialize(&mut *original_authority_lookup_info.data.borrow_mut())?;
-
             auction_manager
                 .state
                 .master_editions_with_authorities_remaining_to_return = match auction_manager
@@ -922,9 +944,11 @@ pub fn process_init_auction_manager(
     let auction_info = next_account_info(account_info_iter)?;
     let open_edition_metadata_info = next_account_info(account_info_iter)?;
     let open_edition_name_symbol_info = next_account_info(account_info_iter)?;
-    let open_edition_authority = next_account_info(account_info_iter)?;
+    let open_edition_authority_info = next_account_info(account_info_iter)?;
     let open_master_edition_info = next_account_info(account_info_iter)?;
-    let open_master_edition_mint_info = next_account_info(account_info_iter)?;
+    let open_edition_mint_info = next_account_info(account_info_iter)?;
+    let open_edition_master_mint_info = next_account_info(account_info_iter)?;
+    let open_edition_master_mint_authority_info = next_account_info(account_info_iter)?;
     let authority_info = next_account_info(account_info_iter)?;
     let payer_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
@@ -986,40 +1010,24 @@ pub fn process_init_auction_manager(
         if open_edition_config > vault.token_type_count {
             return Err(MetaplexError::InvalidSafetyDepositBox.into());
         }
-        // Make sure it's a real mint
-        let _mint: Mint = assert_initialized(open_master_edition_mint_info)?;
 
-        let edition_seeds = &[
-            spl_token_metadata::state::PREFIX.as_bytes(),
-            token_metadata_program_info.key.as_ref(),
-            &open_master_edition_mint_info.key.as_ref(),
-            spl_token_metadata::state::EDITION.as_bytes(),
-        ];
-
-        let (edition_key, _) =
-            Pubkey::find_program_address(edition_seeds, &token_metadata_program_info.key);
-        if edition_key != *open_master_edition_info.key {
-            return Err(MetaplexError::InvalidEditionAddress.into());
-        }
-
-        let open_master_edition: MasterEdition =
-            try_from_slice_unchecked(&open_master_edition_info.data.borrow_mut())?;
-        if let Some(_) = open_master_edition.max_supply {
-            return Err(MetaplexError::CantUseLimitedSupplyEditionsWithOpenEditionAuction.into());
-        }
-
-        let open_edition_metadata: Metadata =
+        let open_edition_metadata =
             try_from_slice_unchecked(&open_edition_metadata_info.data.borrow_mut())?;
-
-        // If we're doing as template, we need minting power, if we're auctioning off the master record
-        //  we need to pass on ownership, for that we NEED ownership.
-        transfer_metadata_ownership(
+        assert_update_authority_is_correct(
             &open_edition_metadata,
-            token_metadata_program_info.clone(),
-            open_edition_metadata_info.clone(),
-            open_edition_name_symbol_info.clone(),
-            open_edition_authority.clone(),
-            auction_manager_info.clone(),
+            open_edition_metadata_info,
+            Some(open_edition_name_symbol_info),
+            open_edition_authority_info,
+        )?;
+
+        check_and_transfer_edition_master_mint(
+            open_edition_mint_info,
+            open_edition_master_mint_info,
+            open_master_edition_info,
+            auction_manager_info,
+            token_metadata_program_info,
+            token_program_info,
+            open_edition_master_mint_authority_info,
             authority_seeds,
         )?;
     }

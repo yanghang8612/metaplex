@@ -22,7 +22,7 @@ use {
     },
     spl_metaplex::{instruction::create_init_auction_manager_instruction, state::AuctionManager},
     spl_token::{instruction::initialize_mint, state::Mint},
-    spl_token_metadata::state::{Metadata, NameSymbolTuple, EDITION},
+    spl_token_metadata::state::{Key, MasterEdition, Metadata, NameSymbolTuple, EDITION},
     spl_token_vault::{
         instruction::create_update_external_price_account_instruction,
         state::MAX_EXTERNAL_ACCOUNT_SIZE,
@@ -346,6 +346,21 @@ pub fn initialize_auction_manager(
     ];
     let (edition_key, _) = Pubkey::find_program_address(edition_seeds, &token_metadata);
 
+    let master_edition_account = client.get_account(&edition_key);
+    let open_edition_master_mint: Pubkey;
+    let open_edition_master_mint_authority = payer.pubkey();
+    match master_edition_account {
+        Ok(acct) => {
+            if acct.data[0] == Key::MasterEditionV1 as u8 {
+                let master_edition: MasterEdition = try_from_slice_unchecked(&acct.data).unwrap();
+                open_edition_master_mint = master_edition.master_mint;
+            } else {
+                open_edition_master_mint = solana_program::system_program::id()
+            }
+        }
+        Err(_) => open_edition_master_mint = solana_program::system_program::id(),
+    }
+
     instructions.push(create_init_auction_manager_instruction(
         program_key,
         auction_manager_key,
@@ -356,6 +371,8 @@ pub fn initialize_auction_manager(
         metadata_authority,
         edition_key,
         open_edition_mint_key,
+        open_edition_master_mint,
+        open_edition_master_mint_authority,
         authority,
         payer.pubkey(),
         vault_program_key,

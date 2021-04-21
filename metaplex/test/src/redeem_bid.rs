@@ -10,7 +10,7 @@ use {
     },
     solana_sdk::{
         pubkey::Pubkey,
-        signature::{read_keypair_file, Keypair, Signer},
+        signature::{read_keypair_file, write_keypair_file, Keypair, Signer},
         transaction::Transaction,
     },
     spl_auction::processor::{AuctionData, BidderMetadata},
@@ -23,10 +23,10 @@ use {
         state::{AuctionManager, OriginalAuthorityLookup, WinningConfig},
     },
     spl_token::{
-        instruction::{approve, initialize_account, initialize_mint, mint_to},
-        state::{Account, Mint},
+        instruction::{approve, initialize_account},
+        state::Account,
     },
-    spl_token_metadata::state::{Metadata, EDITION},
+    spl_token_metadata::state::{MasterEdition, Metadata, EDITION},
     spl_token_vault::state::{SafetyDepositBox, Vault, SAFETY_DEPOSIT_KEY},
     std::{collections::HashMap, str::FromStr},
 };
@@ -134,11 +134,11 @@ fn redeem_bid_na_type<'a>(
 
 fn redeem_bid_limited_edition_type<'a>(
     base_account_list: BaseAccountList,
-    new_mint: &'a Keypair,
     safety_deposit: &SafetyDepositBox,
     program_id: &Pubkey,
     instructions: &'a mut Vec<Instruction>,
     token_metadata_key: &Pubkey,
+    token_program: &Pubkey,
     client: &RpcClient,
 ) -> Vec<Instruction> {
     println!("You are redeeming a limited edition.");
@@ -166,19 +166,6 @@ fn redeem_bid_limited_edition_type<'a>(
     let (master_metadata_key, _) =
         Pubkey::find_program_address(master_metadata_seeds, &token_metadata_key);
 
-    let master_metadata_account = client.get_account(&master_metadata_key).unwrap();
-    let master_metadata: Metadata =
-        try_from_slice_unchecked(&master_metadata_account.data).unwrap();
-
-    let master_name_symbol_seeds = &[
-        spl_token_metadata::state::PREFIX.as_bytes(),
-        &token_metadata_key.as_ref(),
-        master_metadata.data.name.as_bytes(),
-        master_metadata.data.symbol.as_bytes(),
-    ];
-    let (master_name_symbol_key, _) =
-        Pubkey::find_program_address(master_name_symbol_seeds, &token_metadata_key);
-
     let master_edition_seeds = &[
         spl_token_metadata::state::PREFIX.as_bytes(),
         &token_metadata_key.as_ref(),
@@ -188,23 +175,9 @@ fn redeem_bid_limited_edition_type<'a>(
     let (master_edition_key, _) =
         Pubkey::find_program_address(master_edition_seeds, &token_metadata_key);
 
-    let new_mint_key = new_mint.pubkey();
-
-    let new_metadata_seeds = &[
-        spl_token_metadata::state::PREFIX.as_bytes(),
-        &token_metadata_key.as_ref(),
-        &new_mint_key.as_ref(),
-    ];
-    let (new_metadata_key, _) =
-        Pubkey::find_program_address(new_metadata_seeds, &token_metadata_key);
-
-    let new_edition_seeds = &[
-        spl_token_metadata::state::PREFIX.as_bytes(),
-        &token_metadata_key.as_ref(),
-        new_mint_key.as_ref(),
-        EDITION.as_bytes(),
-    ];
-    let (new_edition_key, _) = Pubkey::find_program_address(new_edition_seeds, &token_metadata_key);
+    let master_edition_account = client.get_account(&master_edition_key).unwrap();
+    let master_edition: MasterEdition =
+        try_from_slice_unchecked(&master_edition_account.data).unwrap();
 
     let original_lookup_authority_seeds = &[
         spl_metaplex::state::PREFIX.as_bytes(),
@@ -217,6 +190,25 @@ fn redeem_bid_limited_edition_type<'a>(
     let original_lookup_account = client.get_account(&original_lookup_authority_key).unwrap();
     let original_lookup: OriginalAuthorityLookup =
         try_from_slice_unchecked(&original_lookup_account.data).unwrap();
+
+    instructions.push(create_account(
+        &payer,
+        &destination,
+        client
+            .get_minimum_balance_for_rent_exemption(Account::LEN)
+            .unwrap(),
+        Account::LEN as u64,
+        &token_program,
+    ));
+    instructions.push(
+        initialize_account(
+            &token_program,
+            &destination,
+            &master_edition.master_mint,
+            &payer,
+        )
+        .unwrap(),
+    );
 
     instructions.push(create_redeem_limited_edition_bid_instruction(
         *program_id,
@@ -232,12 +224,8 @@ fn redeem_bid_limited_edition_type<'a>(
         bidder,
         payer,
         token_vault_program,
-        new_metadata_key,
-        new_mint.pubkey(),
-        payer,
         master_metadata_key,
-        master_name_symbol_key,
-        new_edition_key,
+        master_edition.master_mint,
         master_edition_key,
         original_lookup.original_authority,
         original_lookup_authority_key,
@@ -250,81 +238,16 @@ fn redeem_bid_limited_edition_type<'a>(
     new_instructions
 }
 
-fn create_ancillary_accounts(
-    base_account_list: &BaseAccountList,
-    new_mint: &Keypair,
-    destination_keypair: &Keypair,
-    token_program: &Pubkey,
-    client: &RpcClient,
-    payer_keypair: &Keypair,
-) {
-    let BaseAccountList {
-        auction_manager: _a,
-        store: _s,
-        destination,
-        bid_redemption: _b,
-        safety_deposit_box: _sa,
-        fraction_mint: _f,
-        vault: _v,
-        auction: _au,
-        bidder_metadata: _bi,
-        bidder: _bid,
-        payer,
-        token_vault_program: _to,
-    } = base_account_list;
-
-    // Had to split these out and make them a separate txn because of txn size limits..
-    let ancillary_signers = vec![payer_keypair, new_mint, destination_keypair];
-    let create_ancillary_account_instructions = [
-        create_account(
-            &payer,
-            &new_mint.pubkey(),
-            client
-                .get_minimum_balance_for_rent_exemption(Mint::LEN)
-                .unwrap(),
-            Mint::LEN as u64,
-            &token_program,
-        ),
-        initialize_mint(&token_program, &new_mint.pubkey(), &payer, Some(&payer), 0).unwrap(),
-        create_account(
-            &payer,
-            &destination,
-            client
-                .get_minimum_balance_for_rent_exemption(Account::LEN)
-                .unwrap(),
-            Account::LEN as u64,
-            &token_program,
-        ),
-        initialize_account(&token_program, &destination, &new_mint.pubkey(), &payer).unwrap(),
-        mint_to(
-            &token_program,
-            &new_mint.pubkey(),
-            &destination,
-            &payer,
-            &[&payer],
-            1,
-        )
-        .unwrap(),
-    ];
-
-    let mut transaction =
-        Transaction::new_with_payer(&create_ancillary_account_instructions, Some(&payer));
-    let recent_blockhash = client.get_recent_blockhash().unwrap().0;
-
-    transaction.sign(&ancillary_signers, recent_blockhash);
-    client.send_and_confirm_transaction(&transaction).unwrap();
-}
-
 fn redeem_bid_open_edition_type<'a>(
     base_account_list: BaseAccountList,
     manager: &AuctionManager,
-    new_mint: &'a Keypair,
     safety_deposit: &SafetyDepositBox,
     program_id: &Pubkey,
     token_program: &Pubkey,
     instructions: &'a mut Vec<Instruction>,
     token_metadata_key: &Pubkey,
     transfer_authority: &Keypair,
+    client: &RpcClient,
 ) -> Vec<Instruction> {
     println!("You are redeeming an open edition.");
 
@@ -359,24 +282,9 @@ fn redeem_bid_open_edition_type<'a>(
     ];
     let (master_edition_key, _) =
         Pubkey::find_program_address(master_edition_seeds, &token_metadata_key);
-
-    let new_mint_key = new_mint.pubkey();
-
-    let new_metadata_seeds = &[
-        spl_token_metadata::state::PREFIX.as_bytes(),
-        &token_metadata_key.as_ref(),
-        &new_mint_key.as_ref(),
-    ];
-    let (new_metadata_key, _) =
-        Pubkey::find_program_address(new_metadata_seeds, &token_metadata_key);
-
-    let new_edition_seeds = &[
-        spl_token_metadata::state::PREFIX.as_bytes(),
-        &token_metadata_key.as_ref(),
-        new_mint_key.as_ref(),
-        EDITION.as_bytes(),
-    ];
-    let (new_edition_key, _) = Pubkey::find_program_address(new_edition_seeds, &token_metadata_key);
+    let master_edition_account = client.get_account(&master_edition_key).unwrap();
+    let master_edition: MasterEdition =
+        try_from_slice_unchecked(&master_edition_account.data).unwrap();
 
     if let Some(price) = manager.settings.open_edition_fixed_price {
         instructions.push(
@@ -392,6 +300,25 @@ fn redeem_bid_open_edition_type<'a>(
         );
     }
 
+    instructions.push(create_account(
+        &payer,
+        &destination,
+        client
+            .get_minimum_balance_for_rent_exemption(Account::LEN)
+            .unwrap(),
+        Account::LEN as u64,
+        &token_program,
+    ));
+    instructions.push(
+        initialize_account(
+            &token_program,
+            &destination,
+            &master_edition.master_mint,
+            &payer,
+        )
+        .unwrap(),
+    );
+
     instructions.push(create_redeem_open_edition_bid_instruction(
         *program_id,
         auction_manager,
@@ -406,11 +333,8 @@ fn redeem_bid_open_edition_type<'a>(
         bidder,
         payer,
         token_vault_program,
-        new_metadata_key,
-        new_mint.pubkey(),
-        payer,
         master_metadata_key,
-        new_edition_key,
+        master_edition.master_mint,
         master_edition_key,
         transfer_authority.pubkey(),
     ));
@@ -601,8 +525,7 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
             .unwrap();
         let safety_deposit = &safety_deposit_result.0;
         let safety_deposit_key = safety_deposit_result.1;
-        let new_mint = Keypair::new();
-        let mut signers: Vec<&Keypair> = vec![&wallet, &payer];
+        let signers: Vec<&Keypair> = vec![&wallet, &payer, &destination];
         let mut instructions: Vec<Instruction> = vec![];
 
         let base_account_list = BaseAccountList {
@@ -621,51 +544,33 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
         };
 
         let instructions = match winning_config.edition_type {
-            spl_metaplex::state::EditionType::NA => {
-                signers.push(&destination);
-                redeem_bid_na_type(
-                    base_account_list,
-                    winning_config,
-                    safety_deposit,
-                    &program_key,
-                    &token_key,
-                    &mut instructions,
-                    &client,
-                )
-            }
-            spl_metaplex::state::EditionType::LimitedEdition => {
-                // Destination made in separate txn here. No need to add signers.
-                create_ancillary_accounts(
-                    &base_account_list,
-                    &new_mint,
-                    &destination,
-                    &token_key,
-                    &client,
-                    &payer,
-                );
-
-                redeem_bid_limited_edition_type(
-                    base_account_list,
-                    &new_mint,
-                    safety_deposit,
-                    &program_key,
-                    &mut instructions,
-                    &token_metadata_key,
-                    &client,
-                )
-            }
-            spl_metaplex::state::EditionType::MasterEdition => {
-                signers.push(&destination);
-                redeem_bid_master_edition_type(
-                    base_account_list,
-                    safety_deposit,
-                    &program_key,
-                    &token_key,
-                    &mut instructions,
-                    &token_metadata_key,
-                    &client,
-                )
-            }
+            spl_metaplex::state::EditionType::NA => redeem_bid_na_type(
+                base_account_list,
+                winning_config,
+                safety_deposit,
+                &program_key,
+                &token_key,
+                &mut instructions,
+                &client,
+            ),
+            spl_metaplex::state::EditionType::LimitedEdition => redeem_bid_limited_edition_type(
+                base_account_list,
+                safety_deposit,
+                &program_key,
+                &mut instructions,
+                &token_metadata_key,
+                &token_key,
+                &client,
+            ),
+            spl_metaplex::state::EditionType::MasterEdition => redeem_bid_master_edition_type(
+                base_account_list,
+                safety_deposit,
+                &program_key,
+                &token_key,
+                &mut instructions,
+                &token_metadata_key,
+                &client,
+            ),
         };
 
         let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
@@ -673,10 +578,10 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
 
         transaction.sign(&signers, recent_blockhash);
         client.send_and_confirm_transaction(&transaction).unwrap();
-
+        write_keypair_file(&destination, destination.pubkey().to_string() + ".json").unwrap();
         println!(
-            "Sent prize to {:?}, Now let's see if you have an open edition to redeem...",
-            destination.pubkey()
+            "Sent prize to {:?}. If this is a Limited Edition, this is actually an authorization token to receive your prize from token metadata. To get it, you can run the following:  Ex: ./target/debug/spl-token-metadata-test-client mint_new_edition_from_master_edition_via_token --mint {:?} --account {:?}.json. Now let's see if you have an open edition to redeem...",
+            destination.pubkey(), safety_deposit.token_mint, destination.pubkey()
         )
     } else {
         println!("You are not a winner, but lets see if you have open editions to redeem...");
@@ -686,11 +591,10 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
         println!("This auction has an open edition. Submitting!");
         let safety_deposit_result = safety_deposits.get(&open_edition_config).unwrap();
         let destination = Keypair::new();
-        let new_mint = Keypair::new();
         let safety_deposit = &safety_deposit_result.0;
         let safety_deposit_key = safety_deposit_result.1;
         let transfer_authority = Keypair::new();
-        let signers = vec![&wallet, &transfer_authority, &payer];
+        let signers = vec![&wallet, &transfer_authority, &payer, &destination];
         let mut instructions: Vec<Instruction> = vec![];
         let base_account_list = BaseAccountList {
             auction_manager: auction_manager_key,
@@ -707,25 +611,16 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
             token_vault_program,
         };
 
-        create_ancillary_accounts(
-            &base_account_list,
-            &new_mint,
-            &destination,
-            &token_key,
-            &client,
-            &payer,
-        );
-
         let instructions = redeem_bid_open_edition_type(
             base_account_list,
             &manager,
-            &new_mint,
             safety_deposit,
             &program_key,
             &token_key,
             &mut instructions,
             &token_metadata_key,
             &transfer_authority,
+            &client,
         );
 
         let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
@@ -733,7 +628,7 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
 
         transaction.sign(&signers, recent_blockhash);
         client.send_and_confirm_transaction(&transaction).unwrap();
-
-        println!("Open edition sent to {:?}", destination.pubkey());
+        write_keypair_file(&destination, destination.pubkey().to_string() + ".json").unwrap();
+        println!("Open edition authorization token sent to {:?}. To receive your open edition, you can call token metadata now with it.  Ex: ./target/debug/spl-token-metadata-test-client mint_new_edition_from_master_edition_via_token --mint {:?} --account {:?}.json", destination.pubkey(), safety_deposit.token_mint, destination.pubkey());
     }
 }

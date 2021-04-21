@@ -226,6 +226,20 @@ pub enum MetaplexError {
     /// Token mint to failed
     #[error("Token mint to failed")]
     TokenMintToFailed,
+
+    /// Master mint authority must be signer to transfer minting authority to auction manager
+    #[error(
+        "Master mint authority must be signer to transfer minting authority to auction manager"
+    )]
+    MasterMintAuthorityMustBeSigner,
+
+    /// The master mint authority provided does not match that on the mint
+    #[error("The master mint authority provided does not match that on the mint")]
+    MasterMintAuthorityMismatch,
+
+    /// The master mint provided does not match that on the master edition provided
+    #[error("The master mint provided does not match that on the master edition provided")]
+    MasterEditionMasterMintMismatch,
 }
 
 impl PrintProgramError for MetaplexError {

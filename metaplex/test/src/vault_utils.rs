@@ -46,7 +46,7 @@ pub fn add_token_to_vault(
     let transfer_authority = Keypair::new();
 
     let mut instructions = vec![];
-    let signers = [payer, &store, &vault_authority, &transfer_authority];
+    let mut signers = vec![payer, &store, &vault_authority, &transfer_authority];
     let token_mint = Keypair::new();
 
     let mint_key = match existing_mint {
@@ -199,11 +199,34 @@ pub fn add_token_to_vault(
         true,
     ));
 
+    let master_mint = Keypair::new();
     if is_master_edition {
+        signers.push(&master_mint);
+        instructions.push(create_account(
+            &payer.pubkey(),
+            &master_mint.pubkey(),
+            client
+                .get_minimum_balance_for_rent_exemption(Mint::LEN)
+                .unwrap(),
+            Mint::LEN as u64,
+            &token_key,
+        ));
+        instructions.push(
+            initialize_mint(
+                &token_key,
+                &master_mint.pubkey(),
+                &payer.pubkey(),
+                Some(&payer.pubkey()),
+                0,
+            )
+            .unwrap(),
+        );
+
         instructions.push(create_master_edition(
             spl_token_metadata::id(),
             edition_key,
             mint_key,
+            master_mint.pubkey(),
             payer.pubkey(),
             payer.pubkey(),
             metadata_key,
