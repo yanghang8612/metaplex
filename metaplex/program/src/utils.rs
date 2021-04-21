@@ -193,6 +193,9 @@ pub fn mint_edition<'a>(
     payer: AccountInfo<'a>,
     master_update_authority: AccountInfo<'a>,
     master_metadata: AccountInfo<'a>,
+    token: AccountInfo<'a>,
+    system: AccountInfo<'a>,
+    rent: AccountInfo<'a>,
     signer_seeds: &[&[u8]],
 ) -> ProgramResult {
     invoke_signed(
@@ -217,6 +220,9 @@ pub fn mint_edition<'a>(
             master_update_authority,
             master_metadata,
             token_metadata_program,
+            token,
+            system,
+            rent,
         ],
         &[&signer_seeds],
     )?;

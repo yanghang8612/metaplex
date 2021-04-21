@@ -22,7 +22,7 @@ use {
     },
     spl_metaplex::{instruction::create_init_auction_manager_instruction, state::AuctionManager},
     spl_token::{instruction::initialize_mint, state::Mint},
-    spl_token_metadata::state::EDITION,
+    spl_token_metadata::state::{Metadata, NameSymbolTuple, EDITION},
     spl_token_vault::{
         instruction::create_update_external_price_account_instruction,
         state::MAX_EXTERNAL_ACCOUNT_SIZE,
@@ -308,19 +308,52 @@ pub fn initialize_auction_manager(
     );
 
     let token_metadata = spl_token_metadata::id();
+    let metadata_seeds = &[
+        spl_token_metadata::state::PREFIX.as_bytes(),
+        &token_metadata.as_ref(),
+        &open_edition_mint_key.as_ref(),
+    ];
+    let (metadata_key, _) = Pubkey::find_program_address(metadata_seeds, &spl_token_metadata::id());
+
+    let metadata_account = client.get_account(&metadata_key).unwrap();
+    let metadata: Metadata = try_from_slice_unchecked(&metadata_account.data).unwrap();
+
+    let name_symbol_seeds = &[
+        spl_token_metadata::state::PREFIX.as_bytes(),
+        &token_metadata.as_ref(),
+        metadata.data.name.as_bytes(),
+        metadata.data.symbol.as_bytes(),
+    ];
+    let (name_symbol_key, _) = Pubkey::find_program_address(name_symbol_seeds, &token_metadata);
+
+    let ns_account = client.get_account(&name_symbol_key);
+    let metadata_authority: Pubkey;
+    match ns_account {
+        Ok(acct) => {
+            let ns: NameSymbolTuple = try_from_slice_unchecked(&acct.data).unwrap();
+            metadata_authority = ns.update_authority;
+        }
+        Err(_) => {
+            metadata_authority = metadata.non_unique_specific_update_authority.unwrap();
+        }
+    }
+
     let edition_seeds = &[
         spl_token_metadata::state::PREFIX.as_bytes(),
         token_metadata.as_ref(),
         open_edition_mint_key.as_ref(),
         EDITION.as_bytes(),
     ];
-    let (edition_key, _) = Pubkey::find_program_address(edition_seeds, &spl_token_metadata::id());
+    let (edition_key, _) = Pubkey::find_program_address(edition_seeds, &token_metadata);
 
     instructions.push(create_init_auction_manager_instruction(
         program_key,
         auction_manager_key,
         vault_key,
         auction_key,
+        metadata_key,
+        name_symbol_key,
+        metadata_authority,
         edition_key,
         open_edition_mint_key,
         authority,

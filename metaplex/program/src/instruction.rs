@@ -16,16 +16,20 @@ pub enum MetaplexInstruction {
     ///   1. `[]` Activated vault account with authority set to auction manager account (this will be checked)
     ///           Note in addition that this vault account should have authority set to this program's pda of ['metaplex', auction_key]
     ///   2. `[]` Auction with auctioned item being set to the vault given and authority set to this program's pda of ['metaplex', auction_key]
-    ///   3. `[]` Open edition MasterEdition account (optional - only if using this feature)
-    ///   4. `[]` Open edition Mint account (optional - only if using this feature)
-    ///   5. `[]` Authority for the Auction Manager
-    ///   6. `[signer]` Payer
-    ///   7. `[]` Token program
-    ///   8. `[]` Token vault program
-    ///   9. `[]` Token metadata program
-    ///   10. `[]` Auction program
-    ///   11. `[]` System sysvar    
-    ///   12. `[]` Rent sysvar
+    ///   3. `[writable]` Open edition metadata
+    ///   4. `[writable]` Open edition name symbol
+    ///           (This account is optional, and will only be used if metadata is unique, otherwise this account key will be ignored no matter it's value)
+    ///   5. `[signer]` Open edition authority
+    ///   6. `[]` Open edition MasterEdition account (optional - only if using this feature)
+    ///   7. `[]` Open edition Mint account (optional - only if using this feature)
+    ///   8. `[]` Authority for the Auction Manager
+    ///   9. `[signer]` Payer
+    ///   10. `[]` Token program
+    ///   11. `[]` Token vault program
+    ///   12. `[]` Token metadata program
+    ///   13. `[]` Auction program
+    ///   14. `[]` System sysvar    
+    ///   15. `[]` Rent sysvar
     InitAuctionManager(AuctionManagerSettings),
 
     /// Validates that a given safety deposit box has in it contents that match the expected WinningConfig in the auction manager.
@@ -160,7 +164,7 @@ pub enum MetaplexInstruction {
     ///   20. `[]` Master Metadata (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
     ///   21. `[]` Master Name-Symbol (pda of ['metadata', program id, name, symbol']) - remember PDA is relative to token metadata program
     ///   22. `[]` New Limited Edition (pda of ['metadata', program id, newly made mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   23. `[]` Master Edition (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   23. `[writable]` Master Edition (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
     ///   24. `[]` Original authority on the Master Metadata, which can be gotten via reading off the key from lookup of OriginalAuthorityLookup struct with
     ///            key of (pda of ['metaplex', auction key, master metadata key]).
     ///            We'll use this to grant back authority to the owner of the master metadata if we no longer need it after this latest minting.
@@ -203,7 +207,7 @@ pub enum MetaplexInstruction {
     ///   19. `[signer]` Destination mint authority - this account is optional, and will only be used/checked if you are receiving a newly minted open edition.
     ///   20. `[]` Master Metadata (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
     ///   21. `[]` New Open Edition (pda of ['metadata', program id, newly made mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   22. `[]` Master Edition (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   22. `[writable]` Master Edition (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
     ///   23. `[signer]` Transfer authority to move the payment in the auction's token_mint coin from the bidder account for the open_edition_fixed_price
     ///             on the auction manager to the auction manager account itself.
     RedeemOpenEditionBid,
@@ -225,6 +229,9 @@ pub fn create_init_auction_manager_instruction(
     auction_manager: Pubkey,
     vault: Pubkey,
     auction: Pubkey,
+    open_edition_metadata: Pubkey,
+    open_edition_name_symbol: Pubkey,
+    open_edition_authority: Pubkey,
     open_edition_master_edition: Pubkey,
     open_edition_mint: Pubkey,
     auction_manager_authority: Pubkey,
@@ -239,6 +246,9 @@ pub fn create_init_auction_manager_instruction(
             AccountMeta::new(auction_manager, false),
             AccountMeta::new_readonly(vault, false),
             AccountMeta::new_readonly(auction, false),
+            AccountMeta::new(open_edition_metadata, false),
+            AccountMeta::new(open_edition_name_symbol, false),
+            AccountMeta::new_readonly(open_edition_authority, true),
             AccountMeta::new_readonly(open_edition_master_edition, false),
             AccountMeta::new_readonly(open_edition_mint, false),
             AccountMeta::new_readonly(auction_manager_authority, false),
@@ -433,7 +443,7 @@ pub fn create_redeem_limited_edition_bid_instruction(
             AccountMeta::new_readonly(auction, false),
             AccountMeta::new_readonly(bidder_metadata, false),
             AccountMeta::new_readonly(bidder, true),
-            AccountMeta::new_readonly(payer, true),
+            AccountMeta::new(payer, true),
             AccountMeta::new_readonly(spl_token::id(), false),
             AccountMeta::new_readonly(token_vault_program, false),
             AccountMeta::new_readonly(spl_token_metadata::id(), false),
@@ -445,8 +455,8 @@ pub fn create_redeem_limited_edition_bid_instruction(
             AccountMeta::new_readonly(destination_mint_authority, true),
             AccountMeta::new_readonly(master_metadata, false),
             AccountMeta::new_readonly(master_name_symbol, false),
-            AccountMeta::new_readonly(new_limited_edition, false),
-            AccountMeta::new_readonly(master_edition, false),
+            AccountMeta::new(new_limited_edition, false),
+            AccountMeta::new(master_edition, false),
             AccountMeta::new_readonly(original_authority, false),
             AccountMeta::new_readonly(original_authority_lookup, false),
         ],
@@ -493,7 +503,7 @@ pub fn create_redeem_open_edition_bid_instruction(
             AccountMeta::new_readonly(auction, false),
             AccountMeta::new_readonly(bidder_metadata, false),
             AccountMeta::new_readonly(bidder, true),
-            AccountMeta::new_readonly(payer, true),
+            AccountMeta::new(payer, true),
             AccountMeta::new_readonly(spl_token::id(), false),
             AccountMeta::new_readonly(token_vault_program, false),
             AccountMeta::new_readonly(spl_token_metadata::id(), false),
@@ -504,8 +514,8 @@ pub fn create_redeem_open_edition_bid_instruction(
             AccountMeta::new(destination_mint, false),
             AccountMeta::new_readonly(destination_mint_authority, true),
             AccountMeta::new_readonly(master_metadata, false),
-            AccountMeta::new_readonly(new_open_edition, false),
-            AccountMeta::new_readonly(master_edition, false),
+            AccountMeta::new(new_open_edition, false),
+            AccountMeta::new(master_edition, false),
             AccountMeta::new_readonly(transfer_authority, true),
         ],
         data: MetaplexInstruction::RedeemOpenEditionBid

@@ -147,14 +147,19 @@ pub fn process_redeem_open_edition_bid(
     }
 
     if gets_open_edition {
-        let seeds = &[PREFIX.as_bytes(), &auction_manager_info.key.as_ref()];
+        let seeds = &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()];
         let (_, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
         let mint_seeds = &[
             PREFIX.as_bytes(),
-            &auction_manager_info.key.as_ref(),
+            &auction_manager.auction.as_ref(),
             &[bump_seed],
         ];
-
+        msg!("new metadata is {:?}, new_edition_info is {:?}, destination_mint_info is {:?}, destination_mint_authority_info is {:?} auction_manager_info is {:?} master_metadata_info is {:?} payer is {:?}", new_metadata_info.key, new_edition_info.key, destination_mint_info.key, destination_mint_authority_info.key, auction_manager_info.key, master_metadata_info.key, payer_info.key);
+        msg!(
+            "Is destination a sifgner? {:?} {:?}",
+            destination_mint_authority_info.is_signer,
+            destination_mint_authority_info.is_writable
+        );
         mint_edition(
             token_metadata_program_info.clone(),
             new_metadata_info.clone(),
@@ -165,20 +170,20 @@ pub fn process_redeem_open_edition_bid(
             payer_info.clone(),
             auction_manager_info.clone(),
             master_metadata_info.clone(),
+            token_program_info.clone(),
+            system_info.clone(),
+            rent_info.clone(),
             mint_seeds,
         )?;
+        msg!("got to here");
 
         if let Some(open_edition_fixed_price) = auction_manager.settings.open_edition_fixed_price {
-            let seeds = &[PREFIX.as_bytes(), &auction_info.key.as_ref()];
-            let (_, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
-            let authority_seeds = &[PREFIX.as_bytes(), &auction_info.key.as_ref(), &[bump_seed]];
-
             spl_token_transfer(TokenTransferParams {
                 source: bidder_info.clone(),
                 destination: auction_manager_info.clone(),
                 amount: open_edition_fixed_price,
                 authority: transfer_authority_info.clone(),
-                authority_signer_seeds: authority_seeds,
+                authority_signer_seeds: mint_seeds,
                 token_program: token_program_info.clone(),
             })?
         }
@@ -435,11 +440,11 @@ pub fn process_redeem_limited_edition_bid(
 
                 // In this case we need to mint a limited edition for you!
 
-                let seeds = &[PREFIX.as_bytes(), &auction_manager_info.key.as_ref()];
+                let seeds = &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()];
                 let (_, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
                 let mint_seeds = &[
                     PREFIX.as_bytes(),
-                    &auction_manager_info.key.as_ref(),
+                    &auction_manager.auction.as_ref(),
                     &[bump_seed],
                 ];
 
@@ -453,6 +458,9 @@ pub fn process_redeem_limited_edition_bid(
                     payer_info.clone(),
                     auction_manager_info.clone(),
                     master_metadata_info.clone(),
+                    token_program_info.clone(),
+                    system_info.clone(),
+                    rent_info.clone(),
                     mint_seeds,
                 )?;
 
@@ -914,6 +922,9 @@ pub fn process_init_auction_manager(
     let auction_manager_info = next_account_info(account_info_iter)?;
     let vault_info = next_account_info(account_info_iter)?;
     let auction_info = next_account_info(account_info_iter)?;
+    let open_edition_metadata_info = next_account_info(account_info_iter)?;
+    let open_edition_name_symbol_info = next_account_info(account_info_iter)?;
+    let open_edition_authority = next_account_info(account_info_iter)?;
     let open_master_edition_info = next_account_info(account_info_iter)?;
     let open_master_edition_mint_info = next_account_info(account_info_iter)?;
     let authority_info = next_account_info(account_info_iter)?;
@@ -971,6 +982,8 @@ pub fn process_init_auction_manager(
         })
     }
 
+    let authority_seeds = &[PREFIX.as_bytes(), &auction_info.key.as_ref(), &[bump_seed]];
+
     if let Some(open_edition_config) = auction_manager_settings.open_edition_config {
         if open_edition_config > vault.token_type_count {
             return Err(MetaplexError::InvalidSafetyDepositBox.into());
@@ -996,9 +1009,22 @@ pub fn process_init_auction_manager(
         if let Some(_) = open_master_edition.max_supply {
             return Err(MetaplexError::CantUseLimitedSupplyEditionsWithOpenEditionAuction.into());
         }
-    }
 
-    let authority_seeds = &[PREFIX.as_bytes(), &auction_info.key.as_ref(), &[bump_seed]];
+        let open_edition_metadata: Metadata =
+            try_from_slice_unchecked(&open_edition_metadata_info.data.borrow_mut())?;
+
+        // If we're doing as template, we need minting power, if we're auctioning off the master record
+        //  we need to pass on ownership, for that we NEED ownership.
+        transfer_metadata_ownership(
+            &open_edition_metadata,
+            token_metadata_program_info.clone(),
+            open_edition_metadata_info.clone(),
+            open_edition_name_symbol_info.clone(),
+            open_edition_authority.clone(),
+            auction_manager_info.clone(),
+            authority_seeds,
+        )?;
+    }
 
     create_or_allocate_account_raw(
         *program_id,

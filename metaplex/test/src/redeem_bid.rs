@@ -268,7 +268,7 @@ fn create_ancillary_accounts(
         vault: _v,
         auction: _au,
         bidder_metadata: _bi,
-        bidder,
+        bidder: _bid,
         payer,
         token_vault_program: _to,
     } = base_account_list;
@@ -295,7 +295,7 @@ fn create_ancillary_accounts(
             Account::LEN as u64,
             &token_program,
         ),
-        initialize_account(&token_program, &destination, &new_mint.pubkey(), &bidder).unwrap(),
+        initialize_account(&token_program, &destination, &new_mint.pubkey(), &payer).unwrap(),
         mint_to(
             &token_program,
             &new_mint.pubkey(),
@@ -585,10 +585,7 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
     let auction: AuctionData = try_from_slice_unchecked(&auction_data.data).unwrap();
     let bid: BidderMetadata = try_from_slice_unchecked(&bidding_metadata.data).unwrap();
     let vault: Vault = try_from_slice_unchecked(&vault_data.data).unwrap();
-    println!(
-        "My calculated key is {:?} the actual key is {:?}",
-        meta_key, bid.bidder_pubkey
-    );
+
     let redemption_path = [
         spl_metaplex::state::PREFIX.as_bytes(),
         manager.auction.as_ref(),
