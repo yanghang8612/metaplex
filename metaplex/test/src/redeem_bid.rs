@@ -10,7 +10,7 @@ use {
     },
     solana_sdk::{
         pubkey::Pubkey,
-        signature::{read_keypair_file, write_keypair_file, Keypair, Signer},
+        signature::{read_keypair_file, Keypair, Signer},
         transaction::Transaction,
     },
     spl_auction::processor::{AuctionData, BidderMetadata},
@@ -578,9 +578,9 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
 
         transaction.sign(&signers, recent_blockhash);
         client.send_and_confirm_transaction(&transaction).unwrap();
-        write_keypair_file(&destination, destination.pubkey().to_string() + ".json").unwrap();
+
         println!(
-            "Sent prize to {:?}. If this is a Limited Edition, this is actually an authorization token to receive your prize from token metadata. To get it, you can run the following:  Ex: ./target/debug/spl-token-metadata-test-client mint_new_edition_from_master_edition_via_token --mint {:?} --account {:?}.json. Now let's see if you have an open edition to redeem...",
+            "Sent prize to {:?}. If this is a Limited Edition, this is actually an authorization token to receive your prize from token metadata. To get it, you can run the following:  Ex: ./target/debug/spl-token-metadata-test-client mint_new_edition_from_master_edition_via_token --mint {:?} --account {:?}. Now let's see if you have an open edition to redeem...",
             destination.pubkey(), safety_deposit.token_mint, destination.pubkey()
         )
     } else {
@@ -628,7 +628,6 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
 
         transaction.sign(&signers, recent_blockhash);
         client.send_and_confirm_transaction(&transaction).unwrap();
-        write_keypair_file(&destination, destination.pubkey().to_string() + ".json").unwrap();
-        println!("Open edition authorization token sent to {:?}. To receive your open edition, you can call token metadata now with it.  Ex: ./target/debug/spl-token-metadata-test-client mint_new_edition_from_master_edition_via_token --mint {:?} --account {:?}.json", destination.pubkey(), safety_deposit.token_mint, destination.pubkey());
+        println!("Open edition authorization token sent to {:?}. To receive your open edition, you can call token metadata now with it.  Ex: ./target/debug/spl-token-metadata-test-client mint_new_edition_from_master_edition_via_token --mint {:?} --account {:?}", destination.pubkey(), safety_deposit.token_mint, destination.pubkey());
     }
 }
