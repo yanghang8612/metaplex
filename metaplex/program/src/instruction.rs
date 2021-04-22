@@ -227,13 +227,13 @@ pub fn create_init_auction_manager_instruction(
     auction_manager: Pubkey,
     vault: Pubkey,
     auction: Pubkey,
-    open_edition_metadata: Pubkey,
-    open_edition_name_symbol: Pubkey,
-    open_edition_authority: Pubkey,
-    open_edition_master_edition: Pubkey,
-    open_edition_mint: Pubkey,
-    open_edition_master_mint: Pubkey,
-    open_edition_master_mint_authority: Pubkey,
+    open_edition_metadata: Option<Pubkey>,
+    open_edition_name_symbol: Option<Pubkey>,
+    open_edition_authority: Option<Pubkey>,
+    open_edition_master_edition: Option<Pubkey>,
+    open_edition_mint: Option<Pubkey>,
+    open_edition_master_mint: Option<Pubkey>,
+    open_edition_master_mint_authority: Option<Pubkey>,
     auction_manager_authority: Pubkey,
     payer: Pubkey,
     token_vault_program: Pubkey,
@@ -246,13 +246,61 @@ pub fn create_init_auction_manager_instruction(
             AccountMeta::new(auction_manager, false),
             AccountMeta::new_readonly(vault, false),
             AccountMeta::new_readonly(auction, false),
-            AccountMeta::new(open_edition_metadata, false),
-            AccountMeta::new(open_edition_name_symbol, false),
-            AccountMeta::new_readonly(open_edition_authority, true),
-            AccountMeta::new_readonly(open_edition_master_edition, false),
-            AccountMeta::new_readonly(open_edition_mint, false),
-            AccountMeta::new(open_edition_master_mint, false),
-            AccountMeta::new_readonly(open_edition_master_mint_authority, true),
+            AccountMeta::new(
+                match open_edition_metadata {
+                    Some(val) => val,
+                    None => solana_program::system_program::id(),
+                },
+                false,
+            ),
+            AccountMeta::new(
+                match open_edition_name_symbol {
+                    Some(val) => val,
+                    None => solana_program::system_program::id(),
+                },
+                false,
+            ),
+            AccountMeta::new_readonly(
+                match open_edition_authority {
+                    Some(val) => val,
+                    None => solana_program::system_program::id(),
+                },
+                match open_edition_authority {
+                    Some(_) => true,
+                    None => false,
+                },
+            ),
+            AccountMeta::new_readonly(
+                match open_edition_master_edition {
+                    Some(val) => val,
+                    None => solana_program::system_program::id(),
+                },
+                false,
+            ),
+            AccountMeta::new_readonly(
+                match open_edition_mint {
+                    Some(val) => val,
+                    None => solana_program::system_program::id(),
+                },
+                false,
+            ),
+            AccountMeta::new(
+                match open_edition_master_mint {
+                    Some(val) => val,
+                    None => solana_program::system_program::id(),
+                },
+                false,
+            ),
+            AccountMeta::new_readonly(
+                match open_edition_master_mint_authority {
+                    Some(val) => val,
+                    None => solana_program::system_program::id(),
+                },
+                match open_edition_master_mint_authority {
+                    Some(_) => true,
+                    None => false,
+                },
+            ),
             AccountMeta::new_readonly(auction_manager_authority, false),
             AccountMeta::new_readonly(payer, true),
             AccountMeta::new_readonly(spl_token::id(), false),

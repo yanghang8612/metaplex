@@ -731,7 +731,7 @@ pub fn process_validate_safety_deposit_box(
     let edition_seeds = &[
         spl_token_metadata::state::PREFIX.as_bytes(),
         auction_manager.token_metadata_program.as_ref(),
-        &edition_info.key.as_ref(),
+        &mint_info.key.as_ref(),
         spl_token_metadata::state::EDITION.as_bytes(),
     ];
 

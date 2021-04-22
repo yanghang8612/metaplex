@@ -180,8 +180,8 @@ fn add_tokens_to_vault_activate_and_return_open_edition_if_existing(
     payer: &Keypair,
     auction_manager_key: &Pubkey,
     client: &RpcClient,
-) -> Pubkey {
-    let open_edition_mint_key: Pubkey;
+) -> Option<Pubkey> {
+    let open_edition_mint_key: Option<Pubkey>;
     if !app_matches.is_present("vault") {
         for n in 0..json_settings.winning_configs.len() {
             let config = json_settings.winning_configs[n].clone();
@@ -225,9 +225,9 @@ fn add_tokens_to_vault_activate_and_return_open_edition_if_existing(
                 true,
                 None,
             );
-            open_edition_mint_key = actual_open_edition_mint;
+            open_edition_mint_key = Some(actual_open_edition_mint);
         } else {
-            open_edition_mint_key = solana_program::system_program::id(); // Return nothing, it wont be used
+            open_edition_mint_key = None; // Return nothing, it wont be used
         }
 
         activate_vault(&payer, vault_key, &payer, client);
@@ -236,10 +236,10 @@ fn add_tokens_to_vault_activate_and_return_open_edition_if_existing(
     } else {
         open_edition_mint_key = match &json_settings.open_edition_config {
             Some(val) => match &val.mint {
-                Some(mint) => Pubkey::from_str(&mint).unwrap(),
-                None => solana_program::system_program::id(), // If a config was provided for existing vault but no mint, cant do anything here.
+                Some(mint) => Some(Pubkey::from_str(&mint).unwrap()),
+                None => None, // If a config was provided for existing vault but no mint, cant do anything here.
             },
-            None => solana_program::system_program::id(), // Return nothing, it wont be used
+            None => None, // Return nothing, it wont be used
         }
     }
 
@@ -308,57 +308,77 @@ pub fn initialize_auction_manager(
     );
 
     let token_metadata = spl_token_metadata::id();
-    let metadata_seeds = &[
-        spl_token_metadata::state::PREFIX.as_bytes(),
-        &token_metadata.as_ref(),
-        &open_edition_mint_key.as_ref(),
-    ];
-    let (metadata_key, _) = Pubkey::find_program_address(metadata_seeds, &spl_token_metadata::id());
+    let metadata_key: Option<Pubkey>;
+    let metadata_authority: Option<Pubkey>;
+    let name_symbol_key: Option<Pubkey>;
+    let edition_key: Option<Pubkey>;
+    let open_edition_master_mint: Option<Pubkey>;
+    let open_edition_master_mint_authority: Option<Pubkey>;
 
-    let metadata_account = client.get_account(&metadata_key).unwrap();
-    let metadata: Metadata = try_from_slice_unchecked(&metadata_account.data).unwrap();
+    match open_edition_mint_key {
+        Some(val) => {
+            let metadata_seeds = &[
+                spl_token_metadata::state::PREFIX.as_bytes(),
+                &token_metadata.as_ref(),
+                &val.as_ref(),
+            ];
+            let (mkey, _) = Pubkey::find_program_address(metadata_seeds, &spl_token_metadata::id());
+            let metadata_account = client.get_account(&mkey).unwrap();
+            metadata_key = Some(mkey);
+            let metadata: Metadata = try_from_slice_unchecked(&metadata_account.data).unwrap();
 
-    let name_symbol_seeds = &[
-        spl_token_metadata::state::PREFIX.as_bytes(),
-        &token_metadata.as_ref(),
-        metadata.data.name.as_bytes(),
-        metadata.data.symbol.as_bytes(),
-    ];
-    let (name_symbol_key, _) = Pubkey::find_program_address(name_symbol_seeds, &token_metadata);
+            let name_symbol_seeds = &[
+                spl_token_metadata::state::PREFIX.as_bytes(),
+                &token_metadata.as_ref(),
+                metadata.data.name.as_bytes(),
+                metadata.data.symbol.as_bytes(),
+            ];
+            let (ns_key, _) = Pubkey::find_program_address(name_symbol_seeds, &token_metadata);
+            name_symbol_key = Some(ns_key);
+            let ns_account = client.get_account(&ns_key);
 
-    let ns_account = client.get_account(&name_symbol_key);
-    let metadata_authority: Pubkey;
-    match ns_account {
-        Ok(acct) => {
-            let ns: NameSymbolTuple = try_from_slice_unchecked(&acct.data).unwrap();
-            metadata_authority = ns.update_authority;
-        }
-        Err(_) => {
-            metadata_authority = metadata.non_unique_specific_update_authority.unwrap();
-        }
-    }
+            match ns_account {
+                Ok(acct) => {
+                    let ns: NameSymbolTuple = try_from_slice_unchecked(&acct.data).unwrap();
+                    metadata_authority = Some(ns.update_authority);
+                }
+                Err(_) => {
+                    metadata_authority = metadata.non_unique_specific_update_authority;
+                }
+            }
 
-    let edition_seeds = &[
-        spl_token_metadata::state::PREFIX.as_bytes(),
-        token_metadata.as_ref(),
-        open_edition_mint_key.as_ref(),
-        EDITION.as_bytes(),
-    ];
-    let (edition_key, _) = Pubkey::find_program_address(edition_seeds, &token_metadata);
+            let edition_seeds = &[
+                spl_token_metadata::state::PREFIX.as_bytes(),
+                token_metadata.as_ref(),
+                val.as_ref(),
+                EDITION.as_bytes(),
+            ];
+            let (ek, _) = Pubkey::find_program_address(edition_seeds, &token_metadata);
+            edition_key = Some(ek);
+            let master_edition_account = client.get_account(&ek);
 
-    let master_edition_account = client.get_account(&edition_key);
-    let open_edition_master_mint: Pubkey;
-    let open_edition_master_mint_authority = payer.pubkey();
-    match master_edition_account {
-        Ok(acct) => {
-            if acct.data[0] == Key::MasterEditionV1 as u8 {
-                let master_edition: MasterEdition = try_from_slice_unchecked(&acct.data).unwrap();
-                open_edition_master_mint = master_edition.master_mint;
-            } else {
-                open_edition_master_mint = solana_program::system_program::id()
+            open_edition_master_mint_authority = Some(payer.pubkey());
+            match master_edition_account {
+                Ok(acct) => {
+                    if acct.data[0] == Key::MasterEditionV1 as u8 {
+                        let master_edition: MasterEdition =
+                            try_from_slice_unchecked(&acct.data).unwrap();
+                        open_edition_master_mint = Some(master_edition.master_mint);
+                    } else {
+                        open_edition_master_mint = None
+                    }
+                }
+                Err(_) => open_edition_master_mint = None,
             }
         }
-        Err(_) => open_edition_master_mint = solana_program::system_program::id(),
+        None => {
+            metadata_key = None;
+            metadata_authority = None;
+            name_symbol_key = None;
+            edition_key = None;
+            open_edition_master_mint = None;
+            open_edition_master_mint_authority = None;
+        }
     }
 
     instructions.push(create_init_auction_manager_instruction(
