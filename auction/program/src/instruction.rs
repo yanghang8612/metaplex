@@ -86,6 +86,7 @@ pub fn start_auction_instruction(
             AccountMeta::new(creator_pubkey, false),
             AccountMeta::new(auction_pubkey, false),
             AccountMeta::new_readonly(sysvar::clock::id(), false),
+            AccountMeta::new_readonly(solana_program::system_program::id(), false),
         ],
         data: AuctionInstruction::StartAuction(args).try_to_vec().unwrap(),
     }
@@ -137,8 +138,7 @@ pub fn place_bid_instruction(
             AccountMeta::new(bidder_meta_pubkey, false),
             AccountMeta::new(auction_pubkey, false),
             AccountMeta::new(token_mint_pubkey, false),
-            AccountMeta::new_readonly(transfer_authority, true),
-            AccountMeta::new_readonly(payer, true),
+            AccountMeta::new_readonly(transfer_authority, false),
             AccountMeta::new_readonly(sysvar::clock::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
