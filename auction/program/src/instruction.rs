@@ -138,6 +138,7 @@ pub fn place_bid_instruction(
             AccountMeta::new(auction_pubkey, false),
             AccountMeta::new(token_mint_pubkey, false),
             AccountMeta::new_readonly(transfer_authority, false),
+            AccountMeta::new_readonly(payer, true),
             AccountMeta::new_readonly(sysvar::clock::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
