@@ -119,7 +119,6 @@ pub fn make_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
                 .unwrap(),
             );
         }
-
         instructions.push(
             mint_to(
                 &token_key,
@@ -127,7 +126,7 @@ pub fn make_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
                 &wallet.pubkey(),
                 &payer.pubkey(),
                 &[&payer.pubkey()],
-                amount + 1,
+                amount + 2,
             )
             .unwrap(),
         );
