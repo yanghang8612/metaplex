@@ -1,7 +1,6 @@
 #![allow(warnings)]
 
 mod errors;
-
 mod utils;
 
 pub mod entrypoint;

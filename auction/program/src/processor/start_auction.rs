@@ -1,6 +1,6 @@
 use crate::{
     errors::AuctionError,
-    processor::{AuctionData, AuctionState, Bid, BidState},
+    processor::{AuctionData, AuctionState, Bid, BidState, WinnerLimit},
     utils::{assert_owned_by, create_or_allocate_account_raw},
     PREFIX,
 };

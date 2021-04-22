@@ -93,9 +93,8 @@ pub fn place_bid(
     let mut auction: AuctionData = try_from_slice_unchecked(&auction_act.data.borrow())?;
 
     // If the auction mint does not match the passed mint, bail.
-    msg!("{} == {}", auction.token_mint, mint_account.key);
     if auction.token_mint != *mint_account.key {
-        return Err(AuctionError::InvalidState.into());
+        return Ok(());
     }
 
     // Use the clock sysvar for timing the auction.
@@ -154,11 +153,6 @@ pub fn place_bid(
                 &[metadata_bump],
             ],
         )?;
-        let mut bidder_metadata: BidderMetadata =
-            try_from_slice_unchecked(&bidder_meta_act.data.borrow_mut())?;
-
-        bidder_metadata.bidder_pubkey = *bidder_act.key;
-        bidder_metadata.serialize(&mut *bidder_meta_act.data.borrow_mut())?;
     }
 
     msg!("Checking Pot Allocation");
@@ -183,7 +177,7 @@ pub fn place_bid(
 
     if bidder_pot_act.data_is_empty() {
         create_or_allocate_account_raw(
-            spl_token::id(),
+            *program_id,
             bidder_pot_act,
             rent_act,
             system_account,
@@ -221,22 +215,15 @@ pub fn place_bid(
         source: bidder_act.clone(),
         destination: bidder_pot_token_act.clone(),
         amount: args.amount,
-        authority_signer_seeds: None,
         authority: transfer_authority.clone(),
+        authority_signer_seeds: bump_authority_seeds,
         token_program: token_program_account.clone(),
-    })?;
+    });
 
-    // Update Metadata
-    BidderMetadata {
-        bidder_pubkey: *bidder_act.key,
-        auction_pubkey: *auction_act.key,
-        last_bid: args.amount,
-        last_bid_timestamp: clock.unix_timestamp,
-        last_bid_timestamp_slot: clock.slot,
-        cancelled: false,
-    }
-    .serialize(&mut *bidder_meta_act.data.borrow_mut())?;
+    // result.map_err(|_| VaultError::TokenTransferFailed.into());
 
+    //
+    //    msg!("Storing new auction state");
     auction.last_bid = Some(clock.slot);
     auction
         .bid_state
