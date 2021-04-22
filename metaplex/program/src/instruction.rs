@@ -76,9 +76,9 @@ pub enum MetaplexInstruction {
     ///   2. `[writable]` Destination account.
     ///   3. `[writable]` Bid redemption key -
     ///        Just a PDA with seed ['metaplex', auction_key, bidder_metadata_key] that we will allocate to mark that you redeemed your bid
-    ///   4. `[]` Safety deposit box account
-    ///   5. `[]` Fraction mint of the vault
-    ///   6. `[]` Vault account
+    ///   4. `[writable]` Safety deposit box account
+    ///   5. `[writable]` Vault account
+    ///   6. `[writable]` Fraction mint of the vault
     ///   7. `[]` Auction
     ///   8. `[]` Your BidderMetadata account
     ///   9. `[signer]` Your Bidder account
@@ -107,9 +107,9 @@ pub enum MetaplexInstruction {
     ///   2. `[writable]` Destination account.
     ///   3. `[writable]` Bid redemption key -
     ///        Just a PDA with seed ['metaplex', auction_key, bidder_metadata_key] that we will allocate to mark that you redeemed your bid
-    ///   4. `[]` Safety deposit box account
-    ///   5. `[]` Fraction mint of the vault
-    ///   6. `[]` Vault account
+    ///   4. `[writable]` Safety deposit box account
+    ///   5. `[writable]` Vault account
+    ///   6. `[writable]` Fraction mint of the vault
     ///   7. `[]` Auction
     ///   8. `[]` Your BidderMetadata account
     ///   9. `[signer]` Your Bidder account
@@ -152,8 +152,8 @@ pub enum MetaplexInstruction {
     ///   3. `[writable]` Bid redemption key -
     ///        Just a PDA with seed ['metaplex', auction_key, bidder_metadata_key] that we will allocate to mark that you redeemed your bid
     ///   4. `[]` Safety deposit box account
-    ///   5. `[]` Fraction mint of the vault
-    ///   6. `[]` Vault account
+    ///   5. `[]` Vault account
+    ///   6. `[]` Fraction mint of the vault
     ///   7. `[]` Auction
     ///   8. `[]` Your BidderMetadata account
     ///   9. `[signer]` Your Bidder account
@@ -191,8 +191,8 @@ pub enum MetaplexInstruction {
     ///   3. `[writable]` Bid redemption key -
     ///        Just a PDA with seed ['metaplex', auction_key, bidder_metadata_key] that we will allocate to mark that you redeemed your bid
     ///   4. `[]` Safety deposit box account
-    ///   5. `[]` Fraction mint of the vault
-    ///   6. `[]` Vault account
+    ///   5. `[]` Vault account
+    ///   6. `[]` Fraction mint of the vault
     ///   7. `[]` Auction
     ///   8. `[]` Your BidderMetadata account
     ///   9. `[signer]` Your Bidder account
@@ -332,8 +332,8 @@ pub fn create_redeem_bid_instruction(
     destination: Pubkey,
     bid_redemption: Pubkey,
     safety_deposit_box: Pubkey,
-    fraction_mint: Pubkey,
     vault: Pubkey,
+    fraction_mint: Pubkey,
     auction: Pubkey,
     bidder_metadata: Pubkey,
     bidder: Pubkey,
@@ -348,9 +348,9 @@ pub fn create_redeem_bid_instruction(
             AccountMeta::new(store, false),
             AccountMeta::new(destination, false),
             AccountMeta::new(bid_redemption, false),
-            AccountMeta::new_readonly(safety_deposit_box, false),
-            AccountMeta::new_readonly(fraction_mint, false),
-            AccountMeta::new_readonly(vault, false),
+            AccountMeta::new(safety_deposit_box, false),
+            AccountMeta::new(vault, false),
+            AccountMeta::new(fraction_mint, false),
             AccountMeta::new_readonly(auction, false),
             AccountMeta::new_readonly(bidder_metadata, false),
             AccountMeta::new_readonly(bidder, true),
@@ -376,8 +376,8 @@ pub fn create_redeem_master_edition_bid_instruction(
     destination: Pubkey,
     bid_redemption: Pubkey,
     safety_deposit_box: Pubkey,
-    fraction_mint: Pubkey,
     vault: Pubkey,
+    fraction_mint: Pubkey,
     auction: Pubkey,
     bidder_metadata: Pubkey,
     bidder: Pubkey,
@@ -395,9 +395,9 @@ pub fn create_redeem_master_edition_bid_instruction(
             AccountMeta::new(store, false),
             AccountMeta::new(destination, false),
             AccountMeta::new(bid_redemption, false),
-            AccountMeta::new_readonly(safety_deposit_box, false),
-            AccountMeta::new_readonly(fraction_mint, false),
-            AccountMeta::new_readonly(vault, false),
+            AccountMeta::new(safety_deposit_box, false),
+            AccountMeta::new(vault, false),
+            AccountMeta::new(fraction_mint, false),
             AccountMeta::new_readonly(auction, false),
             AccountMeta::new_readonly(bidder_metadata, false),
             AccountMeta::new_readonly(bidder, true),
@@ -428,8 +428,8 @@ pub fn create_redeem_limited_edition_bid_instruction(
     destination: Pubkey,
     bid_redemption: Pubkey,
     safety_deposit_box: Pubkey,
-    fraction_mint: Pubkey,
     vault: Pubkey,
+    fraction_mint: Pubkey,
     auction: Pubkey,
     bidder_metadata: Pubkey,
     bidder: Pubkey,
@@ -449,8 +449,8 @@ pub fn create_redeem_limited_edition_bid_instruction(
             AccountMeta::new(destination, false),
             AccountMeta::new(bid_redemption, false),
             AccountMeta::new_readonly(safety_deposit_box, false),
-            AccountMeta::new_readonly(fraction_mint, false),
             AccountMeta::new_readonly(vault, false),
+            AccountMeta::new_readonly(fraction_mint, false),
             AccountMeta::new_readonly(auction, false),
             AccountMeta::new_readonly(bidder_metadata, false),
             AccountMeta::new_readonly(bidder, true),
@@ -482,8 +482,8 @@ pub fn create_redeem_open_edition_bid_instruction(
     destination: Pubkey,
     bid_redemption: Pubkey,
     safety_deposit_box: Pubkey,
-    fraction_mint: Pubkey,
     vault: Pubkey,
+    fraction_mint: Pubkey,
     auction: Pubkey,
     bidder_metadata: Pubkey,
     bidder: Pubkey,
@@ -502,8 +502,8 @@ pub fn create_redeem_open_edition_bid_instruction(
             AccountMeta::new(destination, false),
             AccountMeta::new(bid_redemption, false),
             AccountMeta::new_readonly(safety_deposit_box, false),
-            AccountMeta::new_readonly(fraction_mint, false),
             AccountMeta::new_readonly(vault, false),
+            AccountMeta::new_readonly(fraction_mint, false),
             AccountMeta::new_readonly(auction, false),
             AccountMeta::new_readonly(bidder_metadata, false),
             AccountMeta::new_readonly(bidder, true),

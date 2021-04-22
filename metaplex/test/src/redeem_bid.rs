@@ -115,8 +115,8 @@ fn redeem_bid_na_type<'a>(
         destination,
         bid_redemption,
         safety_deposit_box,
-        fraction_mint,
         vault,
+        fraction_mint,
         auction,
         bidder_metadata,
         bidder,
@@ -217,8 +217,8 @@ fn redeem_bid_limited_edition_type<'a>(
         destination,
         bid_redemption,
         safety_deposit_box,
-        fraction_mint,
         vault,
+        fraction_mint,
         auction,
         bidder_metadata,
         bidder,
@@ -326,8 +326,8 @@ fn redeem_bid_open_edition_type<'a>(
         destination,
         bid_redemption,
         safety_deposit_box,
-        fraction_mint,
         vault,
+        fraction_mint,
         auction,
         bidder_metadata,
         bidder,
@@ -437,8 +437,8 @@ fn redeem_bid_master_edition_type<'a>(
         destination,
         bid_redemption,
         safety_deposit_box,
-        fraction_mint,
         vault,
+        fraction_mint,
         auction,
         bidder_metadata,
         bidder,
@@ -517,7 +517,16 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
     ];
     let (bid_redemption_key, _) = Pubkey::find_program_address(&redemption_path, &program_key);
 
-    if let Some(winning_index) = auction.bid_state.is_winner(bid.bidder_pubkey) {
+    let bidder_pot_seeds = &[
+        spl_auction::PREFIX.as_bytes(),
+        &manager.auction_program.as_ref(),
+        &manager.auction.as_ref(),
+        bid.bidder_pubkey.as_ref(),
+    ];
+    let (bidder_pot_pubkey, _) =
+        Pubkey::find_program_address(bidder_pot_seeds, &manager.auction_program);
+
+    if let Some(winning_index) = auction.bid_state.is_winner(bidder_pot_pubkey) {
         let destination = Keypair::new();
         let winning_config = manager.settings.winning_configs[winning_index];
         let safety_deposit_result = safety_deposits

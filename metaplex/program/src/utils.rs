@@ -363,6 +363,7 @@ pub struct CommonRedeemReturn {
     pub bidder_metadata: BidderMetadata,
     pub rent: Rent,
     pub destination: Account,
+    pub bidder_pot_pubkey: Pubkey,
 }
 
 pub fn common_redeem_checks(
@@ -372,8 +373,8 @@ pub fn common_redeem_checks(
     destination_info: &AccountInfo,
     bid_redemption_info: &AccountInfo,
     safety_deposit_info: &AccountInfo,
-    _fraction_mint_info: &AccountInfo,
     vault_info: &AccountInfo,
+    _fraction_mint_info: &AccountInfo,
     auction_info: &AccountInfo,
     bidder_metadata_info: &AccountInfo,
     bidder_info: &AccountInfo,
@@ -466,6 +467,7 @@ pub fn common_redeem_checks(
         bidder_metadata.bidder_pubkey.as_ref(),
         "metadata".as_bytes(),
     ];
+
     let (meta_key, _) = Pubkey::find_program_address(&meta_path, &auction_manager.auction_program);
 
     if meta_key != *bidder_metadata_info.key {
@@ -480,6 +482,15 @@ pub fn common_redeem_checks(
         return Err(MetaplexError::BidderIsNotSigner.into());
     }
 
+    let bidder_pot_seeds = &[
+        spl_auction::PREFIX.as_bytes(),
+        &auction_manager.auction_program.as_ref(),
+        &auction_manager.auction.as_ref(),
+        bidder_metadata.bidder_pubkey.as_ref(),
+    ];
+    let (bidder_pot_pubkey, _) =
+        Pubkey::find_program_address(bidder_pot_seeds, &auction_manager.auction_program);
+
     Ok(CommonRedeemReturn {
         redemption_bump_seed,
         auction_manager,
@@ -488,6 +499,7 @@ pub fn common_redeem_checks(
         safety_deposit,
         rent: *rent,
         destination,
+        bidder_pot_pubkey,
     })
 }
 

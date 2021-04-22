@@ -14,6 +14,7 @@ pub fn send_show(app_matches: &ArgMatches, _payer: Keypair, client: RpcClient) {
     let auction: AuctionData = try_from_slice_unchecked(&auction_data.data).unwrap();
     let curr_slot = client.get_slot();
     println!("Auction Manager: {:#?}", manager);
+    println!("Auction: #{:#?}", auction);
     println!(
         "Current slot: {:?}, Auction ends at: {:?}",
         curr_slot, auction.ended_at

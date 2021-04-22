@@ -110,6 +110,7 @@ pub fn process_redeem_open_edition_bid(
         auction,
         rent: _rent,
         destination,
+        bidder_pot_pubkey: _bp,
     } = common_redeem_checks(
         program_id,
         auction_manager_info,
@@ -238,6 +239,7 @@ pub fn process_redeem_master_edition_bid(
         auction,
         rent: _rent,
         destination: _destination,
+        bidder_pot_pubkey,
     } = common_redeem_checks(
         program_id,
         auction_manager_info,
@@ -261,7 +263,7 @@ pub fn process_redeem_master_edition_bid(
     )?;
 
     if !bidder_metadata.cancelled {
-        if let Some(winning_index) = auction.bid_state.is_winner(bidder_metadata.bidder_pubkey) {
+        if let Some(winning_index) = auction.bid_state.is_winner(bidder_pot_pubkey) {
             if winning_index < auction_manager.settings.winning_configs.len() {
                 let CommonWinningConfigCheckReturn {
                     winning_config,
@@ -392,6 +394,7 @@ pub fn process_redeem_limited_edition_bid(
         auction,
         rent: _rent,
         destination,
+        bidder_pot_pubkey,
     } = common_redeem_checks(
         program_id,
         auction_manager_info,
@@ -428,7 +431,7 @@ pub fn process_redeem_limited_edition_bid(
     // to allow the user to call this again to mint a second, third, limited edition etc.
     let mut bid_redeemed = true;
     if !bidder_metadata.cancelled {
-        if let Some(winning_index) = auction.bid_state.is_winner(bidder_metadata.bidder_pubkey) {
+        if let Some(winning_index) = auction.bid_state.is_winner(bidder_pot_pubkey) {
             if winning_index < auction_manager.settings.winning_configs.len() {
                 let CommonWinningConfigCheckReturn {
                     winning_config,
@@ -553,6 +556,7 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
         auction,
         rent: _rent,
         destination: _destination,
+        bidder_pot_pubkey,
     } = common_redeem_checks(
         program_id,
         auction_manager_info,
@@ -576,7 +580,7 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
     )?;
 
     if !bidder_metadata.cancelled {
-        if let Some(winning_index) = auction.bid_state.is_winner(bidder_metadata.bidder_pubkey) {
+        if let Some(winning_index) = auction.bid_state.is_winner(bidder_pot_pubkey) {
             if winning_index < auction_manager.settings.winning_configs.len() {
                 // Okay, so they placed in the auction winning prizes section!
                 let CommonWinningConfigCheckReturn {
