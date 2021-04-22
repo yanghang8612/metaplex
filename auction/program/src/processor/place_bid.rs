@@ -154,7 +154,7 @@ pub fn place_bid(
             ],
         )?;
         let mut bidder_meta: BidderMetadata =
-            try_from_slice_unchecked(&bidder_pot_act.data.borrow_mut())?;
+            try_from_slice_unchecked(&bidder_meta_act.data.borrow_mut())?;
 
         bidder_meta.bidder_pubkey = *bidder_act.key;
         bidder_meta.serialize(&mut *bidder_meta_act.data.borrow_mut())?;
