@@ -223,7 +223,6 @@ pub fn place_bid(
         amount: args.amount,
         authority_signer_seeds: None,
         authority: bidder_act.clone(),
-        destination: bidder_pot_act.clone(),
         token_program: token_program_account.clone(),
     })?;
 
