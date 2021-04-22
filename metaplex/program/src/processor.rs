@@ -83,8 +83,8 @@ pub fn process_redeem_open_edition_bid(
     let destination_info = next_account_info(account_info_iter)?;
     let bid_redemption_info = next_account_info(account_info_iter)?;
     let safety_deposit_info = next_account_info(account_info_iter)?;
-    let fraction_mint_info = next_account_info(account_info_iter)?;
     let vault_info = next_account_info(account_info_iter)?;
+    let fraction_mint_info = next_account_info(account_info_iter)?;
     let auction_info = next_account_info(account_info_iter)?;
     let bidder_metadata_info = next_account_info(account_info_iter)?;
     let bidder_info = next_account_info(account_info_iter)?;
@@ -118,8 +118,8 @@ pub fn process_redeem_open_edition_bid(
         destination_info,
         bid_redemption_info,
         safety_deposit_info,
-        fraction_mint_info,
         vault_info,
+        fraction_mint_info,
         auction_info,
         bidder_metadata_info,
         bidder_info,
@@ -213,8 +213,8 @@ pub fn process_redeem_master_edition_bid(
     let destination_info = next_account_info(account_info_iter)?;
     let bid_redemption_info = next_account_info(account_info_iter)?;
     let safety_deposit_info = next_account_info(account_info_iter)?;
-    let fraction_mint_info = next_account_info(account_info_iter)?;
     let vault_info = next_account_info(account_info_iter)?;
+    let fraction_mint_info = next_account_info(account_info_iter)?;
     let auction_info = next_account_info(account_info_iter)?;
     let bidder_metadata_info = next_account_info(account_info_iter)?;
     let bidder_info = next_account_info(account_info_iter)?;
@@ -247,8 +247,8 @@ pub fn process_redeem_master_edition_bid(
         destination_info,
         bid_redemption_info,
         safety_deposit_info,
-        fraction_mint_info,
         vault_info,
+        fraction_mint_info,
         auction_info,
         bidder_metadata_info,
         bidder_info,
@@ -269,7 +269,6 @@ pub fn process_redeem_master_edition_bid(
                     winning_config,
                     mut winning_config_state,
                     transfer_authority,
-                    vault_bump_seed,
                 } = common_winning_config_checks(&auction_manager, &safety_deposit, winning_index)?;
 
                 if winning_config.edition_type != EditionType::MasterEdition {
@@ -285,12 +284,6 @@ pub fn process_redeem_master_edition_bid(
                     PREFIX.as_bytes(),
                     &auction_manager.auction.as_ref(),
                     &[auction_bump_seed],
-                ];
-
-                let vault_authority_seeds = &[
-                    spl_token_vault::state::PREFIX.as_bytes(),
-                    &auction_manager.token_vault_program.as_ref(),
-                    &[vault_bump_seed],
                 ];
 
                 let metadata: Metadata =
@@ -320,7 +313,7 @@ pub fn process_redeem_master_edition_bid(
                     auction_manager_info.clone(),
                     transfer_authority_info.clone(),
                     1,
-                    vault_authority_seeds,
+                    auction_authority_seeds,
                 )?;
 
                 auction_manager
@@ -367,8 +360,8 @@ pub fn process_redeem_limited_edition_bid(
     let destination_info = next_account_info(account_info_iter)?;
     let bid_redemption_info = next_account_info(account_info_iter)?;
     let safety_deposit_info = next_account_info(account_info_iter)?;
-    let fraction_mint_info = next_account_info(account_info_iter)?;
     let vault_info = next_account_info(account_info_iter)?;
+    let fraction_mint_info = next_account_info(account_info_iter)?;
     let auction_info = next_account_info(account_info_iter)?;
     let bidder_metadata_info = next_account_info(account_info_iter)?;
     let bidder_info = next_account_info(account_info_iter)?;
@@ -402,8 +395,8 @@ pub fn process_redeem_limited_edition_bid(
         destination_info,
         bid_redemption_info,
         safety_deposit_info,
-        fraction_mint_info,
         vault_info,
+        fraction_mint_info,
         auction_info,
         bidder_metadata_info,
         bidder_info,
@@ -437,7 +430,6 @@ pub fn process_redeem_limited_edition_bid(
                     winning_config,
                     mut winning_config_state,
                     transfer_authority: _transfer_authority,
-                    vault_bump_seed: _vault_bump_seed,
                 } = common_winning_config_checks(&auction_manager, &safety_deposit, winning_index)?;
 
                 if winning_config.edition_type != EditionType::LimitedEdition {
@@ -533,8 +525,8 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
     let destination_info = next_account_info(account_info_iter)?;
     let bid_redemption_info = next_account_info(account_info_iter)?;
     let safety_deposit_info = next_account_info(account_info_iter)?;
-    let fraction_mint_info = next_account_info(account_info_iter)?;
     let vault_info = next_account_info(account_info_iter)?;
+    let fraction_mint_info = next_account_info(account_info_iter)?;
     let auction_info = next_account_info(account_info_iter)?;
     let bidder_metadata_info = next_account_info(account_info_iter)?;
     let bidder_info = next_account_info(account_info_iter)?;
@@ -564,8 +556,8 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
         destination_info,
         bid_redemption_info,
         safety_deposit_info,
-        fraction_mint_info,
         vault_info,
+        fraction_mint_info,
         auction_info,
         bidder_metadata_info,
         bidder_info,
@@ -587,17 +579,21 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
                     winning_config,
                     mut winning_config_state,
                     transfer_authority,
-                    vault_bump_seed,
                 } = common_winning_config_checks(&auction_manager, &safety_deposit, winning_index)?;
 
                 if winning_config.edition_type != EditionType::NA {
                     return Err(MetaplexError::WrongBidEndpointForPrize.into());
                 }
 
-                let vault_authority_seeds = &[
-                    spl_token_vault::state::PREFIX.as_bytes(),
-                    &auction_manager.token_vault_program.as_ref(),
-                    &[vault_bump_seed],
+                let auction_seeds = &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()];
+
+                let (_, auction_bump_seed) =
+                    Pubkey::find_program_address(auction_seeds, program_id);
+
+                let auction_auth_seeds = &[
+                    PREFIX.as_bytes(),
+                    &auction_manager.auction.as_ref(),
+                    &[auction_bump_seed],
                 ];
 
                 if transfer_authority != *transfer_authority_info.key {
@@ -614,7 +610,7 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
                     auction_manager_info.clone(),
                     transfer_authority_info.clone(),
                     winning_config.amount as u64,
-                    vault_authority_seeds,
+                    auction_auth_seeds,
                 )?;
                 winning_config_state.claimed = true;
             }

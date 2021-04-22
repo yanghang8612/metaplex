@@ -573,7 +573,6 @@ pub struct CommonWinningConfigCheckReturn {
     pub winning_config: WinningConfig,
     pub winning_config_state: WinningConfigState,
     pub transfer_authority: Pubkey,
-    pub vault_bump_seed: u8,
 }
 
 pub fn common_winning_config_checks(
@@ -595,7 +594,7 @@ pub fn common_winning_config_checks(
         spl_token_vault::state::PREFIX.as_bytes(),
         &auction_manager.token_vault_program.as_ref(),
     ];
-    let (transfer_authority, vault_bump_seed) = Pubkey::find_program_address(
+    let (transfer_authority, _) = Pubkey::find_program_address(
         &transfer_authority_seeds,
         &&auction_manager.token_vault_program,
     );
@@ -604,7 +603,6 @@ pub fn common_winning_config_checks(
         winning_config_state,
         winning_config,
         transfer_authority,
-        vault_bump_seed,
     })
 }
 
