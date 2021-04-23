@@ -39,6 +39,8 @@ pub struct AuctionManager {
 
     pub token_program: Pubkey,
 
+    pub accept_payment: Pubkey,
+
     pub state: AuctionManagerState,
 
     pub settings: AuctionManagerSettings,

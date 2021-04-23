@@ -21,7 +21,10 @@ use {
         processor::{create_auction::CreateAuctionArgs, WinnerLimit},
     },
     spl_metaplex::{instruction::create_init_auction_manager_instruction, state::AuctionManager},
-    spl_token::{instruction::initialize_mint, state::Mint},
+    spl_token::{
+        instruction::{initialize_account, initialize_mint},
+        state::{Account, Mint},
+    },
     spl_token_metadata::state::{Key, MasterEdition, Metadata, NameSymbolTuple, EDITION},
     spl_token_vault::{
         instruction::create_update_external_price_account_instruction,
@@ -254,7 +257,7 @@ pub fn initialize_auction_manager(
     let program_key = Pubkey::from_str(PROGRAM_PUBKEY).unwrap();
     let vault_program_key = Pubkey::from_str(VAULT_PROGRAM_PUBKEY).unwrap();
     let auction_program_key = Pubkey::from_str(AUCTION_PROGRAM_PUBKEY).unwrap();
-
+    let accept_payment_account_key = Keypair::new();
     let token_key = Pubkey::from_str(TOKEN_PROGRAM_PUBKEY).unwrap();
     let authority = pubkey_of(app_matches, "authority").unwrap_or_else(|| payer.pubkey());
 
@@ -262,7 +265,7 @@ pub fn initialize_auction_manager(
 
     let vault_key: Pubkey;
     let mut instructions: Vec<Instruction> = vec![];
-    let signers: Vec<&Keypair> = vec![&payer];
+    let signers: Vec<&Keypair> = vec![&payer, &accept_payment_account_key];
 
     let payer_mint_key = Keypair::new();
     let external_keypair = Keypair::new();
@@ -381,6 +384,25 @@ pub fn initialize_auction_manager(
         }
     }
 
+    instructions.push(create_account(
+        &payer.pubkey(),
+        &accept_payment_account_key.pubkey(),
+        client
+            .get_minimum_balance_for_rent_exemption(Account::LEN)
+            .unwrap(),
+        Account::LEN as u64,
+        &token_key,
+    ));
+    instructions.push(
+        initialize_account(
+            &token_key,
+            &accept_payment_account_key.pubkey(),
+            &payer_mint_key.pubkey(),
+            &auction_manager_key,
+        )
+        .unwrap(),
+    );
+
     instructions.push(create_init_auction_manager_instruction(
         program_key,
         auction_manager_key,
@@ -395,6 +417,7 @@ pub fn initialize_auction_manager(
         open_edition_master_mint_authority,
         authority,
         payer.pubkey(),
+        accept_payment_account_key.pubkey(),
         vault_program_key,
         auction_program_key,
         settings,

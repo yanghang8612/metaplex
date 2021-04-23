@@ -102,6 +102,8 @@ pub fn process_redeem_open_edition_bid(
     let master_mint_info = next_account_info(account_info_iter)?;
     let master_edition_info = next_account_info(account_info_iter)?;
     let transfer_authority_info = next_account_info(account_info_iter)?;
+    let accept_payment_info = next_account_info(account_info_iter)?;
+
     let CommonRedeemReturn {
         mut auction_manager,
         redemption_bump_seed,
@@ -142,6 +144,10 @@ pub fn process_redeem_open_edition_bid(
         &destination,
     )?;
 
+    if *accept_payment_info.key != auction_manager.accept_payment {
+        return Err(MetaplexError::AcceptPaymentMismatch.into());
+    }
+
     let mut gets_open_edition = auction_manager.settings.open_edition_config != None
         && auction_manager.settings.open_edition_non_winning_constraint
             != NonWinningConstraint::NoOpenEdition;
@@ -177,10 +183,10 @@ pub fn process_redeem_open_edition_bid(
         if let Some(open_edition_fixed_price) = auction_manager.settings.open_edition_fixed_price {
             spl_token_transfer(TokenTransferParams {
                 source: bidder_info.clone(),
-                destination: auction_manager_info.clone(),
+                destination: accept_payment_info.clone(),
                 amount: open_edition_fixed_price,
                 authority: transfer_authority_info.clone(),
-                authority_signer_seeds: mint_seeds,
+                authority_signer_seeds: &[&[]],
                 token_program: token_program_info.clone(),
             })?
         }
@@ -951,6 +957,7 @@ pub fn process_init_auction_manager(
     let open_edition_master_mint_authority_info = next_account_info(account_info_iter)?;
     let authority_info = next_account_info(account_info_iter)?;
     let payer_info = next_account_info(account_info_iter)?;
+    let accept_payment_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
     let token_vault_program_info = next_account_info(account_info_iter)?;
     let token_metadata_program_info = next_account_info(account_info_iter)?;
@@ -960,6 +967,7 @@ pub fn process_init_auction_manager(
 
     let vault: Vault = try_from_slice_unchecked(&vault_info.data.borrow_mut())?;
     let auction: AuctionData = try_from_slice_unchecked(&auction_info.data.borrow_mut())?;
+    let accept_payment: Account = assert_initialized(accept_payment_info)?;
     assert_owned_by(vault_info, token_vault_program_info.key)?;
     assert_owned_by(auction_info, auction_program_info.key)?;
 
@@ -980,6 +988,14 @@ pub fn process_init_auction_manager(
 
     if auction.resource != *vault_info.key {
         return Err(MetaplexError::AuctionVaultMismatch.into());
+    }
+
+    if auction.token_mint != accept_payment.mint {
+        return Err(MetaplexError::AuctionAcceptPaymentMintMismatch.into());
+    }
+
+    if accept_payment.owner != auction_authority {
+        return Err(MetaplexError::AcceptPaymentOwnerMismatch.into());
     }
 
     if vault.state != VaultState::Combined {
@@ -1051,6 +1067,7 @@ pub fn process_init_auction_manager(
     auction_manager.auction = *auction_info.key;
     auction_manager.authority = *authority_info.key;
     auction_manager.token_program = *token_program_info.key;
+    auction_manager.accept_payment = *accept_payment_info.key;
     auction_manager.token_vault_program = *token_vault_program_info.key;
     auction_manager.token_metadata_program = *token_metadata_program_info.key;
     auction_manager.auction_program = *auction_program_info.key;

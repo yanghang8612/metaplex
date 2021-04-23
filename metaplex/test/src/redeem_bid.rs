@@ -308,8 +308,8 @@ fn redeem_bid_open_edition_type<'a>(
                 token_program,
                 &base_account_list.bidder,
                 &transfer_authority.pubkey(),
-                &base_account_list.bidder,
-                &[&base_account_list.bidder],
+                &payer,
+                &[&payer],
                 price,
             )
             .unwrap(),
@@ -353,6 +353,7 @@ fn redeem_bid_open_edition_type<'a>(
         master_edition.master_mint,
         master_edition_key,
         transfer_authority.pubkey(),
+        manager.accept_payment,
     ));
 
     let mut new_instructions: Vec<Instruction> = vec![];

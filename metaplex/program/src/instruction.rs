@@ -27,12 +27,13 @@ pub enum MetaplexInstruction {
     ///        AUTHORITY TO AUCTION MANAGER. You can still mint your own editions via your own personal authority however. (optional - only if using this feature)
     ///   10. `[]` Authority for the Auction Manager
     ///   11. `[signer]` Payer
-    ///   12. `[]` Token program
-    ///   13. `[]` Token vault program
-    ///   14. `[]` Token metadata program
-    ///   15. `[]` Auction program
-    ///   16. `[]` System sysvar    
-    ///   17. `[]` Rent sysvar
+    ///   12. `[]` Accept payment account of same token mint as the auction for taking payment for open editions, owner should be auction manager key
+    ///   13. `[]` Token program
+    ///   14. `[]` Token vault program
+    ///   15. `[]` Token metadata program
+    ///   16. `[]` Auction program
+    ///   17. `[]` System sysvar    
+    ///   18. `[]` Rent sysvar
     InitAuctionManager(AuctionManagerSettings),
 
     /// Validates that a given safety deposit box has in it contents that match the expected WinningConfig in the auction manager.
@@ -208,6 +209,7 @@ pub enum MetaplexInstruction {
     ///   19. `[writable]` Master Edition (pda of ['metadata', program id, metadata mint id, 'edition']) - remember PDA is relative to token metadata program
     ///   20. `[signer]` Transfer authority to move the payment in the auction's token_mint coin from the bidder account for the open_edition_fixed_price
     ///             on the auction manager to the auction manager account itself.
+    ///   21  `[writable]` The accept payment account for the auction manager
     RedeemOpenEditionBid,
 
     /// If the auction manager is in Validated state, it can invoke the start command via calling this command here.
@@ -236,6 +238,7 @@ pub fn create_init_auction_manager_instruction(
     open_edition_master_mint_authority: Option<Pubkey>,
     auction_manager_authority: Pubkey,
     payer: Pubkey,
+    accept_payment_account_key: Pubkey,
     token_vault_program: Pubkey,
     auction_program: Pubkey,
     settings: AuctionManagerSettings,
@@ -303,6 +306,7 @@ pub fn create_init_auction_manager_instruction(
             ),
             AccountMeta::new_readonly(auction_manager_authority, false),
             AccountMeta::new_readonly(payer, true),
+            AccountMeta::new_readonly(accept_payment_account_key, false),
             AccountMeta::new_readonly(spl_token::id(), false),
             AccountMeta::new_readonly(token_vault_program, false),
             AccountMeta::new_readonly(spl_token_metadata::id(), false),
@@ -541,6 +545,7 @@ pub fn create_redeem_open_edition_bid_instruction(
     master_mint: Pubkey,
     master_edition: Pubkey,
     transfer_authority: Pubkey,
+    accept_payment: Pubkey,
 ) -> Instruction {
     Instruction {
         program_id,
@@ -566,6 +571,7 @@ pub fn create_redeem_open_edition_bid_instruction(
             AccountMeta::new(master_mint, false),
             AccountMeta::new(master_edition, false),
             AccountMeta::new_readonly(transfer_authority, true),
+            AccountMeta::new(accept_payment, false),
         ],
         data: MetaplexInstruction::RedeemOpenEditionBid
             .try_to_vec()

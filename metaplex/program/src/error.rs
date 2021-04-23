@@ -240,6 +240,20 @@ pub enum MetaplexError {
     /// The master mint provided does not match that on the master edition provided
     #[error("The master mint provided does not match that on the master edition provided")]
     MasterEditionMasterMintMismatch,
+
+    /// The accept payment account for this auction manager must match the auction's token mint!
+    #[error(
+        "The accept payment account for this auction manager must match the auction's token mint!"
+    )]
+    AuctionAcceptPaymentMintMismatch,
+
+    /// The accept payment owner must be the auction manager!
+    #[error("The accept payment owner must be the auction manager!")]
+    AcceptPaymentOwnerMismatch,
+
+    /// The accept payment given does not match the accept payment account on the auction manager!
+    #[error("The accept payment given does not match the accept payment account on the auction manager!")]
+    AcceptPaymentMismatch,
 }
 
 impl PrintProgramError for MetaplexError {
