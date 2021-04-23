@@ -225,6 +225,13 @@ fn main() {
                         .validator(is_valid_signer)
                         .takes_value(true)
                         .help("Wallet that placed the bid, defaults to you."),
+                ).arg(
+                    Arg::with_name("mint_it")
+                        .long("mint_it")
+                        .value_name("MINT_IT")
+                        .required(false)
+                        .takes_value(false)
+                        .help("Attempts to mint tokens to pay for the open edition. Useful on devnet and you need to have authority as payer over the token_mint on the auction."),
                 )
         ).subcommand(
             SubCommand::with_name("start_auction")

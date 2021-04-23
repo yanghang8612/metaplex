@@ -23,7 +23,7 @@ use {
         state::{AuctionManager, OriginalAuthorityLookup, WinningConfig},
     },
     spl_token::{
-        instruction::{approve, initialize_account},
+        instruction::{approve, initialize_account, mint_to},
         state::Account,
     },
     spl_token_metadata::state::{MasterEdition, Metadata, EDITION},
@@ -248,6 +248,7 @@ fn redeem_bid_open_edition_type<'a>(
     token_metadata_key: &Pubkey,
     transfer_authority: &Keypair,
     client: &RpcClient,
+    app_matches: &ArgMatches,
 ) -> Vec<Instruction> {
     println!("You are redeeming an open edition.");
 
@@ -287,6 +288,21 @@ fn redeem_bid_open_edition_type<'a>(
         try_from_slice_unchecked(&master_edition_account.data).unwrap();
 
     if let Some(price) = manager.settings.open_edition_fixed_price {
+        if app_matches.is_present("mint_it") {
+            let auction_acct = client.get_account(&auction).unwrap();
+            let auction: AuctionData = try_from_slice_unchecked(&auction_acct.data).unwrap();
+            instructions.push(
+                mint_to(
+                    token_program,
+                    &auction.token_mint,
+                    &base_account_list.bidder,
+                    &payer,
+                    &[&payer],
+                    price + 2,
+                )
+                .unwrap(),
+            );
+        }
         instructions.push(
             approve(
                 token_program,
@@ -630,6 +646,7 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
             &token_metadata_key,
             &transfer_authority,
             &client,
+            &app_matches,
         );
 
         let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
