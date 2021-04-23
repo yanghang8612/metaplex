@@ -60,7 +60,8 @@ pub fn parse_settings(settings_file: &str) -> (AuctionManagerSettings, JSONAucti
             1 => WinningConstraint::OpenEditionGiven,
             _ => WinningConstraint::NoOpenEdition,
         },
-        open_edition_non_winning_constraint: match json_settings.open_edition_winner_constraint {
+        open_edition_non_winning_constraint: match json_settings.open_edition_non_winning_constraint
+        {
             0 => NonWinningConstraint::NoOpenEdition,
             1 => NonWinningConstraint::GivenForFixedPrice,
             2 => NonWinningConstraint::GivenForBidPrice,

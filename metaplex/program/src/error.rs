@@ -254,6 +254,10 @@ pub enum MetaplexError {
     /// The accept payment given does not match the accept payment account on the auction manager!
     #[error("The accept payment given does not match the accept payment account on the auction manager!")]
     AcceptPaymentMismatch,
+
+    /// You are not eligible for an open edition!
+    #[error("You are not eligible for an open edition!")]
+    NotEligibleForOpenEdition,
 }
 
 impl PrintProgramError for MetaplexError {

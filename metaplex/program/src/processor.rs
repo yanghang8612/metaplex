@@ -112,7 +112,7 @@ pub fn process_redeem_open_edition_bid(
         auction,
         rent: _rent,
         destination,
-        bidder_pot_pubkey: _bp,
+        bidder_pot_pubkey,
     } = common_redeem_checks(
         program_id,
         auction_manager_info,
@@ -153,7 +153,7 @@ pub fn process_redeem_open_edition_bid(
             != NonWinningConstraint::NoOpenEdition;
 
     if !bidder_metadata.cancelled {
-        if let Some(winning_index) = auction.bid_state.is_winner(bidder_metadata.bidder_pubkey) {
+        if let Some(winning_index) = auction.bid_state.is_winner(bidder_pot_pubkey) {
             if winning_index < auction_manager.settings.winning_configs.len() {
                 // Okay, so they placed in the auction winning prizes section!
                 gets_open_edition = auction_manager.settings.open_edition_winner_constraint
@@ -190,6 +190,8 @@ pub fn process_redeem_open_edition_bid(
                 token_program: token_program_info.clone(),
             })?
         }
+    } else {
+        return Err(MetaplexError::NotEligibleForOpenEdition.into());
     }
 
     common_redeem_finish(
