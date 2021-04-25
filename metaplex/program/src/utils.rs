@@ -2,8 +2,8 @@ use {
     crate::{
         error::MetaplexError,
         state::{
-            AuctionManager, AuctionManagerStatus, BidRedemptionTicket, OriginalAuthorityLookup,
-            WinningConfig, WinningConfigState, PREFIX,
+            AuctionManager, AuctionManagerStatus, BidRedemptionTicket, Key,
+            OriginalAuthorityLookup, WinningConfig, WinningConfigState, PREFIX,
         },
     },
     borsh::BorshSerialize,
@@ -531,13 +531,14 @@ pub fn common_redeem_finish<'a>(
                 rent_info,
                 system_info,
                 payer_info,
-                2,
+                3,
                 redemption_seeds,
             )?;
         }
 
         let mut bid_redemption: BidRedemptionTicket =
             try_from_slice_unchecked(&bid_redemption_info.data.borrow_mut())?;
+        bid_redemption.key = Key::BidRedemptionTicketV1;
 
         if open_edition_redeemed {
             bid_redemption.open_edition_redeemed = true

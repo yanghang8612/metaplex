@@ -11,9 +11,11 @@ pub const MAX_AUCTION_MANAGER_SIZE: usize =
     1 + 32 + 32 + 32 + 32 + 32 + 32 + 32 + 1 + 1 + 1 + 1 + MAX_WINNER_SIZE + 2 + 9;
 
 #[repr(C)]
-#[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq, Debug)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq, Debug, Copy)]
 pub enum Key {
     AuctionManagerV1,
+    OriginalAuthorityLookupV1,
+    BidRedemptionTicketV1,
 }
 
 /// An Auction Manager can support an auction that is an English auction and limited edition and open edition
@@ -146,12 +148,14 @@ pub enum AuctionManagerStatus {
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize, Copy)]
 pub struct OriginalAuthorityLookup {
+    pub key: Key,
     pub original_authority: Pubkey,
 }
 
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize, Copy)]
 pub struct BidRedemptionTicket {
+    pub key: Key,
     pub open_edition_redeemed: bool,
     pub bid_redeemed: bool,
 }

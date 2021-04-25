@@ -805,12 +805,13 @@ pub fn process_validate_safety_deposit_box(
                 rent_info,
                 system_info,
                 payer_info,
-                32,
+                33,
                 original_authority_seeds,
             )?;
 
             let mut original_authority_lookup: OriginalAuthorityLookup =
                 try_from_slice_unchecked(&original_authority_lookup_info.data.borrow_mut())?;
+            original_authority_lookup.key = Key::OriginalAuthorityLookupV1;
 
             let seeds = &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()];
             let (_, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
