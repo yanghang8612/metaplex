@@ -52,7 +52,7 @@ pub enum MetaplexInstruction {
     ///            of ['metadata', program id, master mint id, 'edition']. - remember PDA is relative to token metadata program.
     ///   8. `[]` Vault account
     ///   9. `[signer]` Authority
-    ///   10. `[signer]` Metadata Authority if this is a Master Edition or
+    ///   10. `[signer]` Metadata Authority
     ///   11. `[signer]` Payer
     ///   12. `[]` Token metadata program
     ///   13. `[]` Token program
@@ -121,7 +121,7 @@ pub enum MetaplexInstruction {
     ///   14. `[]` System
     ///   15. `[]` Rent sysvar
     ///   16. `[]` Clock sysvar.
-    ///   17. `[writable]` Master Metadata account (pda of ['metadata', program id, master mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   17. `[writable]` Master Metadata account (pda of ['metadata', program id, master mint id]) - remember PDA is relative to token metadata program
     ///   18. `[writable]` Master Name symbol tuple account
     ///           (This account is optional, and will only be used if metadata is unique, otherwise this account key will be ignored no matter it's value)
     ///   19. `[]` New authority for Master Metadata - If you are taking ownership of a Master Edition in and of itself, or a Limited Edition that isn't newly minted for you during this auction
@@ -165,7 +165,7 @@ pub enum MetaplexInstruction {
     ///   14. `[]` System
     ///   15. `[]` Rent sysvar
     ///   16. `[]` Clock sysvar.
-    ///   17. `[]` Master Metadata (pda of ['metadata', program id, metadata mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   17. `[]` Master Metadata (pda of ['metadata', program id, metadata mint id]) - remember PDA is relative to token metadata program
     ///   18. `[]` Master mint on the master edition - this is the mint used to produce one-time use tokens to give permission to make one limited edition.
     ///   19. `[writable]` Master Edition (pda of ['metadata', program id, metadata mint id, 'edition']) - remember PDA is relative to token metadata program
     ///   20. `[]` Original authority on the Master Metadata, which can be gotten via reading off the key from lookup of OriginalAuthorityLookup struct with
@@ -204,7 +204,7 @@ pub enum MetaplexInstruction {
     ///   14. `[]` System
     ///   15. `[]` Rent sysvar
     ///   16. `[]` Clock sysvar.
-    ///   17. `[]` Master Metadata (pda of ['metadata', program id, metadata mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   17. `[]` Master Metadata (pda of ['metadata', program id, metadata mint id]) - remember PDA is relative to token metadata program
     ///   18. `[]` Master mint on the master edition - this is the mint used to produce one-time use tokens to give permission to make one limited edition.
     ///   19. `[writable]` Master Edition (pda of ['metadata', program id, metadata mint id, 'edition']) - remember PDA is relative to token metadata program
     ///   20. `[signer]` Transfer authority to move the payment in the auction's token_mint coin from the bidder account for the open_edition_fixed_price
