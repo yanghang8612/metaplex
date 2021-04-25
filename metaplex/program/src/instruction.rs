@@ -13,7 +13,7 @@ use {
 pub enum MetaplexInstruction {
     /// Initializes an Auction Manager
     ///   0. `[writable]` Uninitialized, unallocated auction manager account with pda of ['metaplex', auction_key from auction referenced below]
-    ///   1. `[]` Activated vault account with authority set to auction manager account (this will be checked)
+    ///   1. `[]` Combined vault account with authority set to auction manager account (this will be checked)
     ///           Note in addition that this vault account should have authority set to this program's pda of ['metaplex', auction_key]
     ///   2. `[]` Auction with auctioned item being set to the vault given and authority set to this program's pda of ['metaplex', auction_key]
     ///   3. `[writable]` Open edition metadata
