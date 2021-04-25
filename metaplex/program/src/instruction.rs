@@ -16,7 +16,7 @@ pub enum MetaplexInstruction {
     ///   1. `[]` Combined vault account with authority set to auction manager account (this will be checked)
     ///           Note in addition that this vault account should have authority set to this program's pda of ['metaplex', auction_key]
     ///   2. `[]` Auction with auctioned item being set to the vault given and authority set to this program's pda of ['metaplex', auction_key]
-    ///   3. `[writable]` Open edition metadata
+    ///   3. `[writable]` Open edition metadata (Optional only if used)
     ///   4. `[writable]` Open edition name symbol
     ///           (This account is optional, and will only be used if metadata is unique, otherwise this account key will be ignored no matter it's value)
     ///   5. `[signer]` Open edition authority
