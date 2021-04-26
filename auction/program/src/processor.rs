@@ -210,7 +210,7 @@ impl BidState {
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq, Debug)]
 pub enum WinnerLimit {
-    Unlimited,
+    Unlimited(usize),
     Capped(usize),
 }
 

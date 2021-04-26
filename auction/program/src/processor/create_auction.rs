@@ -75,12 +75,12 @@ pub fn create_auction(
     let auction_size = match args.winners {
         WinnerLimit::Capped(n) => mem::size_of::<Bid>() * n + BASE_AUCTION_DATA_SIZE,
         // put in 1 for "0" amount so there is some room for serialization
-        WinnerLimit::Unlimited => BASE_AUCTION_DATA_SIZE,
+        WinnerLimit::Unlimited(_) => BASE_AUCTION_DATA_SIZE,
     };
 
     let bid_state = match args.winners {
         WinnerLimit::Capped(n) => BidState::new_english(n),
-        WinnerLimit::Unlimited => BidState::new_open_edition(),
+        WinnerLimit::Unlimited(_) => BidState::new_open_edition(),
     };
 
     // Create auction account with enough space for a winner tracking.
