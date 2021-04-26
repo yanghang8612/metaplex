@@ -36,8 +36,6 @@ use {
 pub struct CreateAuctionArgs {
     /// How many winners are allowed for this auction. See AuctionData.
     pub winners: WinnerLimit,
-    /// The resource being auctioned. See AuctionData.
-    pub resource: Pubkey,
     /// End time is the cut-off point that the auction is forced to end by. See AuctionData.
     pub end_auction_at: Option<Slot>,
     /// Gap time is how much time after the previous bid where the auction ends. See AuctionData.
@@ -46,6 +44,8 @@ pub struct CreateAuctionArgs {
     pub token_mint: Pubkey,
     /// Authority
     pub authority: Pubkey,
+    /// The resource being auctioned. See AuctionData.
+    pub resource: Pubkey,
 }
 
 pub fn create_auction(
