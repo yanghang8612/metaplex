@@ -22,7 +22,7 @@ pub enum MetaplexInstruction {
     ///   5. `[signer]` Open edition authority
     ///   6. `[]` Open edition MasterEdition account (optional - only if using this feature)
     ///   7. `[writable]` Open edition Mint account (optional - only if using this feature)
-    ///   8. `[]` Open edition Master Mint account (optional - only if using this feature)
+    ///   8. `[writable]` Open edition Master Mint account (optional - only if using this feature)
     ///   9. `[signer]` Open edition Master Mint Authority account, this will PERMANENTLY TRANSFER MINTING
     ///        AUTHORITY TO AUCTION MANAGER. You can still mint your own editions via your own personal authority however. (optional - only if using this feature)
     ///   10. `[]` Authority for the Auction Manager
