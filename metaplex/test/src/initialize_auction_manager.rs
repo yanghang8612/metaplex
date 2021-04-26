@@ -156,7 +156,7 @@ fn find_or_initialize_auction(
                 end_auction_at: Some(end_time),
                 end_auction_gap: Some(gap_time),
                 winners: match winner_limit {
-                    0 => WinnerLimit::Unlimited,
+                    0 => WinnerLimit::Unlimited(0),
                     val => WinnerLimit::Capped(val.try_into().unwrap()),
                 },
                 token_mint: *payer_mint_key,
