@@ -195,6 +195,7 @@ pub fn place_bid(
             try_from_slice_unchecked(&bidder_pot_act.data.borrow_mut())?;
 
         bidder_pot.bidder_pot = *bidder_pot_token_act.key;
+        bidder_pot.bidder_act = *bidder_act.key;
         bidder_pot.serialize(&mut *bidder_pot_act.data.borrow_mut())?;
 
         msg!("Cool");

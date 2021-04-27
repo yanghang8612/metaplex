@@ -237,4 +237,6 @@ pub struct BidderMetadata {
 pub struct BidderPot {
     /// Points at actual pot that is a token account
     pub bidder_pot: Pubkey,
+    /// originating bidder acct
+    pub bidder_act: Pubkey,
 }
