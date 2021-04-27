@@ -50,7 +50,7 @@ pub fn start_auction(
     }
 
     let mut auction: AuctionData = try_from_slice_unchecked(&auction_act.data.borrow())?;
-    auction.state = AuctionState::create();
+    auction.state = AuctionState::start(auction.state)?;
     if let Some(end_auction_at) = auction.end_auction_at {
         auction.ended_at = match clock.slot.checked_add(end_auction_at) {
             Some(val) => Some(val),
