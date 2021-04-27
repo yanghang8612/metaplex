@@ -237,6 +237,10 @@ pub struct BidderMetadata {
 pub struct BidderPot {
     /// Points at actual pot that is a token account
     pub bidder_pot: Pubkey,
+    /// These fields not technically required for the backend but used on the front end to index and search bidder pots
+    /// quickly, like indices in a database...
     /// originating bidder acct
     pub bidder_act: Pubkey,
+    /// auction account
+    pub auction_act: Pubkey,
 }
