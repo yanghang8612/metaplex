@@ -214,6 +214,7 @@ pub enum WinnerLimit {
     Capped(usize),
 }
 
+pub const BIDDER_METADATA_LEN: usize = 32 + 32 + 8 + 8 + 1;
 /// Models a set of metadata for a bidder, meant to be stored in a PDA. This allows looking up
 /// information about a bidder regardless of if they have won, lost or cancelled.
 #[repr(C)]

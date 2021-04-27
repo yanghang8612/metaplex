@@ -20,6 +20,8 @@ use crate::{
     PREFIX,
 };
 
+use super::BIDDER_METADATA_LEN;
+
 use {
     borsh::{BorshDeserialize, BorshSerialize},
     solana_program::{
@@ -143,7 +145,7 @@ pub fn place_bid(
             rent_act,
             system_account,
             payer,
-            mem::size_of::<BidderMetadata>(),
+            BIDDER_METADATA_LEN, // Memsize does not do a good job sizing UnixTimestamp
             &[
                 PREFIX.as_bytes(),
                 program_id.as_ref(),

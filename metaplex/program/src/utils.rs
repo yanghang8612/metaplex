@@ -378,7 +378,7 @@ pub fn common_redeem_checks(
     auction_info: &AccountInfo,
     bidder_metadata_info: &AccountInfo,
     bidder_info: &AccountInfo,
-    _payer_info: &AccountInfo,
+    payer_info: &AccountInfo,
     token_program_info: &AccountInfo,
     token_vault_program_info: &AccountInfo,
     token_metadata_program_info: &AccountInfo,
@@ -479,7 +479,10 @@ pub fn common_redeem_checks(
     }
 
     if !bidder_info.is_signer {
-        return Err(MetaplexError::BidderIsNotSigner.into());
+        let bidder: Account = assert_initialized(bidder_info)?;
+        if bidder.owner != *payer_info.key {
+            return Err(MetaplexError::BidderIsNotSigner.into());
+        }
     }
 
     let bidder_pot_seeds = &[

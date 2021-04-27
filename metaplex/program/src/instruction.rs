@@ -82,7 +82,7 @@ pub enum MetaplexInstruction {
     ///   6. `[writable]` Fraction mint of the vault
     ///   7. `[]` Auction
     ///   8. `[]` Your BidderMetadata account
-    ///   9. `[signer]` Your Bidder account
+    ///   9. `[signer optional]` Your Bidder account - Only needs to be signer if payer does not own
     ///   10. `[signer]` Payer
     ///   11. `[]` Token program
     ///   12. `[]` Token Vault program
@@ -113,7 +113,7 @@ pub enum MetaplexInstruction {
     ///   6. `[writable]` Fraction mint of the vault
     ///   7. `[]` Auction
     ///   8. `[]` Your BidderMetadata account
-    ///   9. `[signer]` Your Bidder account
+    ///   9. `[signer optional]` Your Bidder account - Only needs to be signer if payer does not own
     ///   10. `[signer]` Payer
     ///   11. `[]` Token program
     ///   12. `[]` Token Vault program
@@ -157,7 +157,7 @@ pub enum MetaplexInstruction {
     ///   6. `[]` Fraction mint of the vault
     ///   7. `[]` Auction
     ///   8. `[]` Your BidderMetadata account
-    ///   9. `[signer]` Your Bidder account
+    ///   9. `[signer optional]` Your Bidder account - Only needs to be signer if payer does not own
     ///   10. `[signer]` Payer
     ///   11. `[]` Token program
     ///   12. `[]` Token Vault program
@@ -196,7 +196,7 @@ pub enum MetaplexInstruction {
     ///   6. `[]` Fraction mint of the vault
     ///   7. `[]` Auction
     ///   8. `[]` Your BidderMetadata account
-    ///   9. `[signer]` Your Bidder account
+    ///   9. `[signer optional/writable]` Your Bidder account - Only needs to be signer if payer does not own
     ///   10. `[signer]` Payer
     ///   11. `[]` Token program
     ///   12. `[]` Token Vault program
