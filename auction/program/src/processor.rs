@@ -72,10 +72,6 @@ pub struct AuctionData {
     pub resource: Pubkey,
     /// Token mint for the SPL token being used to bid
     pub token_mint: Pubkey,
-    /// The state the auction is in, whether it has started or ended.
-    pub state: AuctionState,
-    /// Auction Bids, each user may have one bid open at a time.
-    pub bid_state: BidState,
     /// The time the last bid was placed, used to keep track of auction timing.
     pub last_bid: Option<Slot>,
     /// Slot time the auction was officially ended by.
@@ -84,6 +80,10 @@ pub struct AuctionData {
     pub end_auction_at: Option<Slot>,
     /// Gap time is the amount of time in slots after the previous bid at which the auction ends.
     pub end_auction_gap: Option<Slot>,
+    /// The state the auction is in, whether it has started or ended.
+    pub state: AuctionState,
+    /// Auction Bids, each user may have one bid open at a time.
+    pub bid_state: BidState,
 }
 
 /// Define valid auction state transitions.
