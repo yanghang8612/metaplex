@@ -157,6 +157,7 @@ pub fn place_bid(
             try_from_slice_unchecked(&bidder_meta_act.data.borrow_mut())?;
 
         bidder_meta.bidder_pubkey = *bidder_act.key;
+        bidder_meta.auction_pubkey = *auction_act.key;
         bidder_meta.serialize(&mut *bidder_meta_act.data.borrow_mut())?;
     }
 
