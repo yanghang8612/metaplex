@@ -205,7 +205,7 @@ pub enum MetaplexInstruction {
     ///   15. `[]` Rent sysvar
     ///   16. `[]` Clock sysvar.
     ///   17. `[]` Master Metadata (pda of ['metadata', program id, metadata mint id]) - remember PDA is relative to token metadata program
-    ///   18. `[]` Master mint on the master edition - this is the mint used to produce one-time use tokens to give permission to make one limited edition.
+    ///   18. `[writable]` Master mint on the master edition - this is the mint used to produce one-time use tokens to give permission to make one limited edition.
     ///   19. `[writable]` Master Edition (pda of ['metadata', program id, metadata mint id, 'edition']) - remember PDA is relative to token metadata program
     ///   20. `[signer]` Transfer authority to move the payment in the auction's token_mint coin from the bidder account for the open_edition_fixed_price
     ///             on the auction manager to the auction manager account itself.
