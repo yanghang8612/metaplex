@@ -166,7 +166,7 @@ pub enum MetaplexInstruction {
     ///   15. `[]` Rent sysvar
     ///   16. `[]` Clock sysvar.
     ///   17. `[]` Master Metadata (pda of ['metadata', program id, metadata mint id]) - remember PDA is relative to token metadata program
-    ///   18. `[]` Master mint on the master edition - this is the mint used to produce one-time use tokens to give permission to make one limited edition.
+    ///   18. `[writable]` Master mint on the master edition - this is the mint used to produce one-time use tokens to give permission to make one limited edition.
     ///   19. `[writable]` Master Edition (pda of ['metadata', program id, metadata mint id, 'edition']) - remember PDA is relative to token metadata program
     ///   20. `[]` Original authority on the Master Metadata, which can be gotten via reading off the key from lookup of OriginalAuthorityLookup struct with
     ///            key of (pda of ['metaplex', auction key, master metadata key]).

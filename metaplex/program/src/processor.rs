@@ -458,17 +458,19 @@ pub fn process_redeem_limited_edition_bid(
                 spl_token_mint_to(TokenMintToParams {
                     mint: master_mint_info.clone(),
                     destination: destination_info.clone(),
-                    amount: 1,
+                    amount: winning_config.amount.into(),
                     authority: auction_manager_info.clone(),
                     authority_signer_seeds: mint_seeds,
                     token_program: token_program_info.clone(),
                 })?;
 
-                winning_config_state.amount_minted =
-                    match winning_config_state.amount_minted.checked_add(1) {
-                        Some(val) => val,
-                        None => return Err(MetaplexError::NumericalOverflowError.into()),
-                    };
+                winning_config_state.amount_minted = match winning_config_state
+                    .amount_minted
+                    .checked_add(winning_config.amount)
+                {
+                    Some(val) => val,
+                    None => return Err(MetaplexError::NumericalOverflowError.into()),
+                };
 
                 if winning_config_state.amount_minted == winning_config.amount {
                     winning_config_state.claimed = true;
