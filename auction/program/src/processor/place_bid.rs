@@ -157,13 +157,14 @@ pub fn place_bid(
                 &[metadata_bump],
             ],
         )?;
-        let mut bidder_meta: BidderMetadata =
-            try_from_slice_unchecked(&bidder_meta_act.data.borrow_mut())?;
-
-        bidder_meta.bidder_pubkey = *bidder_act.key;
-        bidder_meta.auction_pubkey = *auction_act.key;
-        bidder_meta.serialize(&mut *bidder_meta_act.data.borrow_mut())?;
     }
+    let mut bidder_meta: BidderMetadata =
+        try_from_slice_unchecked(&bidder_meta_act.data.borrow_mut())?;
+
+    bidder_meta.bidder_pubkey = *bidder_act.key;
+    bidder_meta.auction_pubkey = *auction_act.key;
+    bidder_meta.last_bid = args.amount;
+    bidder_meta.serialize(&mut *bidder_meta_act.data.borrow_mut())?;
 
     msg!("Checking Pot Allocation");
     let pot_bump = assert_derivation(
