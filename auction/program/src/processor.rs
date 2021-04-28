@@ -128,7 +128,7 @@ pub struct Bid(Pubkey, u64);
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq, Debug)]
 pub enum BidState {
     EnglishAuction { bids: Vec<Bid>, max: usize },
-    OpenEdition,
+    OpenEdition { bids: Vec<Bid>, max: usize },
 }
 
 /// Bidding Implementations.
@@ -147,7 +147,10 @@ impl BidState {
     }
 
     pub fn new_open_edition() -> Self {
-        BidState::OpenEdition
+        BidState::OpenEdition {
+            bids: vec![],
+            max: 0,
+        }
     }
 
     /// Push a new bid into the state, this succeeds only if the bid is larger than the current top
@@ -176,7 +179,7 @@ impl BidState {
             },
 
             // In an open auction, bidding simply succeeds.
-            BidState::OpenEdition => Ok(()),
+            BidState::OpenEdition { bids, max } => Ok(()),
         }
     }
 
@@ -191,7 +194,7 @@ impl BidState {
 
             // In an open auction, cancelling simply succeeds. It's up to the manager of an auction
             // to decide what to do with open edition bids.
-            BidState::OpenEdition => Ok(()),
+            BidState::OpenEdition { bids, max } => Ok(()),
         }
     }
 
@@ -202,7 +205,7 @@ impl BidState {
             BidState::EnglishAuction { ref bids, max } => bids.iter().position(|bid| bid.0 == key),
             // There are no winners in an open edition, it is up to the auction manager to decide
             // what to do with open edition bids.
-            BidState::OpenEdition => None,
+            BidState::OpenEdition { bids, max } => None,
         }
     }
 }
