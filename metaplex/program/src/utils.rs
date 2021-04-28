@@ -156,6 +156,7 @@ pub fn transfer_safety_deposit_box_items<'a>(
     fraction_mint: AccountInfo<'a>,
     vault_authority: AccountInfo<'a>,
     transfer_authority: AccountInfo<'a>,
+    rent: AccountInfo<'a>,
     amount: u64,
     signer_seeds: &[&[u8]],
 ) -> ProgramResult {
@@ -180,6 +181,7 @@ pub fn transfer_safety_deposit_box_items<'a>(
             fraction_mint,
             vault_authority,
             transfer_authority,
+            rent,
         ],
         &[&signer_seeds],
     )?;

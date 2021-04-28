@@ -320,6 +320,7 @@ pub fn process_redeem_master_edition_bid(
                     fraction_mint_info.clone(),
                     auction_manager_info.clone(),
                     transfer_authority_info.clone(),
+                    rent_info.clone(),
                     1,
                     auction_authority_seeds,
                 )?;
@@ -617,6 +618,7 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
                     fraction_mint_info.clone(),
                     auction_manager_info.clone(),
                     transfer_authority_info.clone(),
+                    rent_info.clone(),
                     winning_config.amount as u64,
                     auction_auth_seeds,
                 )?;
