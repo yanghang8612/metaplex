@@ -483,14 +483,16 @@ pub fn process_redeem_limited_edition_bid(
                         let state = auction_manager.state.winning_config_states[n];
                         if config.safety_deposit_box_index
                             == winning_config.safety_deposit_box_index
+                            && n != winning_index
                             && state.claimed == false
                         {
                             any_unclaimed = true;
                             break;
                         }
                     }
-
+                    msg!("Any unclaimed? {:?}", any_unclaimed);
                     if !any_unclaimed {
+                        msg!("Shifting authority back because this is the last bid needing redemption.");
                         shift_authority_back_to_originating_user(
                             program_id,
                             &auction_manager,
