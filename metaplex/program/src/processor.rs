@@ -1072,6 +1072,11 @@ pub fn process_init_auction_manager(
         try_from_slice_unchecked(&auction_manager_info.data.borrow_mut())?;
 
     auction_manager.key = Key::AuctionManagerV1;
+    if auction_manager_settings.winning_configs.len() == 0 {
+        auction_manager.state.status = AuctionManagerStatus::Validated;
+    } else {
+        auction_manager.state.status = AuctionManagerStatus::Initialized;
+    }
     auction_manager.settings = auction_manager_settings;
     auction_manager.vault = *vault_info.key;
     auction_manager.auction = *auction_info.key;
@@ -1081,7 +1086,6 @@ pub fn process_init_auction_manager(
     auction_manager.token_vault_program = *token_vault_program_info.key;
     auction_manager.token_metadata_program = *token_metadata_program_info.key;
     auction_manager.auction_program = *auction_program_info.key;
-    auction_manager.state.status = AuctionManagerStatus::Initialized;
     auction_manager.state.winning_configs_validated = 0;
     auction_manager.state.winning_config_states = winning_config_states;
     auction_manager.serialize(&mut *auction_manager_info.data.borrow_mut())?;
