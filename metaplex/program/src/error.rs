@@ -258,6 +258,10 @@ pub enum MetaplexError {
     /// You are not eligible for an open edition!
     #[error("You are not eligible for an open edition!")]
     NotEligibleForOpenEdition,
+
+    #[error("Auction manager must be validated to start auction!")]
+    /// Auction manager must be validated to start auction!
+    AuctionManagerMustBeValidated,
 }
 
 impl PrintProgramError for MetaplexError {

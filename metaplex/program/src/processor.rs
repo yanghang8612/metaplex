@@ -917,6 +917,11 @@ pub fn process_start_auction(program_id: &Pubkey, accounts: &[AccountInfo]) -> P
     if auction_manager.auction_program != *auction_program_info.key {
         return Err(MetaplexError::AuctionManagerAuctionProgramMismatch.into());
     }
+
+    if auction_manager.state.status != AuctionManagerStatus::Validated {
+        return Err(MetaplexError::AuctionManagerMustBeValidated.into());
+    }
+
     let seeds = &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()];
     let (_, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
     let authority_seeds = &[

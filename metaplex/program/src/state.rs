@@ -136,7 +136,7 @@ pub struct WinningConfigState {
 }
 
 #[repr(C)]
-#[derive(Clone, BorshSerialize, BorshDeserialize, Debug)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, Debug, PartialEq)]
 pub enum AuctionManagerStatus {
     Initialized,
     Validated,
