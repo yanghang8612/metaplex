@@ -10,7 +10,6 @@ use {
     solana_program::{
         account_info::AccountInfo,
         borsh::try_from_slice_unchecked,
-        clock::Clock,
         entrypoint::ProgramResult,
         msg,
         program::{invoke, invoke_signed},
@@ -23,7 +22,7 @@ use {
     },
     spl_auction::{
         instruction::start_auction_instruction,
-        processor::{start_auction::StartAuctionArgs, AuctionData, BidderMetadata},
+        processor::{start_auction::StartAuctionArgs, AuctionData, AuctionState, BidderMetadata},
     },
     spl_token::{
         instruction::{set_authority, AuthorityType},
@@ -386,10 +385,8 @@ pub fn common_redeem_checks(
     token_metadata_program_info: &AccountInfo,
     rent_info: &AccountInfo,
     _system_info: &AccountInfo,
-    clock_info: &AccountInfo,
     is_open_edition: bool,
 ) -> Result<CommonRedeemReturn, ProgramError> {
-    let clock = &Clock::from_account_info(clock_info)?;
     let rent = &Rent::from_account_info(rent_info)?;
 
     if !bid_redemption_info.data_is_empty() {
@@ -439,11 +436,7 @@ pub fn common_redeem_checks(
         return Err(MetaplexError::AuctionManagerTokenMetadataProgramMismatch.into());
     }
 
-    if let Some(end_time) = auction.ended_at {
-        if end_time > clock.slot {
-            return Err(MetaplexError::AuctionHasNotEnded.into());
-        }
-    } else {
+    if auction.state != AuctionState::Ended {
         return Err(MetaplexError::AuctionHasNotEnded.into());
     }
 

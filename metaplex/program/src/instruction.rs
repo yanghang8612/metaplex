@@ -88,8 +88,7 @@ pub enum MetaplexInstruction {
     ///   13. `[]` Token metadata program
     ///   14. `[]` System
     ///   15. `[]` Rent sysvar
-    ///   16. `[]` Clock sysvar.
-    ///   17. `[]` PDA-based Transfer authority to move the tokens from the store to the destination seed ['vault', program_id]
+    ///   16. `[]` PDA-based Transfer authority to move the tokens from the store to the destination seed ['vault', program_id]
     ///        but please note that this is a PDA relative to the Token Vault program, with the 'vault' prefix
     RedeemBid,
 
@@ -119,14 +118,13 @@ pub enum MetaplexInstruction {
     ///   13. `[]` Token metadata program
     ///   14. `[]` System
     ///   15. `[]` Rent sysvar
-    ///   16. `[]` Clock sysvar.
-    ///   17. `[writable]` Master Metadata account (pda of ['metadata', program id, master mint id]) - remember PDA is relative to token metadata program
-    ///   18. `[writable]` Master Name symbol tuple account
+    ///   16. `[writable]` Master Metadata account (pda of ['metadata', program id, master mint id]) - remember PDA is relative to token metadata program
+    ///   17. `[writable]` Master Name symbol tuple account
     ///           (This account is optional, and will only be used if metadata is unique, otherwise this account key will be ignored no matter it's value)
-    ///   19. `[]` New authority for Master Metadata - If you are taking ownership of a Master Edition in and of itself, or a Limited Edition that isn't newly minted for you during this auction
+    ///   18. `[]` New authority for Master Metadata - If you are taking ownership of a Master Edition in and of itself, or a Limited Edition that isn't newly minted for you during this auction
     ///             ie someone else had it minted for themselves in a prior auction or through some other means, this is the account the metadata for these tokens will be delegated to
     ///             after this transaction. Otherwise this account will be ignored.
-    ///   20. `[]` PDA-based Transfer authority to move the tokens from the store to the destination seed ['vault', program_id]
+    ///   29. `[]` PDA-based Transfer authority to move the tokens from the store to the destination seed ['vault', program_id]
     ///        but please note that this is a PDA relative to the Token Vault program, with the 'vault' prefix
     RedeemMasterEditionBid,
 
@@ -159,13 +157,12 @@ pub enum MetaplexInstruction {
     ///   13. `[]` Token metadata program
     ///   14. `[]` System
     ///   15. `[]` Rent sysvar
-    ///   16. `[]` Clock sysvar.
-    ///   17. `[]` Master Metadata (pda of ['metadata', program id, metadata mint id]) - remember PDA is relative to token metadata program
-    ///   18. `[writable]` Master mint on the master edition - this is the mint used to produce one-time use tokens to give permission to make one limited edition.
-    ///   19. `[writable]` Master Edition (pda of ['metadata', program id, metadata mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   20. `[signer]` Transfer authority to move the payment in the auction's token_mint coin from the bidder account for the open_edition_fixed_price
+    ///   16. `[]` Master Metadata (pda of ['metadata', program id, metadata mint id]) - remember PDA is relative to token metadata program
+    ///   17. `[writable]` Master mint on the master edition - this is the mint used to produce one-time use tokens to give permission to make one limited edition.
+    ///   18. `[writable]` Master Edition (pda of ['metadata', program id, metadata mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   19. `[signer]` Transfer authority to move the payment in the auction's token_mint coin from the bidder account for the open_edition_fixed_price
     ///             on the auction manager to the auction manager account itself.
-    ///   21  `[writable]` The accept payment account for the auction manager
+    ///   20.  `[writable]` The accept payment account for the auction manager
     RedeemOpenEditionBid,
 
     /// If the auction manager is in Validated state, it can invoke the start command via calling this command here.
@@ -367,7 +364,6 @@ pub fn create_redeem_bid_instruction(
             AccountMeta::new_readonly(spl_token_metadata::id(), false),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
-            AccountMeta::new_readonly(sysvar::clock::id(), false),
             AccountMeta::new_readonly(transfer_authority, false),
         ],
         data: MetaplexInstruction::RedeemBid.try_to_vec().unwrap(),
@@ -414,7 +410,6 @@ pub fn create_redeem_master_edition_bid_instruction(
             AccountMeta::new_readonly(spl_token_metadata::id(), false),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
-            AccountMeta::new_readonly(sysvar::clock::id(), false),
             AccountMeta::new(master_metadata, false),
             AccountMeta::new(master_name_symbol, false),
             AccountMeta::new_readonly(new_metadata_authority, false),
@@ -467,7 +462,6 @@ pub fn create_redeem_open_edition_bid_instruction(
             AccountMeta::new_readonly(spl_token_metadata::id(), false),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
-            AccountMeta::new_readonly(sysvar::clock::id(), false),
             AccountMeta::new_readonly(master_metadata, false),
             AccountMeta::new(master_mint, false),
             AccountMeta::new(master_edition, false),

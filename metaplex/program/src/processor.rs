@@ -90,7 +90,6 @@ pub fn process_redeem_open_edition_bid(
     let token_metadata_program_info = next_account_info(account_info_iter)?;
     let system_info = next_account_info(account_info_iter)?;
     let rent_info = next_account_info(account_info_iter)?;
-    let clock_info = next_account_info(account_info_iter)?;
 
     // add checks for master mint/metadata/master edition combo. pull
     // assert
@@ -127,7 +126,6 @@ pub fn process_redeem_open_edition_bid(
         token_metadata_program_info,
         rent_info,
         system_info,
-        clock_info,
         true,
     )?;
 
@@ -228,7 +226,6 @@ pub fn process_redeem_master_edition_bid(
     let token_metadata_program_info = next_account_info(account_info_iter)?;
     let system_info = next_account_info(account_info_iter)?;
     let rent_info = next_account_info(account_info_iter)?;
-    let clock_info = next_account_info(account_info_iter)?;
 
     let metadata_info = next_account_info(account_info_iter)?;
     let name_symbol_info = next_account_info(account_info_iter)?;
@@ -262,7 +259,6 @@ pub fn process_redeem_master_edition_bid(
         token_metadata_program_info,
         rent_info,
         system_info,
-        clock_info,
         false,
     )?;
 
@@ -373,7 +369,6 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
     let token_metadata_program_info = next_account_info(account_info_iter)?;
     let system_info = next_account_info(account_info_iter)?;
     let rent_info = next_account_info(account_info_iter)?;
-    let clock_info = next_account_info(account_info_iter)?;
 
     let transfer_authority_info = next_account_info(account_info_iter)?;
 
@@ -404,7 +399,6 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
         token_metadata_program_info,
         rent_info,
         system_info,
-        clock_info,
         false,
     )?;
 
