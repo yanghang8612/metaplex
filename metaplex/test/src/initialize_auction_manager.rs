@@ -211,7 +211,6 @@ fn add_tokens_to_vault_activate_and_return_mints_and_open_edition(
             );
             mint_keys.push(actual_mint);
         }
-
         if let Some(config) = &json_settings.open_edition_config {
             let (_, actual_open_edition_mint) = add_token_to_vault(
                 &payer,

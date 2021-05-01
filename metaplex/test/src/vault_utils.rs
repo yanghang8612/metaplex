@@ -232,6 +232,20 @@ pub fn add_token_to_vault(
                     )
                     .unwrap(),
                 );
+            } else {
+                // we just need to mint the tokens to this account because we're going to transfer tokens
+                // out of it.
+                create_account_instructions.push(
+                    mint_to(
+                        &token_key,
+                        &mint_key,
+                        &token_account.pubkey(),
+                        &payer.pubkey(),
+                        &[&payer.pubkey()],
+                        amount,
+                    )
+                    .unwrap(),
+                );
             }
 
             let mut transaction =
