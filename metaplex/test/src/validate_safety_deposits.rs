@@ -1,5 +1,5 @@
 use {
-    crate::{PROGRAM_PUBKEY, VAULT_PROGRAM_PUBKEY},
+    crate::{settings_utils::parse_metadata_keys, PROGRAM_PUBKEY, VAULT_PROGRAM_PUBKEY},
     arrayref::array_ref,
     clap::ArgMatches,
     solana_clap_utils::input_parsers::pubkey_of,
@@ -37,6 +37,7 @@ pub fn validate_safety_deposits(app_matches: &ArgMatches, payer: Keypair, client
     )
     .unwrap();
     let auction_manager_key = pubkey_of(app_matches, "auction_manager").unwrap();
+    let mint_map = parse_metadata_keys(&(auction_manager_key.to_string() + ".json"));
 
     let account = client.get_account(&auction_manager_key).unwrap();
     let manager: AuctionManager = try_from_slice_unchecked(&account.data).unwrap();
@@ -82,7 +83,7 @@ pub fn validate_safety_deposits(app_matches: &ArgMatches, payer: Keypair, client
         let metadata_seeds = &[
             spl_token_metadata::state::PREFIX.as_bytes(),
             &token_metadata_key.as_ref(),
-            &config_box.token_mint.as_ref(),
+            &mint_map[n].as_ref(),
         ];
         let (metadata_key, _) = Pubkey::find_program_address(metadata_seeds, &token_metadata_key);
 
@@ -101,7 +102,7 @@ pub fn validate_safety_deposits(app_matches: &ArgMatches, payer: Keypair, client
         let edition_seeds = &[
             spl_token_metadata::state::PREFIX.as_bytes(),
             &token_metadata_key.as_ref(),
-            config_box.token_mint.as_ref(),
+            mint_map[n].as_ref(),
             EDITION.as_bytes(),
         ];
         let (edition_key, _) = Pubkey::find_program_address(edition_seeds, &token_metadata_key);

@@ -42,11 +42,8 @@ pub fn add_token_to_vault(
     let token_key = Pubkey::from_str(TOKEN_PROGRAM_PUBKEY).unwrap();
 
     let store = Keypair::new();
-
-    let transfer_authority = Keypair::new();
-
     let mut instructions = vec![];
-    let mut signers = vec![payer, &store, &vault_authority, &transfer_authority];
+    let signers = vec![payer, &store];
     let token_mint = Keypair::new();
 
     let mint_key = match existing_mint {
@@ -82,10 +79,18 @@ pub fn add_token_to_vault(
         Some(val) => val,
     };
 
+    // The master mint needs to be the store type if we're doing limited editions since we're actually
+    // handing out authorization tokens
+    let master_mint = Keypair::new();
+    let store_mint_key = match token_supply {
+        Some(_) => master_mint.pubkey(),
+        None => mint_key,
+    };
+
     let seeds = &[
         spl_token_vault::state::PREFIX.as_bytes(),
         &vault_key.as_ref(),
-        &mint_key.as_ref(),
+        &store_mint_key.as_ref(),
     ];
     let (safety_deposit_box, _) = Pubkey::find_program_address(seeds, &program_key);
     let seeds = &[
@@ -117,11 +122,64 @@ pub fn add_token_to_vault(
     let (edition_key, _) = Pubkey::find_program_address(edition_seeds, &spl_token_metadata::id());
 
     let token_account = Keypair::new();
+
     let token_account_key = match existing_account {
         None => {
+            instructions.push(create_metadata_accounts(
+                spl_token_metadata::id(),
+                name_symbol_key,
+                metadata_key,
+                mint_key,
+                payer.pubkey(),
+                payer.pubkey(),
+                payer.pubkey(),
+                "no".to_owned(),
+                "name".to_owned(),
+                "www.none.com".to_owned(),
+                true,
+                true,
+            ));
+            if is_master_edition {
+                let master_signers = [&payer, &master_mint];
+                let master_account_instructions = [
+                    create_account(
+                        &payer.pubkey(),
+                        &master_mint.pubkey(),
+                        client
+                            .get_minimum_balance_for_rent_exemption(Mint::LEN)
+                            .unwrap(),
+                        Mint::LEN as u64,
+                        &token_key,
+                    ),
+                    initialize_mint(
+                        &token_key,
+                        &master_mint.pubkey(),
+                        &payer.pubkey(),
+                        Some(&payer.pubkey()),
+                        0,
+                    )
+                    .unwrap(),
+                ];
+
+                let mut master_transaction = Transaction::new_with_payer(
+                    &master_account_instructions,
+                    Some(&payer.pubkey()),
+                );
+                let recent_blockhash = client.get_recent_blockhash().unwrap().0;
+                master_transaction.sign(&master_signers, recent_blockhash);
+                client
+                    .send_and_confirm_transaction(&master_transaction)
+                    .unwrap();
+            }
+
+            let token_account_mint = match token_supply {
+                Some(_) => master_mint.pubkey(),
+                None => mint_key,
+            };
+
             // Due to txn size limits, need to do this in a separate one.
-            let create_signers = [&payer, &token_account];
-            let create_account_instructions = [
+            let mut create_signers = vec![payer, &token_account];
+            let mut create_account_instructions = vec![
                 create_account(
                     &payer.pubkey(),
                     &token_account.pubkey(),
@@ -134,31 +192,83 @@ pub fn add_token_to_vault(
                 initialize_account(
                     &token_key,
                     &token_account.pubkey(),
-                    &mint_key,
+                    &token_account_mint,
                     &payer.pubkey(),
-                )
-                .unwrap(),
-                mint_to(
-                    &token_key,
-                    &mint_key,
-                    &token_account.pubkey(),
-                    &payer.pubkey(),
-                    &[&payer.pubkey()],
-                    amount,
                 )
                 .unwrap(),
             ];
+
+            let extra_real_token_acct = Keypair::new();
+            if let Some(_) = token_supply {
+                create_signers.push(&extra_real_token_acct);
+                // means the token account above is actually a master mint account, we need a separate account to have
+                // at least one of the main token type in it.
+                create_account_instructions.push(create_account(
+                    &payer.pubkey(),
+                    &extra_real_token_acct.pubkey(),
+                    client
+                        .get_minimum_balance_for_rent_exemption(Account::LEN)
+                        .unwrap(),
+                    Account::LEN as u64,
+                    &token_key,
+                ));
+                create_account_instructions.push(
+                    initialize_account(
+                        &token_key,
+                        &extra_real_token_acct.pubkey(),
+                        &mint_key,
+                        &payer.pubkey(),
+                    )
+                    .unwrap(),
+                );
+                create_account_instructions.push(
+                    mint_to(
+                        &token_key,
+                        &mint_key,
+                        &extra_real_token_acct.pubkey(),
+                        &payer.pubkey(),
+                        &[&payer.pubkey()],
+                        1,
+                    )
+                    .unwrap(),
+                );
+            }
 
             let mut transaction =
                 Transaction::new_with_payer(&create_account_instructions, Some(&payer.pubkey()));
             let recent_blockhash = client.get_recent_blockhash().unwrap().0;
             transaction.sign(&create_signers, recent_blockhash);
             client.send_and_confirm_transaction(&transaction).unwrap();
+
+            if is_master_edition {
+                let auth_holding_account: Option<Pubkey> = match token_supply {
+                    Some(_) => Some(token_account.pubkey()),
+                    None => None,
+                };
+
+                let master_mint_authority: Option<Pubkey> = match token_supply {
+                    Some(_) => Some(payer.pubkey()),
+                    None => None,
+                };
+                instructions.push(create_master_edition(
+                    spl_token_metadata::id(),
+                    edition_key,
+                    mint_key,
+                    master_mint.pubkey(),
+                    payer.pubkey(),
+                    payer.pubkey(),
+                    metadata_key,
+                    name_symbol_key,
+                    payer.pubkey(),
+                    token_supply,
+                    auth_holding_account,
+                    master_mint_authority,
+                ));
+            }
             token_account.pubkey()
         }
         Some(val) => val,
     };
-
     instructions.push(create_account(
         &payer.pubkey(),
         &store.pubkey(),
@@ -169,10 +279,18 @@ pub fn add_token_to_vault(
         &token_key,
     ));
 
-    instructions
-        .push(initialize_account(&token_key, &store.pubkey(), &mint_key, &authority).unwrap());
-
     instructions.push(
+        initialize_account(&token_key, &store.pubkey(), &store_mint_key, &authority).unwrap(),
+    );
+
+    let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
+    let recent_blockhash = client.get_recent_blockhash().unwrap().0;
+
+    transaction.sign(&signers, recent_blockhash);
+    client.send_and_confirm_transaction(&transaction).unwrap();
+
+    let transfer_authority = Keypair::new();
+    let token_instructions = vec![
         approve(
             &token_key,
             &token_account_key,
@@ -182,77 +300,27 @@ pub fn add_token_to_vault(
             amount,
         )
         .unwrap(),
-    );
-
-    instructions.push(create_metadata_accounts(
-        spl_token_metadata::id(),
-        name_symbol_key,
-        metadata_key,
-        mint_key,
-        payer.pubkey(),
-        payer.pubkey(),
-        payer.pubkey(),
-        "no".to_owned(),
-        "name".to_owned(),
-        "www.none.com".to_owned(),
-        true,
-        true,
-    ));
-
-    let master_mint = Keypair::new();
-    if is_master_edition {
-        signers.push(&master_mint);
-        instructions.push(create_account(
-            &payer.pubkey(),
-            &master_mint.pubkey(),
-            client
-                .get_minimum_balance_for_rent_exemption(Mint::LEN)
-                .unwrap(),
-            Mint::LEN as u64,
-            &token_key,
-        ));
-        instructions.push(
-            initialize_mint(
-                &token_key,
-                &master_mint.pubkey(),
-                &payer.pubkey(),
-                Some(&payer.pubkey()),
-                0,
-            )
-            .unwrap(),
-        );
-
-        instructions.push(create_master_edition(
-            spl_token_metadata::id(),
-            edition_key,
-            mint_key,
-            master_mint.pubkey(),
+        create_add_token_to_inactive_vault_instruction(
+            program_key,
+            safety_deposit_box,
+            token_account_key,
+            store.pubkey(),
+            vault_key.clone(),
+            vault_authority.pubkey(),
             payer.pubkey(),
-            payer.pubkey(),
-            metadata_key,
-            name_symbol_key,
-            payer.pubkey(),
-            token_supply,
-        ))
-    }
+            transfer_authority.pubkey(),
+            amount,
+        ),
+    ];
 
-    instructions.push(create_add_token_to_inactive_vault_instruction(
-        program_key,
-        safety_deposit_box,
-        token_account_key,
-        store.pubkey(),
-        vault_key.clone(),
-        vault_authority.pubkey(),
-        payer.pubkey(),
-        transfer_authority.pubkey(),
-        amount,
-    ));
-
-    let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
+    let token_signers = vec![payer, &vault_authority, &transfer_authority];
+    let mut token_transaction =
+        Transaction::new_with_payer(&token_instructions, Some(&payer.pubkey()));
     let recent_blockhash = client.get_recent_blockhash().unwrap().0;
-
-    transaction.sign(&signers, recent_blockhash);
-    client.send_and_confirm_transaction(&transaction).unwrap();
+    token_transaction.sign(&token_signers, recent_blockhash);
+    client
+        .send_and_confirm_transaction(&token_transaction)
+        .unwrap();
     let _account = client.get_account(&safety_deposit_box).unwrap();
     (safety_deposit_box, mint_key)
 }

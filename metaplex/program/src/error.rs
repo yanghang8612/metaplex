@@ -262,6 +262,10 @@ pub enum MetaplexError {
     #[error("Auction manager must be validated to start auction!")]
     /// Auction manager must be validated to start auction!
     AuctionManagerMustBeValidated,
+
+    /// The safety deposit mint type must be the master mint of the limited edition!
+    #[error("The safety deposit mint type must be the master mint of the limited edition!")]
+    SafetyDepositBoxMasterMintMismatch,
 }
 
 impl PrintProgramError for MetaplexError {

@@ -112,8 +112,10 @@ pub enum EditionType {
     NA,
     /// Means you are auctioning off the master edition record
     MasterEdition,
-    /// Means you are using the master edition to print off new editions during the auction (limited or open edition)
+    /// Means you are using authorization tokens to print off limited editions during the auction
     LimitedEdition,
+    /// Means you are using the master edition to print off new editions during the auction
+    OpenEdition,
 }
 
 #[repr(C)]

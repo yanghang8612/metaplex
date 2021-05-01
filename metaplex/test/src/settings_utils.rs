@@ -1,5 +1,6 @@
 use {
     serde::{Deserialize, Serialize},
+    solana_program::pubkey::Pubkey,
     spl_metaplex::state::{
         AuctionManagerSettings, EditionType, NonWinningConstraint, WinningConfig, WinningConstraint,
     },
@@ -32,6 +33,12 @@ pub struct JSONAuctionManagerSettings {
     pub open_edition_config: Option<JSONOpenEditionConfig>,
 
     pub open_edition_fixed_price: Option<u64>,
+}
+
+pub fn parse_metadata_keys(settings_file: &str) -> Vec<Pubkey> {
+    let file = File::open(settings_file).unwrap();
+    let json: Vec<[u8; 32]> = serde_json::from_reader(file).unwrap();
+    json.iter().map(|x| Pubkey::new(x)).collect::<Vec<_>>()
 }
 
 pub fn parse_settings(settings_file: &str) -> (AuctionManagerSettings, JSONAuctionManagerSettings) {

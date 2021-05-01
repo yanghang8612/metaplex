@@ -30,7 +30,7 @@ use {
         instruction::create_update_external_price_account_instruction,
         state::MAX_EXTERNAL_ACCOUNT_SIZE,
     },
-    std::{convert::TryInto, str::FromStr},
+    std::{convert::TryInto, fs::File, io::Write, str::FromStr},
 };
 
 fn find_or_initialize_external_account<'a>(
@@ -176,19 +176,20 @@ fn find_or_initialize_auction(
     auction_key
 }
 
-fn add_tokens_to_vault_activate_and_return_open_edition_if_existing(
+fn add_tokens_to_vault_activate_and_return_mints_and_open_edition(
     app_matches: &ArgMatches,
     json_settings: &JSONAuctionManagerSettings,
     vault_key: &Pubkey,
     payer: &Keypair,
     auction_manager_key: &Pubkey,
     client: &RpcClient,
-) -> Option<Pubkey> {
+) -> (Vec<Pubkey>, Option<Pubkey>) {
+    let mut mint_keys: Vec<Pubkey> = vec![];
     let open_edition_mint_key: Option<Pubkey>;
     if !app_matches.is_present("vault") {
         for n in 0..json_settings.winning_configs.len() {
             let config = json_settings.winning_configs[n].clone();
-            add_token_to_vault(
+            let (_, actual_mint) = add_token_to_vault(
                 &payer,
                 vault_key,
                 &payer,
@@ -208,6 +209,7 @@ fn add_tokens_to_vault_activate_and_return_open_edition_if_existing(
                 },
                 config.desired_supply,
             );
+            mint_keys.push(actual_mint);
         }
 
         if let Some(config) = &json_settings.open_edition_config {
@@ -246,7 +248,7 @@ fn add_tokens_to_vault_activate_and_return_open_edition_if_existing(
         }
     }
 
-    open_edition_mint_key
+    (mint_keys, open_edition_mint_key)
 }
 
 pub fn initialize_auction_manager(
@@ -301,14 +303,19 @@ pub fn initialize_auction_manager(
     ];
     let (auction_manager_key, _) = Pubkey::find_program_address(seeds, &program_key);
 
-    let open_edition_mint_key = add_tokens_to_vault_activate_and_return_open_edition_if_existing(
-        app_matches,
-        &json_settings,
-        &vault_key,
-        &payer,
-        &auction_manager_key,
-        &client,
-    );
+    let (actual_mints, open_edition_mint_key) =
+        add_tokens_to_vault_activate_and_return_mints_and_open_edition(
+            app_matches,
+            &json_settings,
+            &vault_key,
+            &payer,
+            &auction_manager_key,
+            &client,
+        );
+    let actual_mints_to_json = serde_json::to_string(&actual_mints).unwrap();
+    let mut file = File::create(auction_manager_key.to_string() + ".json").unwrap();
+    file.write_all(&actual_mints_to_json.as_bytes()).unwrap();
+    println!("Printed mints to file {:?}.json", auction_manager_key);
 
     let token_metadata = spl_token_metadata::id();
     let metadata_key: Option<Pubkey>;
