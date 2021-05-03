@@ -1,0 +1,38 @@
+[workspace]
+members = [
+  "associated-token-account/program",
+  "auction/program",
+  "binary-oracle-pair/program",
+  "examples/rust/cross-program-invocation",
+  "examples/rust/custom-heap",
+  "examples/rust/logging",
+  "examples/rust/sysvar",
+  "examples/rust/transfer-lamports",
+  "feature-proposal/program",
+  "feature-proposal/cli",
+  "libraries/math",
+  "memo/program",
+  "metaplex/program",
+  "metaplex/test",
+  "record/program",
+  "shared-memory/program",
+  "stake-pool/cli",
+  "stake-pool/program",
+  "token-lending/program",
+  "token-lending/client",
+  "token-swap/program",
+  "token-swap/program/fuzz",
+  "token-vault/program",
+  "token-vault/test",
+  "token-metadata/program",
+  "token-metadata/test",
+  "token/cli",
+  "token/program",
+  "utils/cgen",
+  "utils/test-client",
+]
+exclude = [
+  "themis/client_ristretto",
+  "themis/program_ristretto",
+  "token/perf-monitor", # TODO: Rework perf-monitor to use solana-program-test, avoiding the need to link directly with the BPF VM
+]

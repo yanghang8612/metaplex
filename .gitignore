@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 node_modules/
 build/
 dist/
@@ -12,3 +13,16 @@ yarn-debug.log*
 yarn-error.log*
 *.css
 *.css.map
+=======
+target
+.env
+.vscode
+bin
+config.json
+node_modules
+./package-lock.json
+hfuzz_target
+hfuzz_workspace
+**/*.so
+**/.DS_Store
+>>>>>>> 987195c5f3cdae06c859508408c5f084d5c09e9a
