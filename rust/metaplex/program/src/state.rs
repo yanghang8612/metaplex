@@ -109,7 +109,7 @@ pub enum NonWinningConstraint {
 #[derive(Clone, PartialEq, BorshSerialize, BorshDeserialize, Copy, Debug)]
 pub enum EditionType {
     // Not an edition
-    NA,
+    Na,
     /// Means you are auctioning off the master edition record
     MasterEdition,
     /// Means you are using authorization tokens to print off limited editions during the auction

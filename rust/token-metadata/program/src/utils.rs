@@ -220,6 +220,7 @@ pub fn assert_edition_valid(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn mint_limited_edition<'a>(
     program_id: &Pubkey,
     new_metadata_account_info: &AccountInfo<'a>,

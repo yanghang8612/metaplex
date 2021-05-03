@@ -2,21 +2,21 @@ mod initialize_auction_manager;
 mod place_bid;
 mod redeem_bid;
 mod settings_utils;
+mod show;
 mod start_auction;
 mod validate_safety_deposits;
 mod vault_utils;
-mod show;
 
 use {
     clap::{crate_description, crate_name, crate_version, App, Arg, SubCommand},
     initialize_auction_manager::initialize_auction_manager,
     place_bid::make_bid,
     redeem_bid::redeem_bid_wrapper,
+    show::send_show,
     solana_clap_utils::input_validators::{is_url, is_valid_pubkey, is_valid_signer},
     solana_client::rpc_client::RpcClient,
     solana_sdk::signature::read_keypair_file,
     start_auction::send_start_auction,
-    show::send_show,
     validate_safety_deposits::validate_safety_deposits,
 };
 
@@ -160,7 +160,6 @@ fn main() {
         ).subcommand(
             SubCommand::with_name("show")
                 .about("Print out the manager data for a given manager address.")
-                
                 .arg(
                     Arg::with_name("auction_manager")
                         .long("auction_manager")
@@ -170,7 +169,6 @@ fn main() {
                         .takes_value(true)
                         .help("Pubkey of auction manager."),
                 )
-               
         ).subcommand(
             SubCommand::with_name("place_bid")
                 .about("Place a bid on a specific slot, receive a bidder metadata address in return.")

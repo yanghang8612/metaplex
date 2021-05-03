@@ -25,4 +25,4 @@ spl-auction = { path = "../../auction/program", features = [ "no-entrypoint" ] }
 spl-token-metadata = { path = "../../token-metadata/program", features = [ "no-entrypoint" ] }
 spl-token-vault = { path = "../../token-vault/program", features = [ "no-entrypoint" ] }
 spl-metaplex = { path = "../program", features = [ "no-entrypoint" ] }
-spl-token = { path = "../../token/program", features = [ "no-entrypoint" ] }
+spl-token = { version="3.1.0", features = [ "no-entrypoint" ] }

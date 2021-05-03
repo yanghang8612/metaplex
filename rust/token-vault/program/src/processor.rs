@@ -356,7 +356,7 @@ pub fn process_withdraw_token_from_safety_deposit_box(
     spl_token_transfer(TokenTransferParams {
         source: store_info.clone(),
         destination: destination_info.clone(),
-        amount: amount,
+        amount,
         authority: transfer_authority_info.clone(),
         authority_signer_seeds,
         token_program: token_program_info.clone(),

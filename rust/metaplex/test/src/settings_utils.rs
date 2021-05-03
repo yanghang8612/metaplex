@@ -52,10 +52,10 @@ pub fn parse_settings(settings_file: &str) -> (AuctionManagerSettings, JSONAucti
             safety_deposit_box_index: json_box.safety_deposit_box_index,
             amount: json_box.amount,
             edition_type: match json_box.edition_type {
-                0 => EditionType::NA,
+                0 => EditionType::Na,
                 1 => EditionType::MasterEdition,
                 2 => EditionType::LimitedEdition,
-                _ => EditionType::NA,
+                _ => EditionType::Na,
             },
         })
     }

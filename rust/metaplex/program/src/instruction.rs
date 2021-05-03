@@ -221,10 +221,7 @@ pub fn create_init_auction_manager_instruction(
                     Some(val) => val,
                     None => solana_program::system_program::id(),
                 },
-                match open_edition_authority {
-                    Some(_) => true,
-                    None => false,
-                },
+                open_edition_authority.is_some(),
             ),
             AccountMeta::new_readonly(
                 match open_edition_master_edition {
@@ -252,10 +249,7 @@ pub fn create_init_auction_manager_instruction(
                     Some(val) => val,
                     None => solana_program::system_program::id(),
                 },
-                match open_edition_master_mint_authority {
-                    Some(_) => true,
-                    None => false,
-                },
+                open_edition_master_mint_authority.is_some(),
             ),
             AccountMeta::new_readonly(auction_manager_authority, false),
             AccountMeta::new_readonly(payer, true),

@@ -146,6 +146,7 @@ pub fn create_or_allocate_account_raw<'a>(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn transfer_safety_deposit_box_items<'a>(
     token_vault_program: AccountInfo<'a>,
     destination: AccountInfo<'a>,
@@ -241,6 +242,7 @@ pub fn transfer_metadata_ownership<'a>(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn check_and_transfer_edition_master_mint<'a>(
     master_edition_mint_info: &AccountInfo<'a>,
     master_edition_master_mint_info: &AccountInfo<'a>,
@@ -270,7 +272,7 @@ pub fn check_and_transfer_edition_master_mint<'a>(
 
     let master_edition: MasterEdition =
         try_from_slice_unchecked(&master_edition_info.data.borrow_mut())?;
-    if let Some(_) = master_edition.max_supply {
+    if master_edition.max_supply.is_some() {
         return Err(MetaplexError::CantUseLimitedSupplyEditionsWithOpenEditionAuction.into());
     }
 
@@ -367,6 +369,7 @@ pub struct CommonRedeemReturn {
     pub bidder_pot_pubkey: Pubkey,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn common_redeem_checks(
     program_id: &Pubkey,
     auction_manager_info: &AccountInfo,
@@ -501,6 +504,7 @@ pub fn common_redeem_checks(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn common_redeem_finish<'a>(
     program_id: &Pubkey,
     auction_manager: &mut AuctionManager,
@@ -605,6 +609,7 @@ pub fn common_winning_config_checks(
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn shift_authority_back_to_originating_user<'a>(
     program_id: &Pubkey,
     auction_manager: &AuctionManager,

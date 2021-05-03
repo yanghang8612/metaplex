@@ -412,7 +412,7 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
                     transfer_authority,
                 } = common_winning_config_checks(&auction_manager, &safety_deposit, winning_index)?;
 
-                if winning_config.edition_type != EditionType::NA
+                if winning_config.edition_type != EditionType::Na
                     && winning_config.edition_type != EditionType::LimitedEdition
                 {
                     return Err(MetaplexError::WrongBidEndpointForPrize.into());
@@ -541,7 +541,7 @@ pub fn process_validate_safety_deposit_box(
         }
     }
 
-    if winning_configs.len() == 0 {
+    if winning_configs.is_empty() {
         return Err(MetaplexError::SafetyDepositBoxNotUsedInAuction.into());
     }
 
@@ -549,8 +549,7 @@ pub fn process_validate_safety_deposit_box(
     // point at the same safety deposit box and so have the same edition type.
     let edition_type = winning_configs[0].edition_type;
     let mut total_amount_requested: u64 = 0;
-    for n in 0..winning_configs.len() {
-        let curr = winning_configs[n];
+    for curr in &winning_configs {
         total_amount_requested = match total_amount_requested.checked_add(curr.amount.into()) {
             Some(val) => val,
             None => return Err(MetaplexError::NumericalOverflowError.into()),
@@ -670,11 +669,11 @@ pub fn process_validate_safety_deposit_box(
                 None => return Err(MetaplexError::NumericalOverflowError.into()),
             };
         }
-        EditionType::NA => {
+        EditionType::Na => {
             if safety_deposit.token_mint != metadata.mint {
                 return Err(MetaplexError::SafetyDepositBoxMetadataMismatch.into());
             }
-            if store.amount < total_amount_requested.into() {
+            if store.amount < total_amount_requested {
                 return Err(MetaplexError::NotEnoughTokensToSupplyWinners.into());
             }
         }
@@ -682,10 +681,8 @@ pub fn process_validate_safety_deposit_box(
             if edition_key != *edition_info.key {
                 return Err(MetaplexError::InvalidEditionAddress.into());
             }
-            msg!("Did I get here?");
             let master_edition: MasterEdition =
                 try_from_slice_unchecked(&edition_info.data.borrow_mut())?;
-            msg!("Y4es.");
             if safety_deposit.token_mint != master_edition.master_mint {
                 return Err(MetaplexError::SafetyDepositBoxMasterMintMismatch.into());
             }
@@ -696,8 +693,8 @@ pub fn process_validate_safety_deposit_box(
         }
     }
 
-    for n in 0..winning_config_states.len() {
-        winning_config_states[n].validated = true;
+    for state in &mut winning_config_states {
+        state.validated = true;
     }
 
     auction_manager.state.winning_configs_validated = match auction_manager
@@ -842,7 +839,7 @@ pub fn process_init_auction_manager(
     let mut winning_config_states: Vec<WinningConfigState> = vec![];
     for n in 0..auction_manager_settings.winning_configs.len() {
         let winning_config = &auction_manager_settings.winning_configs[n];
-        if winning_config.safety_deposit_box_index > vault.token_type_count.into() {
+        if winning_config.safety_deposit_box_index > vault.token_type_count {
             return Err(MetaplexError::InvalidSafetyDepositBox.into());
         }
 
@@ -895,7 +892,7 @@ pub fn process_init_auction_manager(
         try_from_slice_unchecked(&auction_manager_info.data.borrow_mut())?;
 
     auction_manager.key = Key::AuctionManagerV1;
-    if auction_manager_settings.winning_configs.len() == 0 {
+    if auction_manager_settings.winning_configs.is_empty() {
         auction_manager.state.status = AuctionManagerStatus::Validated;
     } else {
         auction_manager.state.status = AuctionManagerStatus::Initialized;

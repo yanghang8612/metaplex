@@ -91,7 +91,7 @@ fn redeem_bid_na_type<'a>(
     ));
     // For limited editions, we need owner to be payer to be used in token metadata
     let owner_key = match winning_config.edition_type {
-        spl_metaplex::state::EditionType::NA => &bidder,
+        spl_metaplex::state::EditionType::Na => &bidder,
         spl_metaplex::state::EditionType::LimitedEdition => &payer,
         _ => &bidder,
     };
@@ -474,7 +474,7 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
         };
 
         let instructions = match winning_config.edition_type {
-            spl_metaplex::state::EditionType::NA
+            spl_metaplex::state::EditionType::Na
             | spl_metaplex::state::EditionType::LimitedEdition => redeem_bid_na_type(
                 base_account_list,
                 winning_config,

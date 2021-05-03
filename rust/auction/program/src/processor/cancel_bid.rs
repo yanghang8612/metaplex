@@ -1,4 +1,3 @@
-
 //! Cancels an existing bid. This only works in two cases:
 //!
 //! 1) The auction is still going on, in which case it is possible to cancel a bid at any time.
@@ -28,7 +27,7 @@ use {
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
 pub struct CancelBidArgs {
-    pub resource: Pubkey
+    pub resource: Pubkey,
 }
 
 pub fn cancel_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {

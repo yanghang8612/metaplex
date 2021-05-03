@@ -218,7 +218,7 @@ pub fn place_bid(
     let account: Account = Account::unpack_from_slice(&bidder_act.data.borrow())?;
 
     msg!("Amount: {} < Cost: {}", args.amount, account.amount);
-    if account.amount.saturating_sub(args.amount) <= 0 {
+    if account.amount.saturating_sub(args.amount) == 0 {
         return Err(AuctionError::BalanceTooLow.into());
     }
 
