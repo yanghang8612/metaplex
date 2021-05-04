@@ -577,7 +577,7 @@ fn master_edition_call(
     let auth_account = Keypair::new();
     let mut auth_account_key = None;
     let mut master_mint_authority = None;
-    if let Some(_) = max_supply {
+    if max_supply.is_some() {
         signers.push(&auth_account);
         auth_account_key = Some(auth_account.pubkey());
         master_mint_authority = Some(payer.pubkey());

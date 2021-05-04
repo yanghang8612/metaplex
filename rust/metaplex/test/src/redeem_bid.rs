@@ -135,12 +135,13 @@ fn redeem_bid_na_type<'a>(
     ));
 
     let mut new_instructions: Vec<Instruction> = vec![];
-    for n in 0..instructions.len() {
-        new_instructions.push(instructions[n].clone());
+    for instr in instructions.iter() {
+        new_instructions.push(instr.clone());
     }
     new_instructions
 }
 
+#[allow(clippy::too_many_arguments)]
 fn redeem_bid_open_edition_type<'a>(
     base_account_list: BaseAccountList,
     manager: &AuctionManager,
@@ -260,8 +261,8 @@ fn redeem_bid_open_edition_type<'a>(
     ));
 
     let mut new_instructions: Vec<Instruction> = vec![];
-    for n in 0..instructions.len() {
-        new_instructions.push(instructions[n].clone());
+    for instr in instructions.iter() {
+        new_instructions.push(instr.clone());
     }
 
     new_instructions
@@ -371,8 +372,8 @@ fn redeem_bid_master_edition_type<'a>(
     ));
 
     let mut new_instructions: Vec<Instruction> = vec![];
-    for n in 0..instructions.len() {
-        new_instructions.push(instructions[n].clone());
+    for instr in instructions.iter() {
+        new_instructions.push(instr.clone());
     }
     new_instructions
 }
@@ -400,9 +401,9 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
 
     let mut safety_deposits = HashMap::new();
 
-    for n in 0..all_vault_accounts.len() {
-        let obj = &all_vault_accounts[n].1;
-        let obj_key = &all_vault_accounts[n].0;
+    for acc in &all_vault_accounts {
+        let obj = &acc.1;
+        let obj_key = &acc.0;
         let type_of_obj = obj.data[0];
 
         if type_of_obj == SAFETY_DEPOSIT_KEY {

@@ -6,12 +6,8 @@ defaults:
 
 on:
   pull_request:
-    paths-ignore:
-      - "docs/**"
   push:
     branches: [master]
-    paths-ignore:
-      - "docs/**"
 
 jobs:
   all_github_action_checks:
@@ -22,6 +18,7 @@ jobs:
       - cargo-build-test
     steps:
       - run: echo "Done"
+        working-directory: ./
 
   rustfmt:
     runs-on: ubuntu-latest

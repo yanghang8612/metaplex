@@ -45,9 +45,9 @@ pub fn validate_safety_deposits(app_matches: &ArgMatches, payer: Keypair, client
 
     let mut safety_deposits = HashMap::new();
 
-    for n in 0..all_vault_accounts.len() {
-        let obj = &all_vault_accounts[n].1;
-        let obj_key = &all_vault_accounts[n].0;
+    for acc in &all_vault_accounts {
+        let obj = &acc.1;
+        let obj_key = &acc.0;
         let type_of_obj = obj.data[0];
 
         if type_of_obj == SAFETY_DEPOSIT_KEY {

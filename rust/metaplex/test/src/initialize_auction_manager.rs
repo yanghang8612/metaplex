@@ -1,6 +1,6 @@
 use {
     crate::{
-        settings_utils::{parse_settings, JSONAuctionManagerSettings},
+        settings_utils::{parse_settings, JsonAuctionManagerSettings},
         vault_utils::{activate_vault, add_token_to_vault, combine_vault, initialize_vault},
         AUCTION_PROGRAM_PUBKEY, PROGRAM_PUBKEY, TOKEN_PROGRAM_PUBKEY, VAULT_PROGRAM_PUBKEY,
     },
@@ -178,7 +178,7 @@ fn find_or_initialize_auction(
 
 fn add_tokens_to_vault_activate_and_return_mints_and_open_edition(
     app_matches: &ArgMatches,
-    json_settings: &JSONAuctionManagerSettings,
+    json_settings: &JsonAuctionManagerSettings,
     vault_key: &Pubkey,
     payer: &Keypair,
     auction_manager_key: &Pubkey,
@@ -203,10 +203,7 @@ fn add_tokens_to_vault_activate_and_return_mints_and_open_edition(
                     Some(val) => Some(Pubkey::from_str(&val).unwrap()),
                     None => None,
                 },
-                match config.edition_type {
-                    0 => false,
-                    _ => true,
-                },
+                !matches!(config.edition_type, 0),
                 config.desired_supply,
             );
             mint_keys.push(actual_mint);

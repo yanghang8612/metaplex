@@ -27,6 +27,7 @@ use {
 };
 
 #[allow(clippy::clone_on_copy)]
+#[allow(clippy::too_many_arguments)]
 pub fn add_token_to_vault(
     vault_authority: &Keypair,
     vault_key: &Pubkey,
@@ -199,7 +200,7 @@ pub fn add_token_to_vault(
             ];
 
             let extra_real_token_acct = Keypair::new();
-            if let Some(_) = token_supply {
+            if token_supply.is_some() {
                 create_signers.push(&extra_real_token_acct);
                 // means the token account above is actually a master mint account, we need a separate account to have
                 // at least one of the main token type in it.
@@ -359,7 +360,7 @@ pub fn activate_vault(
 
     let instructions = [create_activate_vault_instruction(
         program_key,
-        vault_key.clone(),
+        *vault_key,
         vault.fraction_mint,
         vault.fraction_treasury,
         mint_authority,
@@ -377,7 +378,7 @@ pub fn activate_vault(
     let updated_vault: Vault = try_from_slice_unchecked(&updated_vault_data.data).unwrap();
     if updated_vault.state == VaultState::Active {
         println!("Activated vault.");
-        Some(vault_key.clone())
+        Some(*vault_key)
     } else {
         println!("Failed to update vault.");
         None
@@ -492,13 +493,13 @@ pub fn combine_vault(
 
     instructions.push(create_combine_vault_instruction(
         program_key,
-        vault_key.clone(),
+        *vault_key,
         outstanding_shares_account.pubkey(),
         payment_account.pubkey(),
         vault.fraction_mint,
         vault.fraction_treasury,
         vault.redeem_treasury,
-        new_vault_authority.clone(),
+        *new_vault_authority,
         vault_authority.pubkey(),
         transfer_authority.pubkey(),
         uncirculated_burn_authority,
@@ -514,7 +515,7 @@ pub fn combine_vault(
     let updated_vault: Vault = try_from_slice_unchecked(&updated_vault_data.data).unwrap();
     if updated_vault.state == VaultState::Combined {
         println!("Combined vault.");
-        Some(vault_key.clone())
+        Some(*vault_key)
     } else {
         println!("Failed to combined vault.");
         None
@@ -610,7 +611,7 @@ pub fn initialize_vault(
             fraction_treasury.pubkey(),
             vault.pubkey(),
             vault_authority.pubkey(),
-            external_key.clone(),
+            *external_key,
             allow_further_share_creation,
         ),
     ];

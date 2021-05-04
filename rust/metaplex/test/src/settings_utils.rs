@@ -7,7 +7,7 @@ use {
     std::fs::File,
 };
 #[derive(Serialize, Deserialize, Clone)]
-pub struct JSONWinningConfig {
+pub struct JsonWinningConfig {
     pub safety_deposit_box_index: u8,
     pub amount: u8,
     pub edition_type: u8,
@@ -17,20 +17,20 @@ pub struct JSONWinningConfig {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct JSONOpenEditionConfig {
+pub struct JsonOpenEditionConfig {
     pub safety_deposit_box_index: u8,
     pub mint: Option<String>,
     pub account: Option<String>,
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct JSONAuctionManagerSettings {
+pub struct JsonAuctionManagerSettings {
     pub open_edition_winner_constraint: u8,
 
     pub open_edition_non_winning_constraint: u8,
-    pub winning_configs: Vec<JSONWinningConfig>,
+    pub winning_configs: Vec<JsonWinningConfig>,
 
-    pub open_edition_config: Option<JSONOpenEditionConfig>,
+    pub open_edition_config: Option<JsonOpenEditionConfig>,
 
     pub open_edition_fixed_price: Option<u64>,
 }
@@ -41,9 +41,9 @@ pub fn parse_metadata_keys(settings_file: &str) -> Vec<Pubkey> {
     json.iter().map(|x| Pubkey::new(x)).collect::<Vec<_>>()
 }
 
-pub fn parse_settings(settings_file: &str) -> (AuctionManagerSettings, JSONAuctionManagerSettings) {
+pub fn parse_settings(settings_file: &str) -> (AuctionManagerSettings, JsonAuctionManagerSettings) {
     let file = File::open(settings_file).unwrap();
-    let json_settings: JSONAuctionManagerSettings = serde_json::from_reader(file).unwrap();
+    let json_settings: JsonAuctionManagerSettings = serde_json::from_reader(file).unwrap();
     let mut parsed_winning_configs: Vec<WinningConfig> = vec![];
 
     for n in 0..json_settings.winning_configs.len() {
