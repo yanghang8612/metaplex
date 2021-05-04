@@ -8,9 +8,6 @@ import { programIds } from '../utils/ids';
 import { deserializeBorsh } from './../utils/borsh';
 import { serialize } from 'borsh';
 import BN from 'bn.js';
-import { PublicKeyInput } from 'node:crypto';
-import { ParsedAccount } from '..';
-
 export const METADATA_PREFIX = 'metadata';
 export const EDITION = 'edition';
 
@@ -21,16 +18,14 @@ export const MAX_SYMBOL_LENGTH = 10;
 export const MAX_URI_LENGTH = 200;
 
 export const MAX_METADATA_LEN =
-  1 + 32 + MAX_NAME_LENGTH + MAX_SYMBOL_LENGTH + MAX_URI_LENGTH + 200;
+  1 + 32 + 32 + MAX_NAME_LENGTH + MAX_SYMBOL_LENGTH + MAX_URI_LENGTH + 200;
 
-export const MAX_NAME_SYMBOL_LEN = 1 + 32 + 8;
 export const MAX_MASTER_EDITION_KEN = 1 + 9 + 8 + 32;
 
 export enum MetadataKey {
   MetadataV1 = 0,
-  NameSymbolTupleV1 = 1,
-  EditionV1 = 2,
-  MasterEditionV1 = 3,
+  EditionV1 = 1,
+  MasterEditionV1 = 2,
 }
 
 export enum MetadataCategory {
@@ -89,7 +84,7 @@ export class Edition {
 }
 export class Metadata {
   key: MetadataKey;
-  nonUniqueSpecificUpdateAuthority?: PublicKey;
+  updateAuthority: PublicKey;
 
   mint: PublicKey;
   name: string;
@@ -99,18 +94,16 @@ export class Metadata {
   extended?: IMetadataExtension;
   masterEdition?: PublicKey;
   edition?: PublicKey;
-  nameSymbolTuple?: PublicKey;
 
   constructor(args: {
-    nonUniqueSpecificUpdateAuthority?: PublicKey;
+    updateAuthority: PublicKey;
     mint: PublicKey;
     name: string;
     symbol: string;
     uri: string;
   }) {
     this.key = MetadataKey.MetadataV1;
-    this.nonUniqueSpecificUpdateAuthority =
-      args.nonUniqueSpecificUpdateAuthority;
+    this.updateAuthority = args.updateAuthority;
     this.mint = args.mint;
     this.name = args.name;
     this.symbol = args.symbol;
@@ -118,61 +111,34 @@ export class Metadata {
   }
 }
 
-export class NameSymbolTuple {
-  key: MetadataKey;
-  updateAuthority: PublicKey;
-  metadata: PublicKey;
-
-  constructor(args: { updateAuthority: Buffer; metadata: Buffer }) {
-    this.key = MetadataKey.NameSymbolTupleV1;
-    this.updateAuthority = new PublicKey(args.updateAuthority);
-    this.metadata = new PublicKey(args.metadata);
-  }
-}
-
 class CreateMetadataArgs {
   instruction: number = 0;
-  allowDuplicates: boolean = false;
   name: string;
   symbol: string;
   uri: string;
 
-  constructor(args: {
-    name: string;
-    symbol: string;
-    uri: string;
-    allowDuplicates?: boolean;
-  }) {
+  constructor(args: { name: string; symbol: string; uri: string }) {
     this.name = args.name;
     this.symbol = args.symbol;
     this.uri = args.uri;
-    this.allowDuplicates = !!args.allowDuplicates;
   }
 }
 class UpdateMetadataArgs {
   instruction: number = 1;
-  uri: string;
+  uri: string | null;
   // Not used by this app, just required for instruction
-  nonUniqueSpecificUpdateAuthority: PublicKey | null;
+  updateAuthority: PublicKey | null;
 
-  constructor(args: {
-    uri: string;
-    nonUniqueSpecificUpdateAuthority?: string;
-  }) {
-    this.uri = args.uri;
-    this.nonUniqueSpecificUpdateAuthority = args.nonUniqueSpecificUpdateAuthority
-      ? new PublicKey(args.nonUniqueSpecificUpdateAuthority)
+  constructor(args: { uri?: string; updateAuthority?: string }) {
+    this.uri = args.uri ? args.uri : null;
+    this.updateAuthority = args.updateAuthority
+      ? new PublicKey(args.updateAuthority)
       : null;
   }
 }
 
-class TransferUpdateAuthorityArgs {
-  instruction: number = 2;
-  constructor() {}
-}
-
 class CreateMasterEditionArgs {
-  instruction: number = 3;
+  instruction: number = 2;
   maxSupply: BN | null;
   constructor(args: { maxSupply: BN | null }) {
     this.maxSupply = args.maxSupply;
@@ -186,7 +152,6 @@ export const METADATA_SCHEMA = new Map<any, any>([
       kind: 'struct',
       fields: [
         ['instruction', 'u8'],
-        ['allowDuplicates', 'u8'],
         ['name', 'string'],
         ['symbol', 'string'],
         ['uri', 'string'],
@@ -199,21 +164,12 @@ export const METADATA_SCHEMA = new Map<any, any>([
       kind: 'struct',
       fields: [
         ['instruction', 'u8'],
-        ['uri', 'string'],
-        [
-          'nonUniqueSpecificUpdateAuthority',
-          { kind: 'option', type: 'pubkey' },
-        ],
+        ['uri', { kind: 'option', type: 'string' }],
+        ['updateAuthority', { kind: 'option', type: 'pubkey' }],
       ],
     },
   ],
-  [
-    TransferUpdateAuthorityArgs,
-    {
-      kind: 'struct',
-      fields: [['instruction', 'u8']],
-    },
-  ],
+
   [
     CreateMasterEditionArgs,
     {
@@ -253,25 +209,11 @@ export const METADATA_SCHEMA = new Map<any, any>([
       kind: 'struct',
       fields: [
         ['key', 'u8'],
-        [
-          'nonUniqueSpecificUpdateAuthority',
-          { kind: 'option', type: 'pubkey' },
-        ],
+        ['updateAuthority', 'pubkey'],
         ['mint', 'pubkey'],
         ['name', 'string'],
         ['symbol', 'string'],
         ['uri', 'string'],
-      ],
-    },
-  ],
-  [
-    NameSymbolTuple,
-    {
-      kind: 'struct',
-      fields: [
-        ['key', 'u8'],
-        ['updateAuthority', 'pubkey'],
-        ['metadata', 'pubkey'],
       ],
     },
   ],
@@ -283,7 +225,6 @@ export const decodeMetadata = async (buffer: Buffer): Promise<Metadata> => {
     Metadata,
     buffer,
   ) as Metadata;
-  metadata.nameSymbolTuple = await getNameSymbol(metadata);
   metadata.edition = await getEdition(metadata.mint);
   metadata.masterEdition = await getEdition(metadata.mint);
   return metadata;
@@ -301,62 +242,13 @@ export const decodeMasterEdition = (buffer: Buffer) => {
   ) as MasterEdition;
 };
 
-export const decodeNameSymbolTuple = (buffer: Buffer) => {
-  return deserializeBorsh(
-    METADATA_SCHEMA,
-    NameSymbolTuple,
-    buffer,
-  ) as NameSymbolTuple;
-};
-
-export async function transferUpdateAuthority(
-  account: PublicKey,
-  currentUpdateAuthority: PublicKey,
-  newUpdateAuthority: PublicKey,
-  instructions: TransactionInstruction[],
-) {
-  const metadataProgramId = programIds().metadata;
-
-  const data = Buffer.from(
-    serialize(METADATA_SCHEMA, new TransferUpdateAuthorityArgs()),
-  );
-
-  const keys = [
-    {
-      pubkey: account,
-      isSigner: false,
-      isWritable: true,
-    },
-    {
-      pubkey: currentUpdateAuthority,
-      isSigner: true,
-      isWritable: false,
-    },
-    {
-      pubkey: newUpdateAuthority,
-      isSigner: false,
-      isWritable: false,
-    },
-  ];
-  instructions.push(
-    new TransactionInstruction({
-      keys,
-      programId: metadataProgramId,
-      data: data,
-    }),
-  );
-}
-
 export async function updateMetadata(
-  symbol: string,
-  name: string,
   uri: string,
-  newNonUniqueSpecificUpdateAuthority: string | undefined,
+  newUpdateAuthority: string | undefined,
   mintKey: PublicKey,
   updateAuthority: PublicKey,
   instructions: TransactionInstruction[],
   metadataAccount?: PublicKey,
-  nameSymbolAccount?: PublicKey,
 ) {
   const metadataProgramId = programIds().metadata;
 
@@ -373,25 +265,9 @@ export async function updateMetadata(
       )
     )[0];
 
-  nameSymbolAccount =
-    nameSymbolAccount ||
-    (
-      await PublicKey.findProgramAddress(
-        [
-          Buffer.from('metadata'),
-          metadataProgramId.toBuffer(),
-          Buffer.from(name),
-          Buffer.from(symbol),
-        ],
-        metadataProgramId,
-      )
-    )[0];
-
   const value = new UpdateMetadataArgs({
     uri,
-    nonUniqueSpecificUpdateAuthority: !newNonUniqueSpecificUpdateAuthority
-      ? undefined
-      : newNonUniqueSpecificUpdateAuthority,
+    updateAuthority: !newUpdateAuthority ? undefined : newUpdateAuthority,
   });
   const data = Buffer.from(serialize(METADATA_SCHEMA, value));
   const keys = [
@@ -405,11 +281,6 @@ export async function updateMetadata(
       isSigner: true,
       isWritable: false,
     },
-    {
-      pubkey: nameSymbolAccount,
-      isSigner: false,
-      isWritable: false,
-    },
   ];
   instructions.push(
     new TransactionInstruction({
@@ -419,14 +290,13 @@ export async function updateMetadata(
     }),
   );
 
-  return [metadataAccount, nameSymbolAccount];
+  return metadataAccount;
 }
 
 export async function createMetadata(
   symbol: string,
   name: string,
   uri: string,
-  allowDuplicates: boolean,
   updateAuthority: PublicKey,
   mintKey: PublicKey,
   mintAuthorityKey: PublicKey,
@@ -446,27 +316,10 @@ export async function createMetadata(
     )
   )[0];
 
-  const nameSymbolAccount = (
-    await PublicKey.findProgramAddress(
-      [
-        Buffer.from('metadata'),
-        metadataProgramId.toBuffer(),
-        Buffer.from(name),
-        Buffer.from(symbol),
-      ],
-      metadataProgramId,
-    )
-  )[0];
-
-  const value = new CreateMetadataArgs({ name, symbol, uri, allowDuplicates });
+  const value = new CreateMetadataArgs({ name, symbol, uri });
   const data = Buffer.from(serialize(METADATA_SCHEMA, value));
 
   const keys = [
-    {
-      pubkey: nameSymbolAccount,
-      isSigner: false,
-      isWritable: true,
-    },
     {
       pubkey: metadataAccount,
       isSigner: false,
@@ -511,12 +364,10 @@ export async function createMetadata(
     }),
   );
 
-  return [metadataAccount, nameSymbolAccount];
+  return metadataAccount;
 }
 
 export async function createMasterEdition(
-  name: string,
-  symbol: string,
   maxSupply: BN | undefined,
   mintKey: PublicKey,
   masterMintKey: PublicKey,
@@ -535,18 +386,6 @@ export async function createMasterEdition(
         Buffer.from(METADATA_PREFIX),
         metadataProgramId.toBuffer(),
         mintKey.toBuffer(),
-      ],
-      metadataProgramId,
-    )
-  )[0];
-
-  const nameSymbolAccount = (
-    await PublicKey.findProgramAddress(
-      [
-        Buffer.from(METADATA_PREFIX),
-        metadataProgramId.toBuffer(),
-        Buffer.from(name),
-        Buffer.from(symbol),
       ],
       metadataProgramId,
     )
@@ -595,11 +434,6 @@ export async function createMasterEdition(
     },
     {
       pubkey: metadataAccount,
-      isSigner: false,
-      isWritable: false,
-    },
-    {
-      pubkey: nameSymbolAccount,
       isSigner: false,
       isWritable: false,
     },
@@ -667,7 +501,7 @@ export async function mintNewEditionFromMasterEditionViaToken(
   const newEdition = await getEdition(newMint);
   const masterEdition = await getEdition(tokenMint);
 
-  const data = Buffer.from([5]);
+  const data = Buffer.from([3]);
 
   const keys = [
     {
@@ -748,23 +582,6 @@ export async function mintNewEditionFromMasterEditionViaToken(
       data,
     }),
   );
-}
-
-export async function getNameSymbol(metadata: Metadata): Promise<PublicKey> {
-  const PROGRAM_IDS = programIds();
-
-  return (
-    await PublicKey.findProgramAddress(
-      [
-        Buffer.from(METADATA_PREFIX),
-        PROGRAM_IDS.metadata.toBuffer(),
-        metadata.mint.toBuffer(),
-        Buffer.from(metadata.name),
-        Buffer.from(metadata.symbol),
-      ],
-      PROGRAM_IDS.metadata,
-    )
-  )[0];
 }
 
 export async function getEdition(tokenMint: PublicKey): Promise<PublicKey> {

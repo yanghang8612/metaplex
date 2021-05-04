@@ -17,7 +17,6 @@ import {
 export async function validateSafetyDepositBox(
   vault: PublicKey,
   metadata: PublicKey,
-  nameSymbol: PublicKey | undefined,
   safetyDepositBox: PublicKey,
   store: PublicKey,
   tokenMint: PublicKey,
@@ -49,11 +48,6 @@ export async function validateSafetyDepositBox(
     },
     {
       pubkey: metadata,
-      isSigner: false,
-      isWritable: true,
-    },
-    {
-      pubkey: nameSymbol || SystemProgram.programId,
       isSigner: false,
       isWritable: true,
     },

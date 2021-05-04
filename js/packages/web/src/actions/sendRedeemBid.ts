@@ -10,7 +10,6 @@ import {
   programIds,
   models,
   TokenAccount,
-  getNameSymbol,
   createMint,
   mintNewEditionFromMasterEditionViaToken,
   SafetyDepositBox,
@@ -232,7 +231,6 @@ async function setupRedeemMasterInstructions(
       wallet.publicKey,
       winningPrizeInstructions,
       item.metadata.pubkey,
-      await getNameSymbol(item.metadata.info),
       wallet.publicKey,
     );
   }
@@ -250,15 +248,8 @@ async function setupRedeemLimitedInstructions(
   instructions: Array<TransactionInstruction[]>,
   winningConfig: WinningConfig,
 ) {
-  const updateAuth =
-    item.metadata.info.nonUniqueSpecificUpdateAuthority ||
-    item.nameSymbol?.info.updateAuthority;
-  console.log(
-    'item',
-    item,
-    item.metadata.info.mint.toBase58(),
-    item.metadata.info.masterEdition?.toBase58(),
-  );
+  const updateAuth = item.metadata.info.updateAuthority;
+
   if (item.masterEdition && updateAuth && auctionView.myBidderMetadata) {
     let newTokenAccount: PublicKey | undefined = accountsByMint.get(
       item.masterEdition.info.masterMint.toBase58(),
@@ -363,9 +354,7 @@ async function setupRedeemOpenInstructions(
   signers: Array<Account[]>,
   instructions: Array<TransactionInstruction[]>,
 ) {
-  const updateAuth =
-    item.metadata.info.nonUniqueSpecificUpdateAuthority ||
-    item.nameSymbol?.info.updateAuthority;
+  const updateAuth = item.metadata.info.updateAuthority;
   if (item.masterEdition && updateAuth && auctionView.myBidderMetadata) {
     let newTokenAccount: PublicKey | undefined = accountsByMint.get(
       item.masterEdition.info.masterMint.toBase58(),

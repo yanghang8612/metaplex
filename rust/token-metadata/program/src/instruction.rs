@@ -12,9 +12,8 @@ use {
 #[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug, Clone)]
 /// Args for update call
 pub struct UpdateMetadataAccountArgs {
-    pub uri: String,
-    // Ignored when NameSymbolTuple present
-    pub non_unique_specific_update_authority: Option<Pubkey>,
+    pub uri: Option<String>,
+    pub update_authority: Option<Pubkey>,
 }
 
 #[repr(C)]
@@ -22,7 +21,6 @@ pub struct UpdateMetadataAccountArgs {
 /// Args for create call
 pub struct CreateMetadataAccountArgs {
     /// Note that unique metadatas are disabled for now.
-    pub allow_duplication: bool,
     pub data: Data,
 }
 
@@ -36,29 +34,20 @@ pub struct CreateMasterEditionArgs {
 /// Instructions supported by the Metadata program.
 #[derive(BorshSerialize, BorshDeserialize, Clone)]
 pub enum MetadataInstruction {
-    /// Create NameSymbolTuple (optional) and  Metadata objects.
-    ///   0. `[writable]`  NameSymbolTuple key (pda of ['metadata', program id, name, symbol])
-    ///   1. `[writable]`  Metadata key (pda of ['metadata', program id, mint id])
-    ///   2. `[]` Mint of token asset
-    ///   3. `[signer]` Mint authority
-    ///   4. `[signer]` payer
-    ///   5. `[signer]` update authority info (Signer is optional - only required if NameSymbolTuple exists)
-    ///   6. `[]` System program
-    ///   7. `[]` Rent info
-    CreateMetadataAccounts(CreateMetadataAccountArgs),
+    /// Create Metadata object.
+    ///   0. `[writable]`  Metadata key (pda of ['metadata', program id, mint id])
+    ///   1. `[]` Mint of token asset
+    ///   2. `[signer]` Mint authority
+    ///   3. `[signer]` payer
+    ///   4. `[]` update authority info
+    ///   5. `[]` System program
+    ///   6. `[]` Rent info
+    CreateMetadataAccount(CreateMetadataAccountArgs),
 
-    /// Update an  Metadata (name/symbol are unchangeable)
+    /// Update a Metadata
     ///   0. `[writable]` Metadata account
     ///   1. `[signer]` Update authority key
-    ///   2. `[]`  NameSymbolTuple account key (pda of ['metadata', program id, name, symbol])
-    ///            (does not need to exist if Metadata is of the duplicatable type)
-    UpdateMetadataAccounts(UpdateMetadataAccountArgs),
-
-    /// Transfer Update Authority
-    ///   0. `[writable]`  NameSymbolTuple account or Metadata account (if duplicatable)
-    ///   1. `[signer]` Current Update authority key
-    ///   2. `[]`  New Update authority account key
-    TransferUpdateAuthority,
+    UpdateMetadataAccount(UpdateMetadataAccountArgs),
 
     /// Register a Metadata as a Master Edition, which means Editions can be minted.
     /// Henceforth, no further tokens will be mintable from this primary mint. Will throw an error if more than one
@@ -70,34 +59,18 @@ pub enum MetadataInstruction {
     ///   3. `[signer]` Current Update authority key on metadata
     ///   4. `[signer]` Mint authority on the metadata's mint - THIS WILL TRANSFER AUTHORITY AWAY FROM THIS KEY
     ///   5. `[]` Metadata account
-    ///   6. `[]` Name symbol account (optional), will be used if update authority on metadata is None
-    ///   7. `[signer]` payer
-    ///   8. `[]` Token program
-    ///   9. `[]` System program
-    ///   10. `[]` Rent info
-    ///   11. `[writable]` Optional Fixed supply master mint authorization token account - if using max supply, must provide this.
+    ///   6. `[signer]` payer
+    ///   7. `[]` Token program
+    ///   8. `[]` System program
+    ///   9. `[]` Rent info
+    ///   10. `[writable]` Optional Fixed supply master mint authorization token account - if using max supply, must provide this.
     ///                    All tokens ever in existence will be dumped here in one go, you must own this account, and you will be unable
     ///                    to mint new authorization tokens going forward.
-    ///   12. `[signer]`   Master mint authority - must be provided if using max supply. THIS WILL TRANSFER AUTHORITY AWAY FROM THIS KEY.
+    ///   11. `[signer]`   Master mint authority - must be provided if using max supply. THIS WILL TRANSFER AUTHORITY AWAY FROM THIS KEY.
     CreateMasterEdition(CreateMasterEditionArgs),
 
-    /// Given a master edition, mint a new edition from it, if max_supply not already maxed out. Update authority set to update authority of original.
-    /// If you want to move it, transfer it yourself. Note that Edition coins cannot be unique, by definition, since they have same name/symbols.
-    ///   0. `[writable]` New Metadata key (pda of ['metadata', program id, mint id])
-    ///   1. `[writable]` New Edition (pda of ['metadata', program id, mint id, 'edition'])
-    ///   2. `[writable]` Master Record Edition (pda of ['metadata', program id, master mint id, 'edition'])
-    ///   3. `[writable]` Mint of new token - THIS WILL TRANSFER AUTHORITY AWAY FROM THIS KEY
-    ///   4. `[signer]` Mint authority
-    ///   5. `[signer]` payer
-    ///   6. `[signer]` update authority info of master metadata account
-    ///   7. `[]` Master record metadata account
-    ///   8. `[]` Token program
-    ///   9. `[]` System program
-    ///   10. `[]` Rent info
-    MintNewEditionFromMasterEdition,
-
-    /// Given a master edition, mint a new edition from it, if max_supply not already maxed out. Update authority set to update authority of original.
-    /// If you want to move it, transfer it yourself. Note that Edition coins cannot be unique, by definition, since they have same name/symbols.
+    /// Given an authority token minted by the master mint of a master edition, and a brand new non-metadata-ed mint with one token
+    /// make a new Metadata + Edition that is a child of the master edition denoted by this authority token.
     ///   0. `[writable]` New Metadata key (pda of ['metadata', program id, mint id])
     ///   1. `[writable]` New Edition (pda of ['metadata', program id, mint id, 'edition'])
     ///   2. `[writable]` Master Record Edition (pda of ['metadata', program id, master mint id, 'edition'])
@@ -119,7 +92,6 @@ pub enum MetadataInstruction {
 #[allow(clippy::too_many_arguments)]
 pub fn create_metadata_accounts(
     program_id: Pubkey,
-    name_symbol_account: Pubkey,
     metadata_account: Pubkey,
     mint: Pubkey,
     mint_authority: Pubkey,
@@ -128,13 +100,11 @@ pub fn create_metadata_accounts(
     name: String,
     symbol: String,
     uri: String,
-    allow_duplication: bool,
     update_authority_is_signer: bool,
 ) -> Instruction {
     Instruction {
         program_id,
         accounts: vec![
-            AccountMeta::new(name_symbol_account, false),
             AccountMeta::new(metadata_account, false),
             AccountMeta::new_readonly(mint, false),
             AccountMeta::new_readonly(mint_authority, true),
@@ -143,9 +113,8 @@ pub fn create_metadata_accounts(
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
         ],
-        data: MetadataInstruction::CreateMetadataAccounts(CreateMetadataAccountArgs {
+        data: MetadataInstruction::CreateMetadataAccount(CreateMetadataAccountArgs {
             data: Data { name, symbol, uri },
-            allow_duplication,
         })
         .try_to_vec()
         .unwrap(),
@@ -156,44 +125,22 @@ pub fn create_metadata_accounts(
 pub fn update_metadata_accounts(
     program_id: Pubkey,
     metadata_account: Pubkey,
-    name_symbol_account: Pubkey,
     update_authority: Pubkey,
-    non_unique_specific_update_authority: Option<Pubkey>,
-    uri: String,
+    new_update_authority: Option<Pubkey>,
+    uri: Option<String>,
 ) -> Instruction {
     Instruction {
         program_id,
         accounts: vec![
             AccountMeta::new(metadata_account, false),
             AccountMeta::new_readonly(update_authority, true),
-            AccountMeta::new_readonly(name_symbol_account, false),
         ],
-        data: MetadataInstruction::UpdateMetadataAccounts(UpdateMetadataAccountArgs {
+        data: MetadataInstruction::UpdateMetadataAccount(UpdateMetadataAccountArgs {
             uri,
-            non_unique_specific_update_authority,
+            update_authority: new_update_authority,
         })
         .try_to_vec()
         .unwrap(),
-    }
-}
-
-/// transfer update authority instruction
-pub fn transfer_update_authority(
-    program_id: Pubkey,
-    object: Pubkey,
-    update_authority: Pubkey,
-    new_update_authority: Pubkey,
-) -> Instruction {
-    Instruction {
-        program_id,
-        accounts: vec![
-            AccountMeta::new(object, false),
-            AccountMeta::new_readonly(update_authority, true),
-            AccountMeta::new_readonly(new_update_authority, false),
-        ],
-        data: MetadataInstruction::TransferUpdateAuthority
-            .try_to_vec()
-            .unwrap(),
     }
 }
 
@@ -207,7 +154,6 @@ pub fn create_master_edition(
     update_authority: Pubkey,
     mint_authority: Pubkey,
     metadata: Pubkey,
-    name_symbol_account: Pubkey,
     payer: Pubkey,
     max_supply: Option<u64>,
     auth_holding_account: Option<Pubkey>,
@@ -220,7 +166,6 @@ pub fn create_master_edition(
         AccountMeta::new_readonly(update_authority, true),
         AccountMeta::new_readonly(mint_authority, true),
         AccountMeta::new_readonly(metadata, false),
-        AccountMeta::new_readonly(name_symbol_account, false),
         AccountMeta::new_readonly(payer, false),
         AccountMeta::new_readonly(spl_token::id(), false),
         AccountMeta::new_readonly(solana_program::system_program::id(), false),
@@ -239,41 +184,6 @@ pub fn create_master_edition(
         program_id,
         accounts,
         data: MetadataInstruction::CreateMasterEdition(CreateMasterEditionArgs { max_supply })
-            .try_to_vec()
-            .unwrap(),
-    }
-}
-
-/// creates a mint_new_edition_from_master_edition instruction
-#[allow(clippy::too_many_arguments)]
-pub fn mint_new_edition_from_master_edition(
-    program_id: Pubkey,
-    metadata: Pubkey,
-    edition: Pubkey,
-    master_edition: Pubkey,
-    mint: Pubkey,
-    mint_authority: Pubkey,
-    payer: Pubkey,
-    master_update_authority: Pubkey,
-    master_metadata: Pubkey,
-) -> Instruction {
-    Instruction {
-        program_id,
-
-        accounts: vec![
-            AccountMeta::new(metadata, false),
-            AccountMeta::new(edition, false),
-            AccountMeta::new(master_edition, false),
-            AccountMeta::new(mint, false),
-            AccountMeta::new_readonly(mint_authority, true),
-            AccountMeta::new(payer, true),
-            AccountMeta::new_readonly(master_update_authority, true),
-            AccountMeta::new_readonly(master_metadata, false),
-            AccountMeta::new_readonly(spl_token::id(), false),
-            AccountMeta::new_readonly(solana_program::system_program::id(), false),
-            AccountMeta::new_readonly(sysvar::rent::id(), false),
-        ],
-        data: MetadataInstruction::MintNewEditionFromMasterEdition
             .try_to_vec()
             .unwrap(),
     }

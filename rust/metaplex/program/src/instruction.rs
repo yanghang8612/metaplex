@@ -17,48 +17,46 @@ pub enum MetaplexInstruction {
     ///           Note in addition that this vault account should have authority set to this program's pda of ['metaplex', auction_key]
     ///   2. `[]` Auction with auctioned item being set to the vault given and authority set to this program's pda of ['metaplex', auction_key]
     ///   3. `[writable]` Open edition metadata (Optional only if used)
-    ///   4. `[writable]` Open edition name symbol
     ///           (This account is optional, and will only be used if metadata is unique, otherwise this account key will be ignored no matter it's value)
-    ///   5. `[signer]` Open edition authority
-    ///   6. `[]` Open edition MasterEdition account (optional - only if using this feature)
-    ///   7. `[writable]` Open edition Mint account (optional - only if using this feature)
-    ///   8. `[writable]` Open edition Master Mint account (optional - only if using this feature)
-    ///   9. `[signer]` Open edition Master Mint Authority account, this will PERMANENTLY TRANSFER MINTING
+    ///   4. `[signer]` Open edition authority
+    ///   5. `[]` Open edition MasterEdition account (optional - only if using this feature)
+    ///   6. `[writable]` Open edition Mint account (optional - only if using this feature)
+    ///   7. `[writable]` Open edition Master Mint account (optional - only if using this feature)
+    ///   8. `[signer]` Open edition Master Mint Authority account, this will PERMANENTLY TRANSFER MINTING
     ///        AUTHORITY TO AUCTION MANAGER. You can still mint your own editions via your own personal authority however. (optional - only if using this feature)
-    ///   10. `[]` Authority for the Auction Manager
-    ///   11. `[signer]` Payer
-    ///   12. `[]` Accept payment account of same token mint as the auction for taking payment for open editions, owner should be auction manager key
-    ///   13. `[]` Token program
-    ///   14. `[]` Token vault program
-    ///   15. `[]` Token metadata program
-    ///   16. `[]` Auction program
-    ///   17. `[]` System sysvar    
-    ///   18. `[]` Rent sysvar
+    ///   9. `[]` Authority for the Auction Manager
+    ///   10. `[signer]` Payer
+    ///   11. `[]` Accept payment account of same token mint as the auction for taking payment for open editions, owner should be auction manager key
+    ///   12. `[]` Token program
+    ///   13. `[]` Token vault program
+    ///   14. `[]` Token metadata program
+    ///   15. `[]` Auction program
+    ///   16. `[]` System sysvar    
+    ///   17. `[]` Rent sysvar
     InitAuctionManager(AuctionManagerSettings),
 
     /// Validates that a given safety deposit box has in it contents that match the expected WinningConfig in the auction manager.
     /// A stateful call, this will error out if you call it a second time after validation has occurred.
     ///   0. `[writable]` Auction manager
     ///   1. `[writable]` Metadata account
-    ///   2. `[writable]` Name symbol tuple account
     ///           (This account is optional, and will only be used if metadata is unique, otherwise this account key will be ignored no matter it's value)
-    ///   3. `[writable]` Original authority lookup - unallocated uninitialized pda account with seed ['metaplex', auction key, metadata key]
+    ///   2. `[writable]` Original authority lookup - unallocated uninitialized pda account with seed ['metaplex', auction key, metadata key]
     ///                   We will store original authority here to return it later.
-    ///   4. `[]` Safety deposit box account
-    ///   5. `[]` Store account of safety deposit box
-    ///   6. `[]` Mint account of the token in the safety deposit box
-    ///   7. `[]` Edition OR MasterEdition record key
+    ///   3. `[]` Safety deposit box account
+    ///   4. `[]` Store account of safety deposit box
+    ///   5. `[]` Mint account of the token in the safety deposit box
+    ///   6. `[]` Edition OR MasterEdition record key
     ///           Remember this does not need to be an existing account (may not be depending on token), just is a pda with seed
     ///            of ['metadata', program id, master mint id, 'edition']. - remember PDA is relative to token metadata program.
-    ///   8. `[]` Vault account
-    ///   9. `[signer]` Authority
-    ///   10. `[signer]` Metadata Authority
-    ///   11. `[signer]` Payer
-    ///   12. `[]` Token metadata program
-    ///   13. `[]` System
-    ///   14. `[]` Rent sysvar
-    ///   15. `[writable]` Limited edition Master Mint account (optional - only if using sending Limited Edition)
-    ///   16. `[signer]` Limited edition Master Mint Authority account, this will TEMPORARILY TRANSFER MINTING AUTHORITY to the auction manager
+    ///   7. `[]` Vault account
+    ///   8. `[signer]` Authority
+    ///   9. `[signer]` Metadata Authority
+    ///   10. `[signer]` Payer
+    ///   11. `[]` Token metadata program
+    ///   12. `[]` System
+    ///   13. `[]` Rent sysvar
+    ///   14. `[writable]` Limited edition Master Mint account (optional - only if using sending Limited Edition)
+    ///   15. `[signer]` Limited edition Master Mint Authority account, this will TEMPORARILY TRANSFER MINTING AUTHORITY to the auction manager
     ///         until all limited editions have been redeemed for authority tokens.
     ValidateSafetyDepositBox,
 
@@ -119,12 +117,11 @@ pub enum MetaplexInstruction {
     ///   14. `[]` System
     ///   15. `[]` Rent sysvar
     ///   16. `[writable]` Master Metadata account (pda of ['metadata', program id, master mint id]) - remember PDA is relative to token metadata program
-    ///   17. `[writable]` Master Name symbol tuple account
     ///           (This account is optional, and will only be used if metadata is unique, otherwise this account key will be ignored no matter it's value)
-    ///   18. `[]` New authority for Master Metadata - If you are taking ownership of a Master Edition in and of itself, or a Limited Edition that isn't newly minted for you during this auction
+    ///   17. `[]` New authority for Master Metadata - If you are taking ownership of a Master Edition in and of itself, or a Limited Edition that isn't newly minted for you during this auction
     ///             ie someone else had it minted for themselves in a prior auction or through some other means, this is the account the metadata for these tokens will be delegated to
     ///             after this transaction. Otherwise this account will be ignored.
-    ///   29. `[]` PDA-based Transfer authority to move the tokens from the store to the destination seed ['vault', program_id]
+    ///   18. `[]` PDA-based Transfer authority to move the tokens from the store to the destination seed ['vault', program_id]
     ///        but please note that this is a PDA relative to the Token Vault program, with the 'vault' prefix
     RedeemMasterEditionBid,
 
@@ -183,7 +180,6 @@ pub fn create_init_auction_manager_instruction(
     vault: Pubkey,
     auction: Pubkey,
     open_edition_metadata: Option<Pubkey>,
-    open_edition_name_symbol: Option<Pubkey>,
     open_edition_authority: Option<Pubkey>,
     open_edition_master_edition: Option<Pubkey>,
     open_edition_mint: Option<Pubkey>,
@@ -204,13 +200,6 @@ pub fn create_init_auction_manager_instruction(
             AccountMeta::new_readonly(auction, false),
             AccountMeta::new(
                 match open_edition_metadata {
-                    Some(val) => val,
-                    None => solana_program::system_program::id(),
-                },
-                false,
-            ),
-            AccountMeta::new(
-                match open_edition_name_symbol {
                     Some(val) => val,
                     None => solana_program::system_program::id(),
                 },
@@ -273,7 +262,6 @@ pub fn create_validate_safety_deposit_box_instruction(
     program_id: Pubkey,
     auction_manager: Pubkey,
     metadata: Pubkey,
-    name_symbol: Pubkey,
     original_authority_lookup: Pubkey,
     safety_deposit_box: Pubkey,
     store: Pubkey,
@@ -289,7 +277,6 @@ pub fn create_validate_safety_deposit_box_instruction(
     let mut accounts = vec![
         AccountMeta::new(auction_manager, false),
         AccountMeta::new(metadata, false),
-        AccountMeta::new(name_symbol, false),
         AccountMeta::new(original_authority_lookup, false),
         AccountMeta::new_readonly(safety_deposit_box, false),
         AccountMeta::new_readonly(store, false),
@@ -381,7 +368,6 @@ pub fn create_redeem_master_edition_bid_instruction(
     payer: Pubkey,
     token_vault_program: Pubkey,
     master_metadata: Pubkey,
-    master_name_symbol: Pubkey,
     new_metadata_authority: Pubkey,
     transfer_authority: Pubkey,
 ) -> Instruction {
@@ -405,7 +391,6 @@ pub fn create_redeem_master_edition_bid_instruction(
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
             AccountMeta::new(master_metadata, false),
-            AccountMeta::new(master_name_symbol, false),
             AccountMeta::new_readonly(new_metadata_authority, false),
             AccountMeta::new_readonly(transfer_authority, false),
         ],

@@ -25,7 +25,7 @@ use {
         instruction::{initialize_account, initialize_mint},
         state::{Account, Mint},
     },
-    spl_token_metadata::state::{Key, MasterEdition, Metadata, NameSymbolTuple, EDITION},
+    spl_token_metadata::state::{Key, MasterEdition, Metadata, EDITION},
     spl_token_vault::{
         instruction::create_update_external_price_account_instruction,
         state::MAX_EXTERNAL_ACCOUNT_SIZE,
@@ -316,7 +316,6 @@ pub fn initialize_auction_manager(
     let token_metadata = spl_token_metadata::id();
     let metadata_key: Option<Pubkey>;
     let metadata_authority: Option<Pubkey>;
-    let name_symbol_key: Option<Pubkey>;
     let edition_key: Option<Pubkey>;
     let open_edition_master_mint: Option<Pubkey>;
     let open_edition_master_mint_authority: Option<Pubkey>;
@@ -333,25 +332,7 @@ pub fn initialize_auction_manager(
             metadata_key = Some(mkey);
             let metadata: Metadata = try_from_slice_unchecked(&metadata_account.data).unwrap();
 
-            let name_symbol_seeds = &[
-                spl_token_metadata::state::PREFIX.as_bytes(),
-                &token_metadata.as_ref(),
-                metadata.data.name.as_bytes(),
-                metadata.data.symbol.as_bytes(),
-            ];
-            let (ns_key, _) = Pubkey::find_program_address(name_symbol_seeds, &token_metadata);
-            name_symbol_key = Some(ns_key);
-            let ns_account = client.get_account(&ns_key);
-
-            match ns_account {
-                Ok(acct) => {
-                    let ns: NameSymbolTuple = try_from_slice_unchecked(&acct.data).unwrap();
-                    metadata_authority = Some(ns.update_authority);
-                }
-                Err(_) => {
-                    metadata_authority = metadata.non_unique_specific_update_authority;
-                }
-            }
+            metadata_authority = Some(metadata.update_authority);
 
             let edition_seeds = &[
                 spl_token_metadata::state::PREFIX.as_bytes(),
@@ -380,7 +361,6 @@ pub fn initialize_auction_manager(
         None => {
             metadata_key = None;
             metadata_authority = None;
-            name_symbol_key = None;
             edition_key = None;
             open_edition_master_mint = None;
             open_edition_master_mint_authority = None;
@@ -412,7 +392,6 @@ pub fn initialize_auction_manager(
         vault_key,
         auction_key,
         metadata_key,
-        name_symbol_key,
         metadata_authority,
         edition_key,
         open_edition_mint_key,

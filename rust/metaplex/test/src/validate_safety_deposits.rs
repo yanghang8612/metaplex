@@ -14,7 +14,7 @@ use {
         instruction::create_validate_safety_deposit_box_instruction,
         state::{AuctionManager, WinningConfig},
     },
-    spl_token_metadata::state::{Key, MasterEdition, Metadata, EDITION},
+    spl_token_metadata::state::{Key, MasterEdition, EDITION},
     spl_token_vault::state::{SafetyDepositBox, SAFETY_DEPOSIT_KEY},
     std::{collections::HashMap, str::FromStr},
 };
@@ -87,18 +87,6 @@ pub fn validate_safety_deposits(app_matches: &ArgMatches, payer: Keypair, client
         ];
         let (metadata_key, _) = Pubkey::find_program_address(metadata_seeds, &token_metadata_key);
 
-        let metadata_account = client.get_account(&metadata_key).unwrap();
-        let metadata: Metadata = try_from_slice_unchecked(&metadata_account.data).unwrap();
-
-        let name_symbol_seeds = &[
-            spl_token_metadata::state::PREFIX.as_bytes(),
-            &token_metadata_key.as_ref(),
-            metadata.data.name.as_bytes(),
-            metadata.data.symbol.as_bytes(),
-        ];
-        let (name_symbol_key, _) =
-            Pubkey::find_program_address(name_symbol_seeds, &token_metadata_key);
-
         let edition_seeds = &[
             spl_token_metadata::state::PREFIX.as_bytes(),
             &token_metadata_key.as_ref(),
@@ -140,7 +128,6 @@ pub fn validate_safety_deposits(app_matches: &ArgMatches, payer: Keypair, client
             program_key,
             auction_manager_key,
             metadata_key,
-            name_symbol_key,
             original_authority_key,
             *box_key,
             config_box.store,

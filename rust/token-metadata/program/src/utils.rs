@@ -2,10 +2,7 @@ use {
     crate::{
         error::MetadataError,
         processor::process_create_metadata_accounts,
-        state::{
-            Edition, Key, MasterEdition, Metadata, NameSymbolTuple, EDITION, MAX_EDITION_LEN,
-            PREFIX,
-        },
+        state::{Edition, Key, MasterEdition, Metadata, EDITION, MAX_EDITION_LEN, PREFIX},
     },
     borsh::BorshSerialize,
     solana_program::{
@@ -88,30 +85,10 @@ pub fn create_or_allocate_account_raw<'a>(
 
 pub fn assert_update_authority_is_correct(
     metadata: &Metadata,
-    metadata_account_info: &AccountInfo,
-    ns_info: Option<&AccountInfo>,
     update_authority_info: &AccountInfo,
 ) -> ProgramResult {
-    match metadata.non_unique_specific_update_authority {
-        Some(val) => {
-            if val != *update_authority_info.key {
-                return Err(MetadataError::UpdateAuthorityIncorrect.into());
-            }
-        }
-        None => {
-            if let Some(name_symbol_account_info) = ns_info {
-                let name_symbol: NameSymbolTuple =
-                    try_from_slice_unchecked(&name_symbol_account_info.data.borrow())?;
-
-                if name_symbol.metadata != *metadata_account_info.key {
-                    return Err(MetadataError::InvalidMetadataForNameSymbolTuple.into());
-                }
-
-                if name_symbol.update_authority != *update_authority_info.key {
-                    return Err(MetadataError::UpdateAuthorityIncorrect.into());
-                }
-            }
-        }
+    if metadata.update_authority != *update_authority_info.key {
+        return Err(MetadataError::UpdateAuthorityIncorrect.into());
     }
 
     if !update_authority_info.is_signer {
@@ -277,7 +254,6 @@ pub fn mint_limited_edition<'a>(
     process_create_metadata_accounts(
         program_id,
         &[
-            system_account_info.clone(),
             new_metadata_account_info.clone(),
             mint_info.clone(),
             mint_authority_info.clone(),
@@ -289,7 +265,6 @@ pub fn mint_limited_edition<'a>(
         master_metadata.data.name,
         master_metadata.data.symbol,
         master_metadata.data.uri,
-        true,
     )?;
 
     let edition_authority_seeds = &[
