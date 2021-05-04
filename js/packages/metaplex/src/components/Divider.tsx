@@ -1,4 +1,4 @@
-import { styled } from "twin.macro";
+import { styled } from 'twin.macro';
 
 const Divider = styled.div`
   height: 0;

@@ -36,6 +36,21 @@ styled components / emotion & tailwindcss support (through plugins).
 - [Tailwind CSS in Gatsby](https://www.gatsbyjs.com/docs/how-to/styling/tailwind-css/)
 - [Styling with Emotion](https://www.gatsbyjs.com/docs/how-to/styling/emotion/)
 
+#### MultiSection explanation
+
+The MultiSection pages get created by the Files in the `src/markdown` Folder,
+when requested in `src/components/multiSection/index.tsx` & their images in
+`src/components/multiSection/SectionDisplay.tsx` (might be able to completely
+automate this as well).
+
+Relevant fields for the creation from Frontmatter:
+
+- `title`: The header text to be displayed for the section.
+- `slug`: The name the section is queried by.
+- `position`: `"right"` or `"left"` - On which side the text should be displayed.
+- `background`: `"light"` or `"dark"` - Which background color the section should have.
+- `imageWrapper`: (optional) if `"gradient"` or `"color"` is given, a colorful image background is shown.
+
 #### Developing
 
 1.  **Start developing.**

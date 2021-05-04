@@ -1,10 +1,10 @@
-import { Global } from "@emotion/react";
-import * as React from "react";
-import { GlobalStyles } from "twin.macro";
-import globalStyles from "../utils/globalStyles";
-import FooterSection from "./footerSection";
+import { Global } from '@emotion/react';
+import * as React from 'react';
+import { GlobalStyles } from 'twin.macro';
+import globalStyles from '../utils/globalStyles';
+import FooterSection from './footerSection';
 
-import SEO from "./SEO";
+import SEO from './SEO';
 
 interface ILayoutProps {
   children?: React.ReactNode;

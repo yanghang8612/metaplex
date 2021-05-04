@@ -1,6 +1,6 @@
-import * as React from "react";
-import { useStaticQuery, graphql } from "gatsby";
-import { Helmet } from "react-helmet";
+import * as React from 'react';
+import { useStaticQuery, graphql } from 'gatsby';
+import { Helmet } from 'react-helmet';
 
 interface ISEOProps {
   description?: string;

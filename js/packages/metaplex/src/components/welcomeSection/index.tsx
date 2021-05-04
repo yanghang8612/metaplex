@@ -1,7 +1,7 @@
-import * as React from "react";
-import { graphql, useStaticQuery } from "gatsby";
-import tw, { styled } from "twin.macro";
-import MockDisplay from "../MockDisplay";
+import * as React from 'react';
+import { graphql, useStaticQuery } from 'gatsby';
+import tw, { styled } from 'twin.macro';
+import MockDisplay from '../MockDisplay';
 
 const OuterContainer = styled.div`
   ${tw`
@@ -37,7 +37,7 @@ const WelcomeSection = (): React.ReactElement => {
           rawMarkdownBody
         }
       }
-    `
+    `,
   );
   const {
     frontmatter: { title, drop1, drop2, drop3 },

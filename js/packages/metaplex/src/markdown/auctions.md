@@ -1,9 +1,9 @@
 ---
-title: "A Variety of Auctions"
-slug: "auctions"
-display: "Auction UI?"
-position: "left"
-background: "dark"
+title: 'A Variety of Auctions'
+slug: 'auctions'
+display: 'Auction UI?'
+position: 'left'
+background: 'dark'
 ---
 
 With your Metaplex marketplace, you can list NFTs for sale in a variety of different auction formats.

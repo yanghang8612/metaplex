@@ -1,4 +1,4 @@
-import tw, { styled } from "twin.macro";
+import tw, { styled } from 'twin.macro';
 
 const MockDisplay = styled.div`
   ${tw`
