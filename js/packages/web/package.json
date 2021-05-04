@@ -1,5 +1,5 @@
 {
-  "name": "metavinci",
+  "name": "web",
   "version": "0.1.0",
   "dependencies": {
     "@ant-design/icons": "^4.4.0",
@@ -60,8 +60,8 @@
     "build": "craco build",
     "test": "craco test",
     "eject": "react-scripts eject",
-    "deploy:ar": "arweave deploy-dir  ../../build/metavinci --key-file ",
-    "deploy": "gh-pages -d ../../build/metavinci --repo https://github.com/solana-labs/oyster-meta",
+    "deploy:ar": "arweave deploy-dir  ../../build/web --key-file ",
+    "deploy": "gh-pages -d ../../build/web --repo https://github.com/solana-labs/oyster-meta",
     "format:fix": "prettier --write \"**/*.+(js|jsx|ts|tsx|json|css|md)\""
   },
   "eslintConfig": {
