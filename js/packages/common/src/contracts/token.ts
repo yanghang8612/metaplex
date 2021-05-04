@@ -1,4 +1,9 @@
-import { MintLayout, AccountLayout, Token } from '@solana/spl-token';
+import {
+  MintLayout,
+  AccountLayout,
+  Token,
+  AuthorityType,
+} from '@solana/spl-token';
 import {
   Connection,
   PublicKey,
@@ -92,6 +97,7 @@ export const mintNFT = async (
       TOKEN_PROGRAM_ID,
       mintAccount.publicKey,
       null,
+      'MintTokens',
       wallet.publicKey,
       [],
     ),
