@@ -20,7 +20,8 @@
     "format": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,scss}\"",
     "format:fix": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,scss}\"",
     "lint": "eslint . --ignore-path .gitignore --ext .ts,.tsx,.js",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@emotion/react": "^11.1.5",
