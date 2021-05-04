@@ -4,6 +4,7 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        baseBg: "#121212",
         mainBgStart: "#010101",
         mainBgStop: "#091E21",
         btnPrimaryStart: "#616774",
