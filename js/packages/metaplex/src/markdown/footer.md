@@ -1,7 +1,7 @@
 ---
-title: "Hosted by the Solana Foundation"
+title: "Come build on the Metaplex!"
 slug: "footer"
+button: "create your own marketplace"
 ---
 
-The Helios Conference kicks off with exciting reveals, inspiration, and new
-opportunities to continue creating the most innovative apps in the world.
+Get started with your own custom marketplaces and explore the new frontier of NFTs on Solana.
