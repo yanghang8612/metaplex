@@ -3,9 +3,8 @@ use {
         error::MetadataError,
         instruction::MetadataInstruction,
         state::{
-            Key, MasterEdition, Metadata, NameSymbolTuple, EDITION, MAX_MASTER_EDITION_LEN,
-            MAX_METADATA_LEN, MAX_NAME_LENGTH, MAX_NAME_SYMBOL_LEN, MAX_SYMBOL_LENGTH,
-            MAX_URI_LENGTH, PREFIX,
+            Key, MasterEdition, Metadata, EDITION, MAX_MASTER_EDITION_LEN, MAX_METADATA_LEN,
+            MAX_NAME_LENGTH, MAX_SYMBOL_LENGTH, MAX_URI_LENGTH, PREFIX,
         },
         utils::{
             assert_initialized, assert_mint_authority_matches_mint, assert_rent_exempt,
@@ -34,7 +33,7 @@ pub fn process_instruction(
 ) -> ProgramResult {
     let instruction = MetadataInstruction::try_from_slice(input)?;
     match instruction {
-        MetadataInstruction::CreateMetadataAccounts(args) => {
+        MetadataInstruction::CreateMetadataAccount(args) => {
             msg!("Instruction: Create Metadata Accounts");
             process_create_metadata_accounts(
                 program_id,
@@ -42,29 +41,15 @@ pub fn process_instruction(
                 args.data.name,
                 args.data.symbol,
                 args.data.uri,
-                args.allow_duplication,
             )
         }
-        MetadataInstruction::UpdateMetadataAccounts(args) => {
+        MetadataInstruction::UpdateMetadataAccount(args) => {
             msg!("Instruction: Update Metadata Accounts");
-            process_update_metadata_accounts(
-                program_id,
-                accounts,
-                args.uri,
-                args.non_unique_specific_update_authority,
-            )
-        }
-        MetadataInstruction::TransferUpdateAuthority => {
-            msg!("Instruction: Transfer Update Authority");
-            process_transfer_update_authority(program_id, accounts)
+            process_update_metadata_accounts(program_id, accounts, args.uri, args.update_authority)
         }
         MetadataInstruction::CreateMasterEdition(args) => {
             msg!("Instruction: Create Master Edition");
             process_create_master_edition(program_id, accounts, args.max_supply)
-        }
-        MetadataInstruction::MintNewEditionFromMasterEdition => {
-            msg!("Instruction: Mint New Edition from Master Edition");
-            process_mint_new_edition_from_master_edition(program_id, accounts)
         }
         MetadataInstruction::MintNewEditionFromMasterEditionViaToken => {
             msg!("Instruction: Mint New Edition from Master Edition Via Token");
@@ -80,10 +65,8 @@ pub fn process_create_metadata_accounts(
     name: String,
     symbol: String,
     uri: String,
-    allow_duplication: bool,
 ) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
-    let name_symbol_account_info = next_account_info(account_info_iter)?;
     let metadata_account_info = next_account_info(account_info_iter)?;
     let mint_info = next_account_info(account_info_iter)?;
     let mint_authority_info = next_account_info(account_info_iter)?;
@@ -141,70 +124,7 @@ pub fn process_create_metadata_accounts(
     metadata.data.name = name.to_owned();
     metadata.data.symbol = symbol.to_owned();
     metadata.data.uri = uri;
-    metadata.non_unique_specific_update_authority = Some(*update_authority_info.key);
-
-    if !allow_duplication {
-        // Adding this in to stop unique metadata until we deal with the problem
-        // of griefing.
-        return Err(MetadataError::Disabled.into());
-    }
-
-    if !allow_duplication {
-        let name_symbol_seeds = &[
-            PREFIX.as_bytes(),
-            program_id.as_ref(),
-            &name.as_bytes(),
-            &symbol.as_bytes(),
-        ];
-        let (name_symbol_key, name_symbol_bump_seed) =
-            Pubkey::find_program_address(name_symbol_seeds, program_id);
-        let name_symbol_authority_signer_seeds = &[
-            PREFIX.as_bytes(),
-            program_id.as_ref(),
-            &name.as_bytes(),
-            &symbol.as_bytes(),
-            &[name_symbol_bump_seed],
-        ];
-
-        if name_symbol_account_info.key != &name_symbol_key {
-            return Err(MetadataError::InvalidNameSymbolKey.into());
-        }
-
-        // If this is a brand new NameSymbol, we can simply allocate and be on our way.
-        // If it is an existing NameSymbol, we need to check that you are that authority and are the signer.
-        if !name_symbol_account_info.try_data_is_empty()? {
-            let name_symbol: NameSymbolTuple =
-                try_from_slice_unchecked(&name_symbol_account_info.data.borrow_mut())?;
-            if name_symbol.update_authority != *update_authority_info.key
-                || !update_authority_info.is_signer
-            {
-                return Err(
-                    MetadataError::UpdateAuthorityMustBeEqualToNameSymbolAuthorityAndSigner.into(),
-                );
-            }
-        } else {
-            create_or_allocate_account_raw(
-                *program_id,
-                name_symbol_account_info,
-                rent_info,
-                system_account_info,
-                payer_account_info,
-                MAX_NAME_SYMBOL_LEN,
-                name_symbol_authority_signer_seeds,
-            )?;
-        }
-        let mut name_symbol: NameSymbolTuple =
-            try_from_slice_unchecked(&name_symbol_account_info.data.borrow())?;
-
-        // Now this is 0'ed out, so it can be filtered on as a boolean filter for NFTs and other
-        // Unique types
-        metadata.non_unique_specific_update_authority = None;
-
-        name_symbol.update_authority = *update_authority_info.key;
-        name_symbol.key = Key::NameSymbolTupleV1;
-        name_symbol.metadata = *metadata_account_info.key;
-        name_symbol.serialize(&mut *name_symbol_account_info.data.borrow_mut())?;
-    };
+    metadata.update_authority = *update_authority_info.key;
 
     metadata.serialize(&mut *metadata_account_info.data.borrow_mut())?;
 
@@ -213,95 +133,31 @@ pub fn process_create_metadata_accounts(
 
 /// Update existing account instruction
 pub fn process_update_metadata_accounts(
-    program_id: &Pubkey,
+    _: &Pubkey,
     accounts: &[AccountInfo],
-    uri: String,
-    non_unique_specific_update_authority: Option<Pubkey>,
+    uri: Option<String>,
+    update_authority: Option<Pubkey>,
 ) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
 
     let metadata_account_info = next_account_info(account_info_iter)?;
     let update_authority_info = next_account_info(account_info_iter)?;
-    let name_symbol_account_info = next_account_info(account_info_iter)?;
-
-    if uri.len() > MAX_URI_LENGTH {
-        return Err(MetadataError::UriTooLong.into());
-    }
     let mut metadata: Metadata = try_from_slice_unchecked(&metadata_account_info.data.borrow())?;
 
-    // Even if you're a metadata that doesn't use this, you need to send it up with proper key.
-    let name_symbol_seeds = &[
-        PREFIX.as_bytes(),
-        program_id.as_ref(),
-        &metadata.data.name.as_bytes(),
-        &metadata.data.symbol.as_bytes(),
-    ];
-    let (name_symbol_key, _) = Pubkey::find_program_address(name_symbol_seeds, program_id);
+    assert_update_authority_is_correct(&metadata, update_authority_info)?;
 
-    if name_symbol_key != *name_symbol_account_info.key {
-        return Err(MetadataError::InvalidNameSymbolKey.into());
+    if let Some(val) = uri {
+        if val.len() > MAX_URI_LENGTH {
+            return Err(MetadataError::UriTooLong.into());
+        }
+        metadata.data.uri = val;
     }
 
-    assert_update_authority_is_correct(
-        &metadata,
-        metadata_account_info,
-        Some(name_symbol_account_info),
-        update_authority_info,
-    )?;
-
-    metadata.data.uri = uri;
-
-    // Only set it if it's specifically a duplicable metadata (not an NFT kind) which can be
-    // determined by the presence of this field already.
-    if metadata.non_unique_specific_update_authority.is_some()
-        && non_unique_specific_update_authority.is_some()
-    {
-        metadata.non_unique_specific_update_authority = non_unique_specific_update_authority
+    if let Some(val) = update_authority {
+        metadata.update_authority = val;
     }
 
     metadata.serialize(&mut *metadata_account_info.data.borrow_mut())?;
-    Ok(())
-}
-
-/// Transfer update authority
-pub fn process_transfer_update_authority(_: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
-    let account_info_iter = &mut accounts.iter();
-
-    let account_info = next_account_info(account_info_iter)?;
-    let current_update_authority_info = next_account_info(account_info_iter)?;
-    let new_update_authority_info = next_account_info(account_info_iter)?;
-
-    if account_info.data_len() == MAX_METADATA_LEN {
-        let mut metadata: Metadata = try_from_slice_unchecked(&account_info.data.borrow())?;
-        if metadata.non_unique_specific_update_authority != Some(*current_update_authority_info.key)
-            || !current_update_authority_info.is_signer
-            || metadata.non_unique_specific_update_authority == None
-        {
-            return Err(
-                MetadataError::UpdateAuthorityMustBeEqualToMetadataAuthorityAndSigner.into(),
-            );
-        }
-
-        metadata.non_unique_specific_update_authority = Some(*new_update_authority_info.key);
-
-        metadata.serialize(&mut *account_info.data.borrow_mut())?;
-    } else {
-        let mut name_symbol: NameSymbolTuple =
-            try_from_slice_unchecked(&account_info.data.borrow())?;
-
-        if name_symbol.update_authority != *current_update_authority_info.key
-            || !current_update_authority_info.is_signer
-        {
-            return Err(
-                MetadataError::UpdateAuthorityMustBeEqualToNameSymbolAuthorityAndSigner.into(),
-            );
-        }
-
-        name_symbol.update_authority = *new_update_authority_info.key;
-
-        name_symbol.serialize(&mut *account_info.data.borrow_mut())?;
-    }
-
     Ok(())
 }
 
@@ -319,7 +175,6 @@ pub fn process_create_master_edition(
     let update_authority_info = next_account_info(account_info_iter)?;
     let mint_authority_info = next_account_info(account_info_iter)?;
     let metadata_account_info = next_account_info(account_info_iter)?;
-    let name_symbol_account_info = next_account_info(account_info_iter)?;
     let payer_account_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
     let system_account_info = next_account_info(account_info_iter)?;
@@ -357,12 +212,7 @@ pub fn process_create_master_edition(
         return Err(MetadataError::EditionMintDecimalsShouldBeZero.into());
     }
 
-    assert_update_authority_is_correct(
-        &metadata,
-        metadata_account_info,
-        Some(name_symbol_account_info),
-        update_authority_info,
-    )?;
+    assert_update_authority_is_correct(&metadata, update_authority_info)?;
 
     if mint.supply != 1 {
         return Err(MetadataError::EditionsMustHaveExactlyOneToken.into());
@@ -438,51 +288,6 @@ pub fn process_create_master_edition(
             token_program_info,
         )?;
     }
-    Ok(())
-}
-
-pub fn process_mint_new_edition_from_master_edition(
-    program_id: &Pubkey,
-    accounts: &[AccountInfo],
-) -> ProgramResult {
-    let account_info_iter = &mut accounts.iter();
-
-    let new_metadata_account_info = next_account_info(account_info_iter)?;
-    let new_edition_account_info = next_account_info(account_info_iter)?;
-    let master_edition_account_info = next_account_info(account_info_iter)?;
-    let mint_info = next_account_info(account_info_iter)?;
-    let mint_authority_info = next_account_info(account_info_iter)?;
-    let payer_account_info = next_account_info(account_info_iter)?;
-    let update_authority_info = next_account_info(account_info_iter)?;
-    let master_metadata_account_info = next_account_info(account_info_iter)?;
-    let token_program_account_info = next_account_info(account_info_iter)?;
-    let system_account_info = next_account_info(account_info_iter)?;
-    let rent_info = next_account_info(account_info_iter)?;
-
-    let master_metadata: Metadata =
-        try_from_slice_unchecked(&master_metadata_account_info.data.borrow())?;
-
-    assert_update_authority_is_correct(
-        &master_metadata,
-        master_metadata_account_info,
-        None,
-        update_authority_info,
-    )?;
-
-    mint_limited_edition(
-        program_id,
-        new_metadata_account_info,
-        new_edition_account_info,
-        master_edition_account_info,
-        mint_info,
-        mint_authority_info,
-        payer_account_info,
-        update_authority_info,
-        master_metadata_account_info,
-        token_program_account_info,
-        system_account_info,
-        rent_info,
-    )?;
     Ok(())
 }
 

@@ -21,7 +21,6 @@ export const useAuction = (id: string) => {
     bidderMetadataByAuctionAndBidder,
     bidderPotsByAuctionAndBidder,
     masterEditions,
-    nameSymbolTuples,
     bidRedemptions,
     vaults,
 
@@ -37,7 +36,6 @@ export const useAuction = (id: string) => {
         auctionManagers,
         safetyDepositBoxesByVaultAndIndex,
         metadataByMint,
-        nameSymbolTuples,
         bidRedemptions,
         bidderMetadataByAuctionAndBidder,
         bidderPotsByAuctionAndBidder,
@@ -59,7 +57,6 @@ export const useAuction = (id: string) => {
     bidderMetadataByAuctionAndBidder,
     bidderPotsByAuctionAndBidder,
     vaults,
-    nameSymbolTuples,
     masterEditions,
     bidRedemptions,
     userAccounts,

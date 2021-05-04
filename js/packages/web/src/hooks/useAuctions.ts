@@ -3,7 +3,6 @@ import {
   Metadata,
   SafetyDepositBox,
   AuctionData,
-  useConnection,
   AuctionState,
   BidderMetadata,
   BidderPot,
@@ -11,7 +10,6 @@ import {
   TokenAccount,
   Vault,
   MasterEdition,
-  NameSymbolTuple,
 } from '@oyster/common';
 import { useEffect, useState } from 'react';
 import { useMeta } from '../contexts';
@@ -26,7 +24,6 @@ export enum AuctionViewState {
 
 export interface AuctionViewItem {
   metadata: ParsedAccount<Metadata>;
-  nameSymbol?: ParsedAccount<NameSymbolTuple>;
   safetyDeposit: ParsedAccount<SafetyDepositBox>;
   masterEdition?: ParsedAccount<MasterEdition>;
 }
@@ -65,7 +62,6 @@ export const useAuctions = (state: AuctionViewState) => {
     bidderMetadataByAuctionAndBidder,
     bidderPotsByAuctionAndBidder,
     vaults,
-    nameSymbolTuples,
     masterEditions,
     bidRedemptions,
     masterEditionsByMasterMint,
@@ -81,7 +77,6 @@ export const useAuctions = (state: AuctionViewState) => {
         auctionManagers,
         safetyDepositBoxesByVaultAndIndex,
         metadataByMint,
-        nameSymbolTuples,
         bidRedemptions,
         bidderMetadataByAuctionAndBidder,
         bidderPotsByAuctionAndBidder,
@@ -105,7 +100,6 @@ export const useAuctions = (state: AuctionViewState) => {
     bidderPotsByAuctionAndBidder,
     userAccounts,
     vaults,
-    nameSymbolTuples,
     masterEditions,
     bidRedemptions,
     masterEditionsByMasterMint,
@@ -123,7 +117,6 @@ export function processAccountsIntoAuctionView(
     ParsedAccount<SafetyDepositBox>
   >,
   metadataByMint: Record<string, ParsedAccount<Metadata>>,
-  nameSymbolTuples: Record<string, ParsedAccount<NameSymbolTuple>>,
   bidRedemptions: Record<string, ParsedAccount<BidRedemptionTicket>>,
   bidderMetadataByAuctionAndBidder: Record<
     string,
@@ -198,15 +191,6 @@ export function processAccountsIntoAuctionView(
           }
           curr.metadata = foundMetadata;
         }
-        if (
-          curr.metadata &&
-          !curr.nameSymbol &&
-          curr.metadata.info.nameSymbolTuple
-        ) {
-          let foundNS =
-            nameSymbolTuples[curr.metadata.info.nameSymbolTuple.toBase58()];
-          curr.nameSymbol = foundNS;
-        }
 
         if (
           curr.metadata &&
@@ -266,9 +250,6 @@ export function processAccountsIntoAuctionView(
           }
           return {
             metadata,
-            nameSymbol: metadata?.info?.nameSymbolTuple
-              ? nameSymbolTuples[metadata.info.nameSymbolTuple.toBase58()]
-              : undefined,
             safetyDeposit: boxes[w.safetyDepositBoxIndex],
             masterEdition: metadata?.info?.masterEdition
               ? masterEditions[metadata.info.masterEdition.toBase58()]

@@ -180,9 +180,9 @@ pub fn process_redeem_open_edition_bid(
                 destination: accept_payment_info.clone(),
                 amount: open_edition_fixed_price,
                 authority: transfer_authority_info.clone(),
-                authority_signer_seeds: &[&[]],
+                authority_signer_seeds: mint_seeds,
                 token_program: token_program_info.clone(),
-            })?
+            })?;
         }
     } else {
         return Err(MetaplexError::NotEligibleForOpenEdition.into());
@@ -228,7 +228,6 @@ pub fn process_redeem_master_edition_bid(
     let rent_info = next_account_info(account_info_iter)?;
 
     let metadata_info = next_account_info(account_info_iter)?;
-    let name_symbol_info = next_account_info(account_info_iter)?;
     let new_metadata_authority_info = next_account_info(account_info_iter)?;
     let transfer_authority_info = next_account_info(account_info_iter)?;
 
@@ -286,18 +285,13 @@ pub fn process_redeem_master_edition_bid(
                     &[auction_bump_seed],
                 ];
 
-                let metadata: Metadata =
-                    try_from_slice_unchecked(&metadata_info.data.borrow_mut())?;
-
                 if transfer_authority != *transfer_authority_info.key {
                     return Err(MetaplexError::InvalidTransferAuthority.into());
                 }
 
                 transfer_metadata_ownership(
-                    &metadata,
                     token_metadata_program_info.clone(),
                     metadata_info.clone(),
-                    name_symbol_info.clone(),
                     auction_manager_info.clone(),
                     new_metadata_authority_info.clone(),
                     auction_authority_seeds,
@@ -475,7 +469,6 @@ pub fn process_validate_safety_deposit_box(
 
     let auction_manager_info = next_account_info(account_info_iter)?;
     let metadata_info = next_account_info(account_info_iter)?;
-    let name_symbol_info = next_account_info(account_info_iter)?;
     let original_authority_lookup_info = next_account_info(account_info_iter)?;
     let safety_deposit_info = next_account_info(account_info_iter)?;
     let store_info = next_account_info(account_info_iter)?;
@@ -501,12 +494,7 @@ pub fn process_validate_safety_deposit_box(
     let _mint: Mint = assert_initialized(mint_info)?;
 
     assert_owned_by(auction_manager_info, program_id)?;
-    assert_update_authority_is_correct(
-        &metadata,
-        metadata_info,
-        Some(name_symbol_info),
-        metadata_authority_info,
-    )?;
+    assert_update_authority_is_correct(&metadata, metadata_authority_info)?;
     assert_authority_correct(&auction_manager, authority_info)?;
     assert_store_safety_vault_manager_match(
         &auction_manager,
@@ -588,10 +576,8 @@ pub fn process_validate_safety_deposit_box(
             }
 
             transfer_metadata_ownership(
-                &metadata,
                 token_metadata_program_info.clone(),
                 metadata_info.clone(),
-                name_symbol_info.clone(),
                 metadata_authority_info.clone(),
                 auction_manager_info.clone(),
                 authority_seeds,
@@ -647,10 +633,8 @@ pub fn process_validate_safety_deposit_box(
             original_authority_lookup.original_authority = *metadata_authority_info.key;
 
             transfer_metadata_ownership(
-                &metadata,
                 token_metadata_program_info.clone(),
                 metadata_info.clone(),
-                name_symbol_info.clone(),
                 metadata_authority_info.clone(),
                 auction_manager_info.clone(),
                 authority_seeds,
@@ -779,7 +763,6 @@ pub fn process_init_auction_manager(
     let vault_info = next_account_info(account_info_iter)?;
     let auction_info = next_account_info(account_info_iter)?;
     let open_edition_metadata_info = next_account_info(account_info_iter)?;
-    let open_edition_name_symbol_info = next_account_info(account_info_iter)?;
     let open_edition_authority_info = next_account_info(account_info_iter)?;
     let open_master_edition_info = next_account_info(account_info_iter)?;
     let open_edition_mint_info = next_account_info(account_info_iter)?;
@@ -859,12 +842,7 @@ pub fn process_init_auction_manager(
 
         let open_edition_metadata =
             try_from_slice_unchecked(&open_edition_metadata_info.data.borrow_mut())?;
-        assert_update_authority_is_correct(
-            &open_edition_metadata,
-            open_edition_metadata_info,
-            Some(open_edition_name_symbol_info),
-            open_edition_authority_info,
-        )?;
+        assert_update_authority_is_correct(&open_edition_metadata, open_edition_authority_info)?;
 
         check_and_transfer_edition_master_mint(
             open_edition_mint_info,

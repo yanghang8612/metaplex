@@ -1,9 +1,7 @@
 import {
-  EventEmitter,
   programIds,
   useConnection,
   decodeMetadata,
-  decodeNameSymbolTuple,
   AuctionParser,
   decodeEdition,
   decodeMasterEdition,
@@ -15,7 +13,6 @@ import {
   actions,
   Edition,
   MasterEdition,
-  NameSymbolTuple,
   AuctionData,
   SafetyDepositBox,
   VaultKey,
@@ -51,7 +48,6 @@ export interface MetaContextState {
   metadata: ParsedAccount<Metadata>[];
   metadataByMint: Record<string, ParsedAccount<Metadata>>;
   metadataByMasterEdition: Record<string, ParsedAccount<Metadata>>;
-  nameSymbolTuples: Record<string, ParsedAccount<NameSymbolTuple>>;
   editions: Record<string, ParsedAccount<Edition>>;
   masterEditions: Record<string, ParsedAccount<MasterEdition>>;
   masterEditionsByMasterMint: Record<string, ParsedAccount<MasterEdition>>;
@@ -73,7 +69,6 @@ export interface MetaContextState {
 const MetaContext = React.createContext<MetaContextState>({
   metadata: [],
   metadataByMint: {},
-  nameSymbolTuples: {},
   masterEditions: {},
   masterEditionsByMasterMint: {},
   metadataByMasterEdition: {},
@@ -98,9 +93,6 @@ export function MetaProvider({ children = null as any }) {
   const [metadata, setMetadata] = useState<ParsedAccount<Metadata>[]>([]);
   const [metadataByMint, setMetadataByMint] = useState<
     Record<string, ParsedAccount<Metadata>>
-  >({});
-  const [nameSymbolTuples, setNameSymbolTuples] = useState<
-    Record<string, ParsedAccount<NameSymbolTuple>>
   >({});
   const [masterEditions, setMasterEditions] = useState<
     Record<string, ParsedAccount<MasterEdition>>
@@ -421,17 +413,6 @@ export function MetaProvider({ children = null as any }) {
               ...e,
               [masterEdition.masterMint.toBase58()]: account,
             }));
-          } else if (meta.account.data[0] === MetadataKey.NameSymbolTupleV1) {
-            const nameSymbolTuple = decodeNameSymbolTuple(meta.account.data);
-            const account: ParsedAccount<NameSymbolTuple> = {
-              pubkey: meta.pubkey,
-              account: meta.account,
-              info: nameSymbolTuple,
-            };
-            setNameSymbolTuples(e => ({
-              ...e,
-              [meta.pubkey.toBase58()]: account,
-            }));
           }
         } catch {
           // ignore errors
@@ -490,7 +471,6 @@ export function MetaProvider({ children = null as any }) {
     connection,
     setMetadata,
     setMasterEditions,
-    setNameSymbolTuples,
     setMasterEditionsByMasterMint,
     setMetadataByMasterEdition,
     setEditions,
@@ -502,7 +482,6 @@ export function MetaProvider({ children = null as any }) {
         metadata,
         editions,
         masterEditions,
-        nameSymbolTuples,
         auctionManagers,
         auctions,
         metadataByMint,

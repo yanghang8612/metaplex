@@ -20,7 +20,6 @@ import './../styles.less';
 import { mintNFT } from '../../actions';
 import {
   MAX_METADATA_LEN,
-  MAX_NAME_SYMBOL_LEN,
   MAX_URI_LENGTH,
   useConnection,
   useWallet,
@@ -655,7 +654,6 @@ const LaunchStep = (props: {
     const rentCall = Promise.all([
       props.connection.getMinimumBalanceForRentExemption(MintLayout.span),
       props.connection.getMinimumBalanceForRentExemption(MAX_METADATA_LEN),
-      props.connection.getMinimumBalanceForRentExemption(MAX_NAME_SYMBOL_LEN),
     ]);
 
     getAssetCostToStore([
@@ -665,7 +663,7 @@ const LaunchStep = (props: {
       const sol = lamports / LAMPORT_MULTIPLIER;
 
       // TODO: cache this and batch in one call
-      const [mintRent, metadataRent, nameSymbolRent] = await rentCall;
+      const [mintRent, metadataRent] = await rentCall;
 
       const uriStr = 'x';
       let uriBuilder = '';
@@ -673,8 +671,7 @@ const LaunchStep = (props: {
         uriBuilder += uriStr;
       }
 
-      const additionalSol =
-        (metadataRent + nameSymbolRent + mintRent) / LAMPORT_MULTIPLIER;
+      const additionalSol = (metadataRent + mintRent) / LAMPORT_MULTIPLIER;
 
       // TODO: add fees based on number of transactions and signers
       setCost(sol + additionalSol);

@@ -33,19 +33,9 @@ pub enum MetadataError {
     #[error(" Metadata's key must match seed of ['metadata', program id, mint] provided")]
     InvalidMetadataKey,
 
-    ///  NameSymbolTuple's key must match seed of ['metadata', program id, name, symbol] provided
-    #[error(
-        "NameSymbolTuple's key must match seed of ['metadata', program id, name, symbol] provided"
-    )]
-    InvalidNameSymbolKey,
-
     ///  Edition's key must match seed of ['metadata', program id, name, 'edition'] provided
     #[error("Edition's key must match seed of ['metadata', program id, name, 'edition'] provided")]
     InvalidEditionKey,
-
-    /// This NameSymbol does not own this metadata
-    #[error("This NameSymbol does not own this metadata")]
-    InvalidMetadataForNameSymbolTuple,
 
     /// Update Authority given does not match
     #[error("Update Authority given does not match")]
@@ -74,10 +64,6 @@ pub enum MetadataError {
     /// URI too long
     #[error("URI too long")]
     UriTooLong,
-
-    /// Update authority must be equivalent to the name symbol tuple's authority and also signer of this transaction
-    #[error("Update authority must be equivalent to the name symbol tuple's authority and also signer of this transaction")]
-    UpdateAuthorityMustBeEqualToNameSymbolAuthorityAndSigner,
 
     /// Update authority must be equivalent to the metadata's authority and also signer of this transaction
     #[error("Update authority must be equivalent to the metadata's authority and also signer of this transaction")]
