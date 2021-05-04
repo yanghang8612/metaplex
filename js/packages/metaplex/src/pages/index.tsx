@@ -2,14 +2,12 @@ import * as React from "react";
 
 import Layout from "../components/Layout";
 import FirstSection from "../components/firstSection";
-import PartnerSection from "../components/partnerSection";
-import ProgrammingSection from "../components/progSection";
-import EventSection from "../components/eventSection";
+import CiteSection from "../components/citeSection";
 
 const IndexPage = (): React.ReactElement => (
   <Layout>
     <FirstSection />
-    <EventSection />
+    <CiteSection />
     {/*<PartnerSection />*/}
     {/*<ProgrammingSection />*/}
   </Layout>

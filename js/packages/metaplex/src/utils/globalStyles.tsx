@@ -19,7 +19,7 @@ const globalStyles = css`
   h5,
   h6 {
     ${tw`text-xs sm:text-sm font-sans uppercase`}
-    color: #DC3A34;
+    color: white;
   }
   h6 {
     ${tw`mx-4 my-auto`}

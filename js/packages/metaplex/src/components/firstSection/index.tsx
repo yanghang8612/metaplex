@@ -27,6 +27,7 @@ const Container = styled.div`
 
 const MetaplexWrapper = styled.div`
   ${tw`
+    w-9/12
     mb-20
     `}
 `;
