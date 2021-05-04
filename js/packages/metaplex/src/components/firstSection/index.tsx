@@ -4,25 +4,27 @@ import tw, { styled } from "twin.macro";
 
 import MetaplexSVG from "../../images/metaplex.inline.svg";
 import BaseButton from "../BaseButton";
+import MockDisplay from "../MockDisplay";
 
 const SectionWrapper = styled.div`
   ${tw`
     min-h-halfScreen w-full
     py-0 inset-0 
-    flex flex-col justify-center 
+    flex flex-row justify-center 
   `}
-  &:before,
-  &:after {
-    ${tw`bg-right-top bg-half sm:bg-right-bottom lg:bg-contain`}
-  }
 `;
 
-const Container = styled.div`
-  ${tw`
-    relative 
-    sm:max-w-xl md:max-w-3xl
-    text-white text-xl text-left 
-    px-2 sm:px-12`}
+const ContainerLeft = styled.div`
+  ${tw`w-full md:w-1/2
+    text-white text-xl text-left
+    py-3 sm:py-16 
+    px-2 sm:px-8`}
+`;
+
+const ContainerRight = tw.div`
+  relative
+  w-full md:w-1/2
+  text-white
 `;
 
 const MetaplexWrapper = styled.div`
@@ -39,6 +41,18 @@ const BlueButton = tw(BaseButton)`
   mt-5
   mr-2
   mb-2
+`;
+
+const BottomMock = styled(MockDisplay)`
+  position: absolute;
+  top: 50px;
+  left: 120px;
+`;
+
+const TopMock = styled(MockDisplay)`
+  position: absolute;
+  top: 110px;
+  left: 200px;
 `;
 
 /**
@@ -61,7 +75,7 @@ const FirstSection = (): React.ReactElement => {
   );
   return (
     <SectionWrapper>
-      <Container>
+      <ContainerLeft>
         <MetaplexWrapper>
           <MetaplexSVG />
         </MetaplexWrapper>
@@ -69,7 +83,11 @@ const FirstSection = (): React.ReactElement => {
         <p>{hero.rawMarkdownBody}</p>
         <BlueButton>Request an invite</BlueButton>
         <BaseButton>Request an invite</BaseButton>
-      </Container>
+      </ContainerLeft>
+      <ContainerRight>
+        <BottomMock />
+        <TopMock>Product Mock</TopMock>
+      </ContainerRight>
     </SectionWrapper>
   );
 };
