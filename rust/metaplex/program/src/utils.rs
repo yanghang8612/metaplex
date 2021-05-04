@@ -29,7 +29,7 @@ use {
         state::{Account, Mint},
     },
     spl_token_metadata::{
-        instruction::transfer_update_authority,
+        instruction::update_metadata_accounts,
         state::{MasterEdition, Metadata, EDITION},
     },
     spl_token_vault::{instruction::create_withdraw_tokens_instruction, state::SafetyDepositBox},
@@ -211,29 +211,24 @@ pub fn issue_start_auction<'a>(
 }
 
 pub fn transfer_metadata_ownership<'a>(
-    metadata: &Metadata,
     token_metadata_program: AccountInfo<'a>,
     metadata_info: AccountInfo<'a>,
-    name_symbol: AccountInfo<'a>,
     update_authority: AccountInfo<'a>,
     new_update_authority: AccountInfo<'a>,
     signer_seeds: &[&[u8]],
 ) -> ProgramResult {
-    let transferring_obj = match metadata.non_unique_specific_update_authority {
-        Some(_) => metadata_info,
-        None => name_symbol,
-    };
     invoke_signed(
-        &transfer_update_authority(
+        &update_metadata_accounts(
             *token_metadata_program.key,
-            *transferring_obj.key,
+            *metadata_info.key,
             *update_authority.key,
-            *new_update_authority.key,
+            Some(*new_update_authority.key),
+            None,
         ),
         &[
             update_authority,
             new_update_authority,
-            transferring_obj,
+            metadata_info,
             token_metadata_program,
         ],
         &[&signer_seeds],

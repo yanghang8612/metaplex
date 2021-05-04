@@ -12,7 +12,7 @@ document are available at:
 
 ## Source
 
-The Metadata Program's source is available on
+The Token Metadata Program's source is available on
 [github](https://github.com/solana-labs/solana-program-library)
 
 There is also an example Rust client located at
@@ -22,21 +22,50 @@ that can be perused for learning and run if desired with `cargo run --bin spl-to
 ## Interface
 
 The on-chain Token Metadata program is written in Rust and available on crates.io as
-[spl-metadata](https://crates.io/crates/spl-token-metadata) and
+[spl-token-metadata](https://crates.io/crates/spl-token-metadata) and
 [docs.rs](https://docs.rs/spl-token-metadata).
 
-The crate provides three instructions, `create_metadata_accounts()`, `update_metadata_accounts()` and `transfer_update_authority()`to easily create instructions for the program.
+The crate provides four instructions, `create_metadata_account()`, `update_metadata_account()`, `create_master_edition()`, `mint_new_edition_from_master_edition_via_token(),` to easily create instructions for the program.
 
 ## Operational overview
 
 This is a very simple program designed to allow metadata tagging to a given mint, with an update authority
-that can change that metadata going forward. The app is composed of 3 actions, one which will create the accounts, one which will update some of the fields on them, and a third action which for a special subset
-of accounts will allow swapping of the authorities.
+that can change that metadata going forward. Optionally, owners of the metadata can choose to tag this metadata
+as a master edition and then use this master edition to label child mints as "limited editions" of this master
+edition going forward. The owners of the metadata do not need to be involved in every step of the process,
+as any holder of a master edition mint token can have their mint labeled as a limited edition without
+the involvement or signature of the owner, this allows for the sale and distribution of master edition prints.
+
+## Operational flow for Master Editions
+
+It would be useful before a dive into architecture to illustrate the flow for a master edition
+as a story because it makes it easier to understand.
+
+1. User creates a new Metadata for their mint with `create_metadata_account()` which makes new `Metadata`
+2. User wishes their mint to be a master edition and ensures that there
+   is only required supply of one in the mint.
+3. User requests the program to designate `create_master_edition()` on their metadata,
+   which creates new `MasterEdition` which for this example we will say has an unlimited supply. As
+   part of the arguments to the function the user is required to make a new mint called the Master Mint over
+   which they have minting authority that they tell the contract about and that the contract stores ont he
+   `MasterEdition`.
+4. User mints a token from the Master Mint and gives it to their friend.
+5. Their friend creates a new mint with supply 1 and calls `mint_new_edition_from_master_edition_via_token()`,
+   which creates for them new `Metadata` and `Edition` records signifying this mint as an Edition child of
+   the master edition original.
+
+There is a slight variation on this theme if `create_master_edition()` is given a max_supply: minting authority
+is locked within the program for the master mint and all minting takes place immediately in
+`create_master_edition()` to a designated account the user provides and owns -
+the user then uses this fixed pool as the source of their authorization tokens going forward to prevent new
+supply from being generated in an unauthorized manner.
 
 ### Permissioning and Architecture
 
-The Metadata app creates two different kinds of Metadata: Unique metadata and Non-Unique metadata. These are
-toggled via the `allow_duplicates` boolean in the `create_metadata_accounts` call.
+There are three different major structs in the app: Metadata, MasterEditions, and Editions. A Metadata can
+have zero or one MasterEdition, OR can have zero or one Edition, but CANNOT have both a MasterEdition AND
+an Edition associated with it. This is to say a Metadata is EITHER a master edition
+or a edition(child record) of another master edition.
 
 Only the minting authority on a mint can create metadata accounts. A Metadata account holds the name, symbol,
 and uri of the mint, as well as the mint id. To ensure the uniqueness of
@@ -46,55 +75,43 @@ a mint's metadata, the address of a Metadata account is a program derived addres
 ["metadata".as_bytes(), program_id.as_ref(), mint_key.as_ref()]
 ```
 
-If the caller is alright with having other people potentially duplicate their name/symbol combination
-(ie `allow_duplicates` is `true`) then the additional field `non_unique_specific_update_authority`,
-which is a `Option<Pubkey>` will be set to the update authority. If the caller prefers to reserve their
-name/symbol combination for unique use, they can join the pool of unique Metadata by
-setting `allow_duplicates` to `false`. When this is done, a second account called a NameSymbolTuple is created.
-
-The NameSymbolTuple address is a program derived address composed of seeds:
+A master edition is an extension account of this PDA, being simply:
 
 ```rust
-["metadata".as_bytes(), program_id.as_ref(), name_as_bytes, symbol_as_bytes]
+["metadata".as_bytes(), program_id.as_ref(), mint_key.as_ref(), "edition".as_bytes()]
 ```
 
-This account then contains an `update_authority` key and a `metadata` key pointing back at the original account.
+Any limited edition minted from this has the same address, but is of a different struct type. The reason
+these two different structs(Edition and MasterEdition) share the same address is to ensure that there can
+be no Metadata that has both, which would make no sense in the current architecture.
 
-This ensures easy lookups by those interested - they can simply look up the Metadata account by mint address, then
-look up NameSymbolTuple with the name and symbol if they want to. This means a client who is interested in NFTs
-or other uniques can do RPC calls against Metadata only in the unique space by searching for
-Metadata with the first bit of 0, because the first bit in Metadata is always 0 for unique Metadata and always
-1 for non-unique Metadata.
-
-Also users who wish to look up a particular set of Metadata for a unique name-symbol combo can look up a NameSymbolTuple by it's program-derived address, and because it has both the metadata key and update authority,
-they can easily learn who the owner of that name/symbol is and what mint backs it.
-
-For Metadata that are part of the unique pool, they will need to use the separate `set_update_authority` call,
-to change update authorities. For those that aren't, they can do so via the normal update call.
-
-Due to the nature of the addresses on these accounts, name and symbol are immutable.
-
-### create_metadata_accounts
+### create_metadata_account
 
 (Mint authority must be signer)
 
-This action creates the NameSymbolTuple(only if `allow_duplicates` is `true`) and Metadata accounts.
-This can also be used for an existing NameSymbolTuple, if the update authority that is passed in is also signer,
-to reset the metadata account it is pointing at to a newly created metadata. This effectively transfers the
-NameSymbolTuple from one Metadata account to a new one.
+This action creates the `Metadata` account.
 
-### update_metadata_accounts
+### update_metadata_account
 
 (Update authority must be signer)
 
 This call can be called at any time by the update authority to update the URI on any metadata or
-update authority on non-unique metadata, and later other fields.
+update authority on metadata, and later other fields.
 
-### transfer_update_authority
+### create_master_edition
 
 (Update authority must be signer)
 
-For unique metadatas, this transfers the ownership of NameSymbolTuple to a different person.
+This can only be called once, and only if the supply on the mint is one. It will create a `MasterEdition` record.
+Now other Mints can become Editions of this Metadata if they have the proper authorization token.
+
+### mint_new_edition_from_master_edition_via_token
+
+(Mint authority of new mint must be signer)
+
+If one possesses a token from the master mint of the master edition and a brand new mint with no `Metadata`, and
+that mint has only a supply of one, this mint can be turned into an `Edition` of this parent `Master Edition` by
+calling this endpoint. This endpoint both creates the `Edition` and `Metadata` records and burns the token.
 
 ### Further extensions
 

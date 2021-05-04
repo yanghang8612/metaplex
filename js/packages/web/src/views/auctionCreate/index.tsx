@@ -24,7 +24,6 @@ import { ArtSelector } from './artSelector';
 import './../styles.less';
 import {
   MAX_METADATA_LEN,
-  MAX_NAME_SYMBOL_LEN,
   useConnection,
   useWallet,
   useConnectionConfig,
@@ -234,8 +233,10 @@ export const AuctionCreateView = () => {
       winnerLimit,
       new BN(endAuctionAt),
       new BN((attributes.gapTime || 0) * 60),
-      attributes.items,
-      attributes.participationNFT,
+      attributes.category == AuctionCategory.Open ? [] : attributes.items,
+      attributes.category == AuctionCategory.Open
+        ? attributes.items[0]
+        : attributes.participationNFT,
       // TODO: move to config
       new PublicKey('4XEUcBjLyBHuMDKTARycf4VXqpsAsDcThMbhWgFuDGsC'),
     );
@@ -1409,7 +1410,6 @@ const ReviewStep = (props: {
     const rentCall = Promise.all([
       props.connection.getMinimumBalanceForRentExemption(MintLayout.span),
       props.connection.getMinimumBalanceForRentExemption(MAX_METADATA_LEN),
-      props.connection.getMinimumBalanceForRentExemption(MAX_NAME_SYMBOL_LEN),
     ]);
 
     // TODO: add

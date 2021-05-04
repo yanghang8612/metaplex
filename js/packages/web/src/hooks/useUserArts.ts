@@ -3,7 +3,7 @@ import { SafetyDepositDraft } from '../actions/createAuctionManager';
 import { useMeta } from './../contexts';
 
 export const useUserArts = (): SafetyDepositDraft[] => {
-  const { metadata, masterEditions, editions, nameSymbolTuples } = useMeta();
+  const { metadata, masterEditions, editions } = useMeta();
   const { userAccounts } = useUserAccounts();
   const accountByMint = userAccounts.reduce((prev, acc) => {
     prev.set(acc.info.mint.toBase58(), acc);
@@ -15,12 +15,6 @@ export const useUserArts = (): SafetyDepositDraft[] => {
       accountByMint.has(m.info.mint.toBase58()) &&
       (accountByMint?.get(m.info.mint.toBase58())?.info?.amount?.toNumber() ||
         0) > 0,
-  );
-
-  const possibleNameSymbols = ownedMetadata.map(m =>
-    m.info.nameSymbolTuple
-      ? nameSymbolTuples[m.info.nameSymbolTuple?.toBase58()]
-      : undefined,
   );
 
   const possibleEditions = ownedMetadata.map(m =>
@@ -44,7 +38,6 @@ export const useUserArts = (): SafetyDepositDraft[] => {
     if (a) {
       safetyDeposits.push({
         holding: a.pubkey,
-        nameSymbol: possibleNameSymbols[i],
         edition: possibleEditions[i],
         masterEdition: possibleMasterEditions[i],
         metadata: m,

@@ -17,7 +17,6 @@ import {
 export async function initAuctionManager(
   vault: PublicKey,
   openEditionMetadata: PublicKey | undefined,
-  openEditionNameSymbol: PublicKey | undefined,
   openEditionAuthority: PublicKey | undefined,
   openEditionMasterAccount: PublicKey | undefined,
   openEditionMint: PublicKey | undefined,
@@ -57,11 +56,6 @@ export async function initAuctionManager(
     },
     {
       pubkey: openEditionMetadata || SystemProgram.programId, // Won't actually be used if openEditionConfig is null
-      isSigner: false,
-      isWritable: true,
-    },
-    {
-      pubkey: openEditionNameSymbol || SystemProgram.programId, // Won't actually be used if openEditionConfig is null
       isSigner: false,
       isWritable: true,
     },

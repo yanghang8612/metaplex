@@ -28,7 +28,7 @@ use {
         instruction::{approve, initialize_account, mint_to},
         state::Account,
     },
-    spl_token_metadata::state::{MasterEdition, Metadata, EDITION},
+    spl_token_metadata::state::{MasterEdition, EDITION},
     spl_token_vault::state::{SafetyDepositBox, Vault, SAFETY_DEPOSIT_KEY},
     std::{collections::HashMap, str::FromStr},
 };
@@ -301,19 +301,6 @@ fn redeem_bid_master_edition_type<'a>(
     let (master_metadata_key, _) =
         Pubkey::find_program_address(master_metadata_seeds, &token_metadata_key);
 
-    let master_metadata_account = client.get_account(&master_metadata_key).unwrap();
-    let master_metadata: Metadata =
-        try_from_slice_unchecked(&master_metadata_account.data).unwrap();
-
-    let master_name_symbol_seeds = &[
-        spl_token_metadata::state::PREFIX.as_bytes(),
-        &token_metadata_key.as_ref(),
-        master_metadata.data.name.as_bytes(),
-        master_metadata.data.symbol.as_bytes(),
-    ];
-    let (master_name_symbol_key, _) =
-        Pubkey::find_program_address(master_name_symbol_seeds, &token_metadata_key);
-
     let transfer_seeds = [
         spl_token_vault::state::PREFIX.as_bytes(),
         token_vault_program.as_ref(),
@@ -366,7 +353,6 @@ fn redeem_bid_master_edition_type<'a>(
         payer,
         token_vault_program,
         master_metadata_key,
-        master_name_symbol_key,
         bidder,
         transfer_authority,
     ));

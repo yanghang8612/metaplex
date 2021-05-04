@@ -120,11 +120,10 @@ export const mintNFT = async (
     ),
   );
 
-  const [metadataAccount, nameSymbolAccount] = await createMetadata(
+  const metadataAccount = await createMetadata(
     metadata.symbol,
     metadata.name,
     `https://-------.---/rfX69WKd7Bin_RTbcnH4wM3BuWWsR_ZhWSSqZBLYdMY`,
-    true,
     payerPublicKey,
     mintKey,
     payerPublicKey,
@@ -196,15 +195,12 @@ export const mintNFT = async (
     // TODO: connect to testnet arweave
     const arweaveLink = `https://arweave.net/${metadataFile.transactionId}`;
     await updateMetadata(
-      metadata.symbol,
-      metadata.name,
       arweaveLink,
       undefined,
       mintKey,
       payerPublicKey,
       updateInstructions,
       metadataAccount,
-      nameSymbolAccount,
     );
 
     // // This mint, which allows limited editions to be made, stays with user's wallet.
@@ -232,9 +228,7 @@ export const mintNFT = async (
     // // In this instruction, mint authority will be removed from the main mint, while
     // // minting authority will be maintained for the master mint (which we want.)
     await createMasterEdition(
-      metadata.symbol,
-      metadata.name,
-      maxSupply !== undefined ? new BN(maxSupply) : maxSupply,
+      maxSupply != undefined ? new BN(maxSupply) : maxSupply,
       mintKey,
       masterMint,
       payerPublicKey,
@@ -256,6 +250,7 @@ export const mintNFT = async (
       );
 */
     // TODO: enable when using payer account to avoid 2nd popup
+    // Note with refactoring this needs to switch to the updateMetadataAccount command
     // await transferUpdateAuthority(
     //   metadataAccount,
     //   payerPublicKey,

@@ -2,7 +2,6 @@ import { programIds, VAULT_PREFIX, getMetadata } from '@oyster/common';
 import {
   PublicKey,
   SystemProgram,
-  SYSVAR_CLOCK_PUBKEY,
   SYSVAR_RENT_PUBKEY,
   TransactionInstruction,
 } from '@solana/web3.js';
@@ -25,7 +24,6 @@ export async function redeemMasterEditionBid(
   payer: PublicKey,
   instructions: TransactionInstruction[],
   masterMetadata: PublicKey,
-  masterNameSymbol: PublicKey | undefined,
   newAuthority: PublicKey,
 ) {
   const PROGRAM_IDS = programIds();
@@ -129,11 +127,6 @@ export async function redeemMasterEditionBid(
     },
     {
       pubkey: masterMetadata,
-      isSigner: false,
-      isWritable: true,
-    },
-    {
-      pubkey: masterNameSymbol || SystemProgram.programId,
       isSigner: false,
       isWritable: true,
     },

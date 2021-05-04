@@ -106,14 +106,7 @@ pub fn add_token_to_vault(
         &mint_key.as_ref(),
     ];
     let (metadata_key, _) = Pubkey::find_program_address(metadata_seeds, &spl_token_metadata::id());
-    let name_symbol_seeds = &[
-        spl_token_metadata::state::PREFIX.as_bytes(),
-        &token_metadata.as_ref(),
-        "no".as_bytes(),
-        "name".as_bytes(),
-    ];
-    let (name_symbol_key, _) =
-        Pubkey::find_program_address(name_symbol_seeds, &spl_token_metadata::id());
+
     let edition_seeds = &[
         spl_token_metadata::state::PREFIX.as_bytes(),
         &token_metadata.as_ref(),
@@ -128,7 +121,6 @@ pub fn add_token_to_vault(
         None => {
             instructions.push(create_metadata_accounts(
                 spl_token_metadata::id(),
-                name_symbol_key,
                 metadata_key,
                 mint_key,
                 payer.pubkey(),
@@ -137,7 +129,6 @@ pub fn add_token_to_vault(
                 "no".to_owned(),
                 "name".to_owned(),
                 "www.none.com".to_owned(),
-                true,
                 true,
             ));
             if is_master_edition {
@@ -273,7 +264,6 @@ pub fn add_token_to_vault(
                     payer.pubkey(),
                     payer.pubkey(),
                     metadata_key,
-                    name_symbol_key,
                     payer.pubkey(),
                     token_supply,
                     auth_holding_account,

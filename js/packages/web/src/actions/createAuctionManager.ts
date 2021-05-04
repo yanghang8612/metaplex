@@ -10,7 +10,6 @@ import {
   ParsedAccount,
   WinnerLimit,
   MasterEdition,
-  NameSymbolTuple,
   getMetadata,
   SequenceType,
   sendTransactions,
@@ -63,7 +62,6 @@ interface byType {
 
 export interface SafetyDepositDraft {
   metadata: ParsedAccount<Metadata>;
-  nameSymbol?: ParsedAccount<NameSymbolTuple>;
   masterEdition?: ParsedAccount<MasterEdition>;
   edition?: ParsedAccount<Edition>;
   holding: PublicKey;
@@ -316,7 +314,6 @@ async function setupAuctionManagerInstructions(
   await initAuctionManager(
     vault,
     openEditionSafetyDepositDraft?.metadata.pubkey,
-    openEditionSafetyDepositDraft?.nameSymbol?.pubkey,
     wallet.publicKey,
     openEditionSafetyDepositDraft?.masterEdition?.pubkey,
     openEditionSafetyDepositDraft?.metadata.info.mint,
@@ -393,7 +390,6 @@ async function validateBoxes(
       await validateSafetyDepositBox(
         vault,
         safetyDeposits[i].draft.metadata.pubkey,
-        safetyDeposits[i].draft.nameSymbol?.pubkey,
         safetyDepositBox,
         stores[i],
         //@ts-ignore
