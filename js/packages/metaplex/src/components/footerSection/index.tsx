@@ -1,8 +1,8 @@
-import * as React from "react";
-import { graphql, useStaticQuery } from "gatsby";
-import tw, { styled } from "twin.macro";
+import * as React from 'react';
+import { graphql, useStaticQuery } from 'gatsby';
+import tw, { styled } from 'twin.macro';
 
-import BaseButton from "../BaseButton";
+import BaseButton from '../BaseButton';
 
 const Container = styled.div`
   ${tw`
@@ -28,7 +28,7 @@ const FooterSection = (): React.ReactElement => {
           rawMarkdownBody
         }
       }
-    `
+    `,
   );
   return (
     <>

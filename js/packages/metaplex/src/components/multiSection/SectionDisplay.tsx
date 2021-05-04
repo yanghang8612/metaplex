@@ -1,7 +1,7 @@
-import * as React from "react";
-import { graphql, useStaticQuery } from "gatsby";
-import { GatsbyImage, getImage } from "gatsby-plugin-image";
-import MockDisplay from "../MockDisplay";
+import * as React from 'react';
+import { graphql, useStaticQuery } from 'gatsby';
+import { GatsbyImage, getImage } from 'gatsby-plugin-image';
+import MockDisplay from '../MockDisplay';
 
 type Props = {
   display?: string;
@@ -33,7 +33,7 @@ const SectionDisplay = ({
           }
         }
       }
-    `
+    `,
   );
 
   return (

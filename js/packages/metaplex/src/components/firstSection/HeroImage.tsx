@@ -1,8 +1,8 @@
-import * as React from "react";
-import { graphql, useStaticQuery } from "gatsby";
-import tw, { styled } from "twin.macro";
+import * as React from 'react';
+import { graphql, useStaticQuery } from 'gatsby';
+import tw, { styled } from 'twin.macro';
 
-import { BgImage } from "gbimage-bridge";
+import { BgImage } from 'gbimage-bridge';
 
 const EllipsesHeaderSVG =
   "data:image/svg+xml,%3Csvg%20viewBox='0%200%20218%20477'%20fill='none'%20xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle%20cx='300'%20cy='177'%20r='120.5'%20stroke='%23DC3A34'%20stroke-opacity='0.5'/%3E%3Ccircle%20cx='300'%20cy='177'%20r='180.5'%20stroke='%23DC3A34'%20stroke-opacity='0.5'/%3E%3Ccircle%20cx='300'%20cy='177'%20r='239.5'%20stroke='%23DC3A34'%20stroke-opacity='0.5'/%3E%3Ccircle%20cx='300'%20cy='177'%20r='299.5'%20stroke='%23DC3A34'%20stroke-opacity='0.5'/%3E%3C/svg%3E";
@@ -29,12 +29,12 @@ const HeroImage = ({ className, children }: Props): React.ReactElement => {
           }
         }
       }
-    `
+    `,
   );
 
   // Set ImageData including the mobile background.
   const imageData = [
-    { tracedSVG: EllipsesHeaderSVG, src: "", srcSet: "", aspectRatio: 0.5 },
+    { tracedSVG: EllipsesHeaderSVG, src: '', srcSet: '', aspectRatio: 0.5 },
     {
       ...index.childImageSharp.gatsbyImageData,
       media: `(min-width: 640px)`,
@@ -48,8 +48,8 @@ const HeroImage = ({ className, children }: Props): React.ReactElement => {
       // @ts-ignore
       image={imageData}
       style={{
-        backgroundPosition: "",
-        backgroundSize: "",
+        backgroundPosition: '',
+        backgroundSize: '',
       }}
       backgroundColor={`#0c0e1b`}
     >

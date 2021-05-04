@@ -1,5 +1,5 @@
 // Shorthand Version.
-import tw from "twin.macro";
+import tw from 'twin.macro';
 
 const BaseButton = tw.button`
   bg-gradient-to-l from-btnPrimaryStart to-btnPrimaryStop

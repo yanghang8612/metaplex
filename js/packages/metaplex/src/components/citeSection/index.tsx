@@ -1,7 +1,7 @@
-import * as React from "react";
-import { graphql, useStaticQuery } from "gatsby";
-import tw, { styled } from "twin.macro";
-import { GatsbyImage, getImage } from "gatsby-plugin-image";
+import * as React from 'react';
+import { graphql, useStaticQuery } from 'gatsby';
+import tw, { styled } from 'twin.macro';
+import { GatsbyImage, getImage } from 'gatsby-plugin-image';
 
 const EventSectionWrapper = styled.div`
   ${tw`w-full p-4 sm:py-16 block md:flex flex-row`}
@@ -52,7 +52,7 @@ const CiteSection = (): React.ReactElement => {
           }
         }
       }
-    `
+    `,
   );
 
   const racImageData = getImage(racImage);

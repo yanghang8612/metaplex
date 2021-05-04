@@ -1,8 +1,8 @@
-import * as React from "react";
-import tw from "twin.macro";
+import * as React from 'react';
+import tw from 'twin.macro';
 
-import HeliosLogo from "../images/helios_logo.inline.svg";
-import BaseButton from "./BaseButton";
+import HeliosLogo from '../images/helios_logo.inline.svg';
+import BaseButton from './BaseButton';
 
 const HeaderNavigation = tw.nav`
 absolute 

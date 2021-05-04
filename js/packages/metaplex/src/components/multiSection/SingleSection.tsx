@@ -1,7 +1,7 @@
-import * as React from "react";
-import tw, { styled } from "twin.macro";
+import * as React from 'react';
+import tw, { styled } from 'twin.macro';
 
-import SectionDisplay from "./SectionDisplay";
+import SectionDisplay from './SectionDisplay';
 
 type SectionProps = {
   backgroundColor?: string;
@@ -19,8 +19,8 @@ const SectionWrapper = styled.div<SectionProps>`
   p {
     ${tw`px-5 md:px-10`}
   }
-  background-color: ${(props) =>
-    props.backgroundColor === "light" ? `#121212` : `transparent`};
+  background-color: ${props =>
+    props.backgroundColor === 'light' ? `#121212` : `transparent`};
 `;
 
 const ContainerText = styled.div`
@@ -75,14 +75,14 @@ const SingleSection = ({
 }: SingleSectionProps): React.ReactElement => {
   return (
     <SectionWrapper backgroundColor={background}>
-      {position === "left" ? (
+      {position === 'left' ? (
         <>
           <ContainerText>
             <h3>{title}</h3>
             <p>{rawMarkdownBody}</p>
           </ContainerText>
           <ContainerDisplay>
-            {imageWrapper === "gradient" ? (
+            {imageWrapper === 'gradient' ? (
               <SectionBgGradient name={name} display={display} />
             ) : (
               <RoundedSectionDisplay name={name} display={display} />
@@ -92,7 +92,7 @@ const SingleSection = ({
       ) : (
         <>
           <ContainerDisplay>
-            {imageWrapper === "gradient" ? (
+            {imageWrapper === 'gradient' ? (
               <SectionBgGradient name={name} display={display} />
             ) : (
               <RoundedSectionDisplay name={name} display={display} />

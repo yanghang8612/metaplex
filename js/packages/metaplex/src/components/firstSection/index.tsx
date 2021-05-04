@@ -1,10 +1,10 @@
-import * as React from "react";
-import { graphql, useStaticQuery } from "gatsby";
-import tw, { styled } from "twin.macro";
+import * as React from 'react';
+import { graphql, useStaticQuery } from 'gatsby';
+import tw, { styled } from 'twin.macro';
 
-import MetaplexSVG from "../../images/metaplex.inline.svg";
-import BaseButton from "../BaseButton";
-import MockDisplay from "../MockDisplay";
+import MetaplexSVG from '../../images/metaplex.inline.svg';
+import BaseButton from '../BaseButton';
+import MockDisplay from '../MockDisplay';
 
 const SectionWrapper = styled.div`
   ${tw`
@@ -71,7 +71,7 @@ const FirstSection = (): React.ReactElement => {
           rawMarkdownBody
         }
       }
-    `
+    `,
   );
   return (
     <SectionWrapper>

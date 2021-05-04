@@ -1,7 +1,7 @@
-import * as React from "react";
-import { graphql, useStaticQuery } from "gatsby";
+import * as React from 'react';
+import { graphql, useStaticQuery } from 'gatsby';
 
-import SingleSection from "./SingleSection";
+import SingleSection from './SingleSection';
 
 /**
  * Multiple Sections from Markdown.
@@ -37,10 +37,10 @@ const MultiSection = (): React.ReactElement => {
           ...MarkdownSection
         }
       }
-    `
+    `,
   );
 
-  const multipleSections = Object.keys(whichDisplay).map((currentDisplay) => {
+  const multipleSections = Object.keys(whichDisplay).map(currentDisplay => {
     const {
       frontmatter: { title, position, display, background, imageWrapper },
       rawMarkdownBody,
@@ -49,7 +49,7 @@ const MultiSection = (): React.ReactElement => {
     return (
       <SingleSection
         key={currentDisplay}
-        name={"nftExample"}
+        name={currentDisplay}
         title={title}
         position={position}
         display={display}
