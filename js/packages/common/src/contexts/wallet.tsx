@@ -6,20 +6,26 @@ import React, { useCallback, useContext, useEffect, useMemo, useState } from "re
 import { notify } from "./../utils/notifications";
 import { useConnectionConfig } from "./connection";
 import { useLocalStorageState } from "../utils/utils";
-import { LedgerProvider } from "@solana/wallet-ledger";
+import { LedgerProvider, LedgerWalletAdapter } from "@solana/wallet-ledger";
 import { SolongWalletAdapter } from "../wallet-adapters/solong";
 import { PhantomWalletAdapter } from "../wallet-adapters/phantom";
 import { TorusWalletAdapter } from "../wallet-adapters/torus";
 import { useLocation } from "react-router";
 
+
 const ASSETS_URL = 'https://raw.githubusercontent.com/solana-labs/oyster/main/assets/wallets/';
 export const WALLET_PROVIDERS = [
-  LedgerProvider,
   {
     name: "Phantom",
     url: "https://www.phantom.app",
     icon: `https://www.phantom.app/img/logo.png`,
     adapter: PhantomWalletAdapter,
+  },
+  {
+    name: 'Ledger',
+    url: 'https://www.ledger.com',
+    icon: `${ASSETS_URL}ledger.svg`,
+    adapter: LedgerWalletAdapter,
   },
   {
     name: "Sollet",
