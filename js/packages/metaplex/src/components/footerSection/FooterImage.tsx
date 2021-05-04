@@ -19,12 +19,10 @@ type Props = {
 const FooterImage = ({ className, children }: Props): React.ReactElement => {
   const { footer } = useStaticQuery(
     graphql`
-      query {
+      {
         footer: file(relativePath: { eq: "footer_image.jpg" }) {
           childImageSharp {
-            fluid(quality: 90, maxWidth: 1920) {
-              ...GatsbyImageSharpFluid_withWebp_noBase64
-            }
+            gatsbyImageData(quality: 90, placeholder: NONE, layout: FULL_WIDTH)
           }
         }
       }
@@ -32,7 +30,7 @@ const FooterImage = ({ className, children }: Props): React.ReactElement => {
   );
 
   // Set ImageData including the mobile background.
-  const imageData = footer.childImageSharp.fluid;
+  const imageData = footer.childImageSharp.gatsbyImageData;
 
   return (
     <BackgroundImage

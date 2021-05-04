@@ -1,8 +1,6 @@
 ---
-title: "Blockchain’s Next Generation Conference"
+title: "Launch an NFT marketplace on Solana"
 slug: "hero"
-dateinfo: "SINGAPORE, OCTOBER 14th — 17th, 2021"
 ---
 
-Helios is an international conference celebrating the finest products built on
-the next generation of blockchain networks.
+Metaplex is an open-source framework for buying, selling and auctioning non-fungible tokens (NFTs) natively on the Solana blockchain

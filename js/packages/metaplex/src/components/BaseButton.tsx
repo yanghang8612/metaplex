@@ -2,13 +2,13 @@
 import tw from "twin.macro";
 
 const BaseButton = tw.button`
-  bg-transparent hover:bg-white
+  bg-gradient-to-l from-btnPrimaryStart to-btnPrimaryStop
+  hover:bg-gradient-to-tl
+  rounded-lg
   font-sans
-  text-white hover:text-black
+  text-sm text-white hover:text-black
   transition duration-500 
-  p-2 
-  border-2 border-white
-  uppercase
+  px-8 py-3
 `;
 
 export default BaseButton;

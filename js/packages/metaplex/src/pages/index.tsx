@@ -10,8 +10,8 @@ const IndexPage = (): React.ReactElement => (
   <Layout>
     <FirstSection />
     <EventSection />
-    <PartnerSection />
-    <ProgrammingSection />
+    {/*<PartnerSection />*/}
+    {/*<ProgrammingSection />*/}
   </Layout>
 );
 

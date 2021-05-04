@@ -4,6 +4,9 @@ const globalStyles = css`
   html {
     scroll-behavior: smooth;
   }
+  body {
+    ${tw`bg-gradient-to-tr from-mainBgStart to-mainBgStop`}
+  }
   h1 {
     ${tw`text-6xl md:text-8xl font-header mb-6`}
   }
@@ -23,7 +26,11 @@ const globalStyles = css`
     color: white;
   }
   p {
-    ${tw`font-serif mb-6`}
+    ${tw`font-sans mb-6`}
+  }
+  svg {
+    width: 100%;
+    height: auto;
   }
 `;
 

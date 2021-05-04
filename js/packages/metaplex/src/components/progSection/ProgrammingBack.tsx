@@ -16,12 +16,10 @@ const ProgrammingSectionBackground = ({
 }: Props): React.ReactElement => {
   const { prog } = useStaticQuery(
     graphql`
-      query {
+      {
         prog: file(relativePath: { eq: "prog_image.png" }) {
           childImageSharp {
-            fluid(quality: 90, maxWidth: 1920) {
-              ...GatsbyImageSharpFluid_withWebp_noBase64
-            }
+            gatsbyImageData(quality: 90, placeholder: NONE, layout: FULL_WIDTH)
           }
         }
       }
@@ -29,7 +27,7 @@ const ProgrammingSectionBackground = ({
   );
 
   // Set ImageData.
-  const imageData = prog.childImageSharp.fluid;
+  const imageData = prog.childImageSharp.gatsbyImageData;
 
   return (
     <BackgroundImage

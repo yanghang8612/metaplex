@@ -2,9 +2,20 @@ import * as React from "react";
 import { graphql, useStaticQuery } from "gatsby";
 import tw, { styled } from "twin.macro";
 
-import StyledHeroImage from "./HeroImage";
+import MetaplexSVG from "../../images/metaplex.inline.svg";
 import BaseButton from "../BaseButton";
-import Divider from "../Divider";
+
+const SectionWrapper = styled.div`
+  ${tw`
+    min-h-halfScreen w-full
+    py-0 inset-0 
+    flex flex-col justify-center 
+  `}
+  &:before,
+  &:after {
+    ${tw`bg-right-top bg-half sm:bg-right-bottom lg:bg-contain`}
+  }
+`;
 
 const Container = styled.div`
   ${tw`
@@ -14,21 +25,19 @@ const Container = styled.div`
     px-2 sm:px-12`}
 `;
 
-const HeroDivider = styled(Divider)`
-  ${tw`mt-7 mb-5`}
-  max-width: 60%;
-  margin-left: -0.5rem;
+const MetaplexWrapper = styled.div`
+  ${tw`
+    mb-20
+    `}
 `;
 
-const DateInfo = tw.span`
-  font-sans text-xs sm:text-sm block
-`;
-
-const RedButton = tw(BaseButton)`
-  hover:bg-red-800 
-  text-red-800 hover:text-black 
-  border-red-800
+const BlueButton = tw(BaseButton)`
+  bg-gradient-to-r from-btnBlueStart to-btnBlueStop
+  text-sm
+  px-8 py-3 
   mt-5
+  mr-2
+  mb-2
 `;
 
 /**
@@ -43,7 +52,6 @@ const FirstSection = (): React.ReactElement => {
         hero: markdownRemark(frontmatter: { slug: { eq: "hero" } }) {
           frontmatter {
             title
-            dateinfo
           }
           rawMarkdownBody
         }
@@ -51,15 +59,17 @@ const FirstSection = (): React.ReactElement => {
     `
   );
   return (
-    <StyledHeroImage>
+    <SectionWrapper>
       <Container>
-        <h1>{hero.frontmatter.title}</h1>
+        <MetaplexWrapper>
+          <MetaplexSVG />
+        </MetaplexWrapper>
+        <h3>{hero.frontmatter.title}</h3>
         <p>{hero.rawMarkdownBody}</p>
-        <HeroDivider />
-        <DateInfo>{hero.frontmatter.dateinfo}</DateInfo>
-        <RedButton>Request an invite</RedButton>
+        <BlueButton>Request an invite</BlueButton>
+        <BaseButton>Request an invite</BaseButton>
       </Container>
-    </StyledHeroImage>
+    </SectionWrapper>
   );
 };
 

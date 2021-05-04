@@ -4,7 +4,6 @@ import { GlobalStyles } from "twin.macro";
 import globalStyles from "../utils/globalStyles";
 import FooterSection from "./footerSection";
 
-import Header from "./Header";
 import SEO from "./SEO";
 
 interface ILayoutProps {
@@ -14,13 +13,12 @@ interface ILayoutProps {
 const Layout = ({ children }: ILayoutProps): React.ReactElement => {
   return (
     <>
-      <SEO title={`Helios`} />
+      <SEO title={`Metaplex`} />
       <GlobalStyles />
       <Global styles={globalStyles} />
       <main>
         {children}
-        <Header />
-        <FooterSection />
+        {/*<FooterSection />*/}
       </main>
     </>
   );

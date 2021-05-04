@@ -1,7 +1,7 @@
 module.exports = {
   siteMetadata: {
-    title: "Helios Conference",
-    description: "Helios - Blockchain’s Next Generation Conference",
+    title: "METAPLEX",
+    description: "Launch an NFT marketplace on Solana",
     author: `@solana`,
     siteUrl: "http://localhost:8000",
   },
@@ -15,7 +15,7 @@ module.exports = {
     {
       resolve: "gatsby-plugin-manifest",
       options: {
-        background_color: "#0c0e1b",
+        background_color: "#000000",
         icon: "src/images/icon.png",
       },
     },

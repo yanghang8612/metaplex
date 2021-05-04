@@ -16,12 +16,10 @@ const PartnerSectionBackground = ({
 }: Props): React.ReactElement => {
   const { second } = useStaticQuery(
     graphql`
-      query {
+      {
         second: file(relativePath: { eq: "second_image.jpg" }) {
           childImageSharp {
-            fluid(quality: 90, maxWidth: 1920) {
-              ...GatsbyImageSharpFluid_withWebp_noBase64
-            }
+            gatsbyImageData(quality: 90, placeholder: NONE, layout: FULL_WIDTH)
           }
         }
       }
@@ -29,7 +27,7 @@ const PartnerSectionBackground = ({
   );
 
   // Set ImageData.
-  const imageData = second.childImageSharp.fluid;
+  const imageData = second.childImageSharp.gatsbyImageData;
 
   return (
     <BackgroundImage
