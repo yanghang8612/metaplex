@@ -9,15 +9,15 @@ import MockDisplay from '../MockDisplay';
 const SectionWrapper = styled.div`
   ${tw`
     min-h-halfScreen w-full
-    py-0 inset-0 
-    flex flex-row justify-center 
+    py-0 inset-0
+    flex flex-row justify-center
   `}
 `;
 
 const ContainerLeft = styled.div`
   ${tw`w-full md:w-1/2
     text-white text-xl text-left
-    py-3 sm:py-16 
+    py-3 sm:py-16
     px-2 sm:px-8`}
 `;
 
@@ -36,8 +36,8 @@ const MetaplexWrapper = styled.div`
 
 const BlueButton = tw(BaseButton)`
   bg-gradient-to-r from-btnBlueStart to-btnBlueStop
-  text-sm
-  px-8 py-3 
+  text-sm uppercase
+  px-8 py-3
   mt-5
   mr-2
   mb-2
@@ -82,7 +82,7 @@ const FirstSection = (): React.ReactElement => {
         <h3>{hero.frontmatter.title}</h3>
         <p>{hero.rawMarkdownBody}</p>
         <BlueButton>Request an invite</BlueButton>
-        <BaseButton>Request an invite</BaseButton>
+        <BaseButton>Contact</BaseButton>
       </ContainerLeft>
       <ContainerRight>
         <BottomMock />

@@ -49,6 +49,10 @@ const SectionBgGradient = styled(RoundedSectionDisplay)`
   backdrop-filter: blur(600px);
 `;
 
+const SectionBgColor = styled(RoundedSectionDisplay)`
+  background: #ad7bbc;
+`;
+
 type SingleSectionProps = {
   name: string;
   title?: string;
@@ -84,6 +88,8 @@ const SingleSection = ({
           <ContainerDisplay>
             {imageWrapper === 'gradient' ? (
               <SectionBgGradient name={name} display={display} />
+            ) : imageWrapper === 'color' ? (
+              <SectionBgColor name={name} display={display} />
             ) : (
               <RoundedSectionDisplay name={name} display={display} />
             )}
@@ -94,6 +100,8 @@ const SingleSection = ({
           <ContainerDisplay>
             {imageWrapper === 'gradient' ? (
               <SectionBgGradient name={name} display={display} />
+            ) : imageWrapper === 'color' ? (
+              <SectionBgColor name={name} display={display} />
             ) : (
               <RoundedSectionDisplay name={name} display={display} />
             )}

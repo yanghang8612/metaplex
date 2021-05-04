@@ -3,6 +3,7 @@ title: 'Collaboration made easy'
 slug: 'collab'
 position: 'right'
 background: 'light'
+imageWrapper: 'color'
 ---
 
 No matter the size of the team, Metaplex can seemlessly create on-chain artist splits that take the awkwardness out of collaboration. Enter the wallet address for each collaborator, set custom percentages and you’re off the races.

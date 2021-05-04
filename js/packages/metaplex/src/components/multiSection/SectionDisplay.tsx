@@ -38,7 +38,7 @@ const SectionDisplay = ({
 
   return (
     <MockDisplay className={className}>
-      {!display ? (
+      {display === null ? (
         <GatsbyImage image={getImage(displayImage[name])} alt={name} />
       ) : (
         <span>{display}</span>

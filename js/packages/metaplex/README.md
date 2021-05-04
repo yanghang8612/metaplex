@@ -49,7 +49,7 @@ Relevant fields for the creation from Frontmatter:
 - `slug`: The name the section is queried by.
 - `position`: `"right"` or `"left"` - On which side the text should be displayed.
 - `background`: `"light"` or `"dark"` - Which background color the section should have.
-- `imageWrapper`: (optional) if `"gradient"` is given, a colorful image background is shown.
+- `imageWrapper`: (optional) if `"gradient"` or `"color"` is given, a colorful image background is shown.
 
 #### Developing
 

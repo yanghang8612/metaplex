@@ -7,7 +7,8 @@ const BaseButton = tw.button`
   rounded-lg
   font-sans
   text-sm text-white hover:text-black
-  transition duration-500 
+  uppercase
+  transition duration-500
   px-8 py-3
 `;
 
