@@ -14,7 +14,7 @@ module.exports = {
   webpack: {
     configure: (webpackConfig, { env, paths }) => {
       paths.appBuild = webpackConfig.output.path = path.resolve(
-        './../../build/metavinci',
+        './../../build/web',
       );
       return webpackConfig;
     },
