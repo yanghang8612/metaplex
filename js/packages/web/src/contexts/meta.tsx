@@ -176,7 +176,7 @@ export function MetaProvider({ children = null as any }) {
         }
 
         try {
-          if (a.account.data.length == BIDDER_METADATA_LEN) {
+          if (a.account.data.length === BIDDER_METADATA_LEN) {
             const account = cache.add(
               a.pubkey,
               a.account,
@@ -195,7 +195,7 @@ export function MetaProvider({ children = null as any }) {
           // add type as first byte for easier deserialization
         }
         try {
-          if (a.account.data.length == BIDDER_POT_LEN) {
+          if (a.account.data.length === BIDDER_POT_LEN) {
             const account = cache.add(
               a.pubkey,
               a.account,
@@ -250,7 +250,7 @@ export function MetaProvider({ children = null as any }) {
     (async () => {
       const processVaultData = async (a: PublicKeyAndAccount<Buffer>) => {
         try {
-          if (a.account.data[0] == VaultKey.SafetyDepositBoxV1) {
+          if (a.account.data[0] === VaultKey.SafetyDepositBoxV1) {
             const safetyDeposit = await decodeSafetyDeposit(a.account.data);
             const account: ParsedAccount<SafetyDepositBox> = {
               pubkey: a.pubkey,
@@ -263,7 +263,7 @@ export function MetaProvider({ children = null as any }) {
               '-' +
               safetyDeposit.order]: account,
             }));
-          } else if (a.account.data[0] == VaultKey.VaultV1) {
+          } else if (a.account.data[0] === VaultKey.VaultV1) {
             const vault = await decodeVault(a.account.data);
             const account: ParsedAccount<Vault> = {
               pubkey: a.pubkey,
@@ -314,7 +314,7 @@ export function MetaProvider({ children = null as any }) {
     (async () => {
       const processAuctionManagers = async (a: PublicKeyAndAccount<Buffer>) => {
         try {
-          if (a.account.data[0] == MetaplexKey.AuctionManagerV1) {
+          if (a.account.data[0] === MetaplexKey.AuctionManagerV1) {
             const auctionManager = await decodeAuctionManager(a.account.data);
             const account: ParsedAccount<AuctionManager> = {
               pubkey: a.pubkey,
@@ -325,7 +325,7 @@ export function MetaProvider({ children = null as any }) {
               ...e,
               [a.pubkey.toBase58()]: account,
             }));
-          } else if (a.account.data[0] == MetaplexKey.BidRedemptionTicketV1) {
+          } else if (a.account.data[0] === MetaplexKey.BidRedemptionTicketV1) {
             const ticket = await decodeBidRedemptionTicket(a.account.data);
             const account: ParsedAccount<BidRedemptionTicket> = {
               pubkey: a.pubkey,
@@ -378,7 +378,7 @@ export function MetaProvider({ children = null as any }) {
     (async () => {
       const processMetaData = async (meta: PublicKeyAndAccount<Buffer>) => {
         try {
-          if (meta.account.data[0] == MetadataKey.MetadataV1) {
+          if (meta.account.data[0] === MetadataKey.MetadataV1) {
             const metadata = await decodeMetadata(meta.account.data);
             if (
               isValidHttpUrl(metadata.uri) &&
@@ -398,7 +398,7 @@ export function MetaProvider({ children = null as any }) {
                 [metadata.masterEdition?.toBase58() || '']: account,
               }));
             }
-          } else if (meta.account.data[0] == MetadataKey.EditionV1) {
+          } else if (meta.account.data[0] === MetadataKey.EditionV1) {
             const edition = decodeEdition(meta.account.data);
             const account: ParsedAccount<Edition> = {
               pubkey: meta.pubkey,
@@ -406,7 +406,7 @@ export function MetaProvider({ children = null as any }) {
               info: edition,
             };
             setEditions(e => ({ ...e, [meta.pubkey.toBase58()]: account }));
-          } else if (meta.account.data[0] == MetadataKey.MasterEditionV1) {
+          } else if (meta.account.data[0] === MetadataKey.MasterEditionV1) {
             const masterEdition = decodeMasterEdition(meta.account.data);
             const account: ParsedAccount<MasterEdition> = {
               pubkey: meta.pubkey,
@@ -421,7 +421,7 @@ export function MetaProvider({ children = null as any }) {
               ...e,
               [masterEdition.masterMint.toBase58()]: account,
             }));
-          } else if (meta.account.data[0] == MetadataKey.NameSymbolTupleV1) {
+          } else if (meta.account.data[0] === MetadataKey.NameSymbolTupleV1) {
             const nameSymbolTuple = decodeNameSymbolTuple(meta.account.data);
             const account: ParsedAccount<NameSymbolTuple> = {
               pubkey: meta.pubkey,

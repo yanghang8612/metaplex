@@ -177,7 +177,7 @@ export async function createAuctionManager(
       safetyDepositConfigs.filter(
         c =>
           !openEditionSafetyDepositDraft ||
-          c.draft.metadata.pubkey.toBase58() !=
+          c.draft.metadata.pubkey.toBase58() !==
             openEditionSafetyDepositDraft.metadata.pubkey.toBase58(),
       ),
       stores,
@@ -230,16 +230,16 @@ function buildSafetyDepositArray(
   let safetyDepositConfig: SafetyDepositInstructionConfig[] = [];
   safetyDeposits.forEach((w, i) => {
     let winningConfigsThatShareThisBox = winningConfigs.filter(
-      ow => ow.safetyDepositBoxIndex == i,
+      ow => ow.safetyDepositBoxIndex === i,
     );
 
     // Configs where we are selling this safety deposit as a master edition or single nft
     let nonLimitedEditionConfigs = winningConfigsThatShareThisBox.filter(
-      ow => ow.editionType != EditionType.LimitedEdition,
+      ow => ow.editionType !== EditionType.LimitedEdition,
     );
     // we may also have an auction where we are selling prints of the master too as secondary prizes
     let limitedEditionConfigs = winningConfigsThatShareThisBox.filter(
-      ow => ow.editionType == EditionType.LimitedEdition,
+      ow => ow.editionType === EditionType.LimitedEdition,
     );
 
     const nonLimitedEditionTotal = nonLimitedEditionConfigs
@@ -367,12 +367,12 @@ async function validateBoxes(
     let safetyDepositBox: PublicKey;
 
     let winningConfig = settings.winningConfigs.find(
-      ow => ow.safetyDepositBoxIndex == i,
+      ow => ow.safetyDepositBoxIndex === i,
     );
 
     if (winningConfig) {
       if (
-        winningConfig.editionType == EditionType.LimitedEdition &&
+        winningConfig.editionType === EditionType.LimitedEdition &&
         safetyDeposits[i].draft.masterEdition &&
         safetyDeposits[i].draft.masterEdition?.info.masterMint
       )
@@ -397,7 +397,7 @@ async function validateBoxes(
         safetyDepositBox,
         stores[i],
         //@ts-ignore
-        winningConfig.editionType == EditionType.LimitedEdition
+        winningConfig.editionType === EditionType.LimitedEdition
           ? safetyDeposits[i].draft.masterEdition?.info.masterMint
           : safetyDeposits[i].draft.metadata.info.mint,
         wallet.publicKey,

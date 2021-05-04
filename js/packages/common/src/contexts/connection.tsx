@@ -312,12 +312,12 @@ export const sendTransactions = async (
       })
       .catch(reason => {
         failCallback(signedTxns[i], i);
-        if (sequenceType == SequenceType.StopOnFailure) {
+        if (sequenceType === SequenceType.StopOnFailure) {
           breakEarlyObject.breakEarly = true;
         }
       });
 
-    if (sequenceType != SequenceType.Parallel) {
+    if (sequenceType !== SequenceType.Parallel) {
       await signedTxnPromise;
       if (breakEarlyObject.breakEarly) {
         return i; // REturn the txn we failed on by index
@@ -327,7 +327,7 @@ export const sendTransactions = async (
     }
   }
 
-  if (sequenceType != SequenceType.Parallel) {
+  if (sequenceType !== SequenceType.Parallel) {
     await Promise.all(pendingTxns);
   }
 

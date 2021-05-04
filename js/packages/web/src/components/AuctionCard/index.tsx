@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Row, Col, Divider, Button, InputNumber } from 'antd';
+import { Row, Col, Button, InputNumber } from 'antd';
 
-import { Auction, Presale } from '../../types';
 
 import './index.less';
 import { getCountdown } from '../../utils/utils';
@@ -10,10 +9,7 @@ import {
   TokenAccount,
   useConnection,
   useUserAccounts,
-  hooks,
   contexts,
-  cache,
-  BidderMetadataParser,
   BidderMetadata,
   ParsedAccount,
   Identicon,
@@ -61,8 +57,8 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
     return () => clearInterval(interval);
   }, [clock]);
 
-  const isUpcoming = auctionView.state == AuctionViewState.Upcoming;
-  const isStarted = auctionView.state == AuctionViewState.Live;
+  const isUpcoming = auctionView.state === AuctionViewState.Upcoming;
+  const isStarted = auctionView.state === AuctionViewState.Live;
 
   return (
     <div className="presale-card-container">
@@ -71,7 +67,7 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
       {isStarted && <div className="info-header">HIGHEST BID</div>}
       {isStarted && <div style={{ fontWeight: 700, fontSize: '1.6rem' }}>◎40.00</div>}
       <br />
-      {(days == 0 && hours == 0 && minutes == 0 && seconds == 0) ?
+      {(days === 0 && hours === 0 && minutes === 0 && seconds === 0) ?
         <div className="info-header">AUCTION HAS ENDED</div>
         : <>
           <div className="info-header">AUCTION ENDS IN</div>
@@ -122,7 +118,7 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
         {myPayingAccount ? myPayingAccount.info.amount.toNumber() : 0.0}
       </div>
 
-      {auctionView.state == AuctionViewState.Ended ? (
+      {auctionView.state === AuctionViewState.Ended ? (
         <Button
           type="primary"
           size="large"

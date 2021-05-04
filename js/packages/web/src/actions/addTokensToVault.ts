@@ -94,7 +94,7 @@ export async function addTokensToVault(
       currInstructions,
     );
 
-    if (batchCounter == BATCH_SIZE) {
+    if (batchCounter === BATCH_SIZE) {
       signers.push(currSigners);
       instructions.push(currInstructions);
       batchCounter = 0;

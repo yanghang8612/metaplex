@@ -27,20 +27,20 @@ export const metadataToArt = (
         masterEditions[edition.info.parent.toBase58() || ''];
       if (myMasterEdition) {
         type =
-          myMasterEdition.info.maxSupply != null &&
-          myMasterEdition.info.maxSupply != undefined
+          myMasterEdition.info.maxSupply !== null &&
+          myMasterEdition.info.maxSupply !== undefined
             ? ArtType.LimitedEditionPrint
             : ArtType.OpenEditionPrint;
-        if (type == ArtType.LimitedEditionPrint)
+        if (type === ArtType.LimitedEditionPrint)
           editionNumber = edition.info.edition.toNumber();
       }
     } else if (masterEdition) {
       type =
-        masterEdition.info.maxSupply != null &&
-        masterEdition.info.maxSupply != undefined
+        masterEdition.info.maxSupply !== null &&
+        masterEdition.info.maxSupply !== undefined
           ? ArtType.LimitedMasterEdition
           : ArtType.OpenMasterEdition;
-      if (type == ArtType.LimitedMasterEdition) {
+      if (type === ArtType.LimitedMasterEdition) {
         maxSupply = masterEdition.info.maxSupply?.toNumber();
         supply = masterEdition.info.supply.toNumber();
       }

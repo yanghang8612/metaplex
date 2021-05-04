@@ -59,7 +59,7 @@ export async function sendRedeemBid(
     );
   console.log('Winner index', winnerIndex);
 
-  if (winnerIndex != null) {
+  if (winnerIndex !== null) {
     const winningConfig =
       auctionView.auctionManager.info.settings.winningConfigs[winnerIndex];
     const item = auctionView.items[winnerIndex];
@@ -109,11 +109,11 @@ export async function sendRedeemBid(
   }
 
   const eligibleForOpenEdition =
-    (winnerIndex == null &&
+    (winnerIndex === null &&
       auctionView.auctionManager.info.settings
         .openEditionNonWinningConstraint !=
         NonWinningConstraint.NoOpenEdition) ||
-    (winnerIndex != null &&
+    (winnerIndex !== null &&
       auctionView.auctionManager.info.settings.openEditionWinnerConstraint !=
         WinningConstraint.NoOpenEdition);
 
@@ -133,7 +133,7 @@ export async function sendRedeemBid(
     );
   }
 
-  if (signers.length == 1)
+  if (signers.length === 1)
     await sendTransactionWithRetry(
       connection,
       wallet,

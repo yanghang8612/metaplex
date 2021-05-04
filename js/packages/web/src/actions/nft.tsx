@@ -187,7 +187,7 @@ export const mintNFT = async (
   ).json();
 
   const metadataFile = result.messages?.find(
-    m => m.filename == RESERVED_TXN_MANIFEST,
+    m => m.filename === RESERVED_TXN_MANIFEST,
   );
   if (metadataFile?.transactionId && wallet.publicKey) {
     const updateInstructions: TransactionInstruction[] = [];
@@ -219,7 +219,7 @@ export const mintNFT = async (
     );
 
     let authTokenAccount = undefined;
-    if (maxSupply != undefined) {
+    if (maxSupply !== undefined) {
       authTokenAccount = createTokenAccount(
         updateInstructions,
         payerPublicKey,
@@ -234,7 +234,7 @@ export const mintNFT = async (
     await createMasterEdition(
       metadata.symbol,
       metadata.name,
-      maxSupply != undefined ? new BN(maxSupply) : maxSupply,
+      maxSupply !== undefined ? new BN(maxSupply) : maxSupply,
       mintKey,
       masterMint,
       payerPublicKey,
@@ -242,10 +242,10 @@ export const mintNFT = async (
       updateInstructions,
       payerPublicKey,
       authTokenAccount,
-      maxSupply != undefined ? payerPublicKey : undefined,
+      maxSupply !== undefined ? payerPublicKey : undefined,
     );
     // TODO: enable when using payer account to avoid 2nd popup
-    /*  if (maxSupply != undefined)
+    /*  if (maxSupply !== undefined)
       updateInstructions.push(
         setAuthority({
           target: authTokenAccount,

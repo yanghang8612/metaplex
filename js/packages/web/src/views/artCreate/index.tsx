@@ -297,7 +297,7 @@ const UploadStep = (props: {
           onChange={async info => {
             const file = info.file.originFileObj;
             if (file) setMainFile(file);
-            if (props.attributes.category != MetadataCategory.Audio) {
+            if (props.attributes.category !== MetadataCategory.Audio) {
               const reader = new FileReader();
               reader.onload = function (event) {
                 setImage((event.target?.result as string) || '');
@@ -312,7 +312,7 @@ const UploadStep = (props: {
           <p className="ant-upload-text">Drag and drop, or click to browse</p>
         </Dragger>
       </Row>
-      {props.attributes.category == MetadataCategory.Audio && (
+      {props.attributes.category === MetadataCategory.Audio && (
         <Row className="content-action">
           <h3>
             Optionally, you can upload a cover image or video (PNG, JPG, GIF,
@@ -329,7 +329,7 @@ const UploadStep = (props: {
             onChange={async info => {
               const file = info.file.originFileObj;
               if (file) setCoverFile(file);
-              if (props.attributes.category == MetadataCategory.Audio) {
+              if (props.attributes.category === MetadataCategory.Audio) {
                 const reader = new FileReader();
                 reader.onload = function (event) {
                   setImage((event.target?.result as string) || '');
@@ -503,14 +503,14 @@ const RoyaltiesSplitter = (props: {
     <Col>
       {props.creators.map((creator, idx) => {
         const royalty = props.royalties.find(
-          royalty => royalty.creator_key == creator.key,
+          royalty => royalty.creator_key === creator.key,
         );
         if (!royalty) return null;
 
         const amt = royalty.amount;
         const handleSlide = (newAmt: number) => {
           const othersRoyalties = props.royalties.filter(
-            _royalty => _royalty.creator_key != royalty.creator_key,
+            _royalty => _royalty.creator_key !== royalty.creator_key,
           );
           if (othersRoyalties.length < 1) return;
           shuffle(othersRoyalties);
@@ -523,8 +523,8 @@ const RoyaltiesSplitter = (props: {
             const _royalty = othersRoyalties[idx];
             if (
               (0 < _royalty.amount && _royalty.amount < 100) || // Normal
-              (_royalty.amount == 0 && sign < 0) || // Low limit
-              (_royalty.amount == 100 && sign > 0) // High limit
+              (_royalty.amount === 0 && sign < 0) || // Low limit
+              (_royalty.amount === 100 && sign > 0) // High limit
             ) {
               _royalty.amount -= sign;
               remaining -= 1;
@@ -535,12 +535,12 @@ const RoyaltiesSplitter = (props: {
           props.setRoyalties(
             props.royalties.map(_royalty => {
               const computed_amount = othersRoyalties.find(
-                newRoyalty => newRoyalty.creator_key == _royalty.creator_key,
+                newRoyalty => newRoyalty.creator_key === _royalty.creator_key,
               )?.amount;
               return {
                 ..._royalty,
                 amount:
-                  _royalty.creator_key == royalty.creator_key
+                  _royalty.creator_key === royalty.creator_key
                     ? newAmt
                     : computed_amount,
               };

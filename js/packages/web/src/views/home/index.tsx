@@ -32,7 +32,7 @@ export const HomeView = () => {
       {auctions.map(m => {
         const id = m.auction.pubkey.toBase58();
         const winningConfig = m.auctionManager.info.settings.winningConfigs.find(
-          w => w.safetyDepositBoxIndex == m.thumbnail.safetyDeposit.info.order,
+          w => w.safetyDepositBoxIndex === m.thumbnail.safetyDeposit.info.order,
         );
         return (
           <Link to={`/auction/${id}`}>

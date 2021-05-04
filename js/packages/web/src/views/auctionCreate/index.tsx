@@ -157,7 +157,7 @@ export const AuctionCreateView = () => {
   const createAuction = async () => {
     let settings: AuctionManagerSettings;
     let winnerLimit: WinnerLimit;
-    if (attributes.category == AuctionCategory.Open) {
+    if (attributes.category === AuctionCategory.Open) {
       settings = new AuctionManagerSettings({
         openEditionWinnerConstraint: WinningConstraint.OpenEditionGiven,
         openEditionNonWinningConstraint:
@@ -172,13 +172,13 @@ export const AuctionCreateView = () => {
         usize: ZERO,
       });
     } else if (
-      attributes.category == AuctionCategory.Limited ||
-      attributes.category == AuctionCategory.Single
+      attributes.category === AuctionCategory.Limited ||
+      attributes.category === AuctionCategory.Single
     ) {
       // In these cases there is only ever one item in the array.
 
       let winningConfigs: WinningConfig[];
-      if (attributes.category == AuctionCategory.Single)
+      if (attributes.category === AuctionCategory.Single)
         winningConfigs = [
           new WinningConfig({
             safetyDepositBoxIndex: 0,
@@ -501,19 +501,19 @@ const CopiesStep = (props: {
   confirm: () => void;
 }) => {
   let filter: ((i: SafetyDepositDraft) => boolean) | undefined;
-  if (props.attributes.category == AuctionCategory.Limited) {
+  if (props.attributes.category === AuctionCategory.Limited) {
     filter = (i: SafetyDepositDraft) => !!i.masterEdition;
   } else if (
-    props.attributes.category == AuctionCategory.Single ||
-    props.attributes.category == AuctionCategory.Tiered
+    props.attributes.category === AuctionCategory.Single ||
+    props.attributes.category === AuctionCategory.Tiered
   ) {
     filter = undefined;
-  } else if (props.attributes.category == AuctionCategory.Open) {
+  } else if (props.attributes.category === AuctionCategory.Open) {
     filter = (i: SafetyDepositDraft) =>
       !!(
         i.masterEdition &&
-        (i.masterEdition.info.maxSupply == undefined ||
-          i.masterEdition.info.maxSupply == null)
+        (i.masterEdition.info.maxSupply === undefined ||
+          i.masterEdition.info.maxSupply === null)
       );
   }
 
@@ -537,7 +537,7 @@ const CopiesStep = (props: {
           >
             Select NFT
           </ArtSelector>
-          {props.attributes.category == AuctionCategory.Limited && (
+          {props.attributes.category === AuctionCategory.Limited && (
             <label className="action-field">
               <span className="field-title">
                 How many copies do you want to create?
@@ -569,7 +569,7 @@ const CopiesStep = (props: {
             props.setAttributes({
               ...props.attributes,
               tiers:
-                !props.attributes.tiers || props.attributes.tiers?.length == 0
+                !props.attributes.tiers || props.attributes.tiers?.length === 0
                   ? [
                       {
                         to: 0,
@@ -664,7 +664,7 @@ const TierWinners = (props: {
           &nbsp;to&nbsp;
           <InputNumber
             min={from + 1}
-            disabled={props.lastTier?.to == props.tier.to}
+            disabled={props.lastTier?.to === props.tier.to}
             defaultValue={props.tier.to}
             type="number"
             className="input"
@@ -862,7 +862,7 @@ const PriceStep = (props: {
 }) => {
   return (
     <>
-      {props.attributes.saleType == 'auction' ? (
+      {props.attributes.saleType === 'auction' ? (
         <PriceAuction {...props} />
       ) : (
         <PriceSale {...props} />
@@ -1144,7 +1144,7 @@ const EndingPhaseStep = (props: {
 }) => {
   return (
     <>
-      {props.attributes.saleType == 'auction' ? (
+      {props.attributes.saleType === 'auction' ? (
         <EndingPhaseAuction {...props} />
       ) : (
         <EndingPhaseSale {...props} />

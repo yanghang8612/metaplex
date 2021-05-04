@@ -1,9 +1,8 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Row, Button, Modal, ButtonProps } from 'antd';
 import { ArtCard } from './../../components/ArtCard';
 import './../styles.less';
-import { Metadata, ParsedAccount } from '@oyster/common';
-import { useArt, useUserArts } from '../../hooks';
+import { useUserArts } from '../../hooks';
 import Masonry from 'react-masonry-css';
 import { SafetyDepositDraft } from '../../actions/createAuctionManager';
 

@@ -48,9 +48,9 @@ export class BidState {
       bidder.toBase58(),
     );
     const index = this.bids.findIndex(
-      b => b.key.toBase58() == bidder.toBase58(),
+      b => b.key.toBase58() === bidder.toBase58(),
     );
-    if (index != -1) return index;
+    if (index !== -1) return index;
     else return null;
   }
 

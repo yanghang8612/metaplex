@@ -139,17 +139,17 @@ export function processAccountsIntoAuctionView(
   existingAuctionView?: AuctionView,
 ): AuctionView | undefined {
   let state: AuctionViewState;
-  if (auction.info.state == AuctionState.Ended) {
+  if (auction.info.state === AuctionState.Ended) {
     state = AuctionViewState.Ended;
-  } else if (auction.info.state == AuctionState.Started) {
+  } else if (auction.info.state === AuctionState.Started) {
     state = AuctionViewState.Live;
-  } else if (auction.info.state == AuctionState.Created) {
+  } else if (auction.info.state === AuctionState.Created) {
     state = AuctionViewState.Upcoming;
   } else {
     state = AuctionViewState.BuyNow;
   }
 
-  if (desiredState && desiredState != state) return undefined;
+  if (desiredState && desiredState !== state) return undefined;
 
   const myPayingAccount = accountByMint.get(auction.info.tokenMint.toBase58());
 
@@ -276,7 +276,7 @@ export function processAccountsIntoAuctionView(
           };
         }),
         openEditionItem:
-          auctionManager.info.settings.openEditionConfig != null
+          auctionManager.info.settings.openEditionConfig !== null
             ? {
                 metadata:
                   metadataByMint[
@@ -305,17 +305,17 @@ export function processAccountsIntoAuctionView(
 
       view.totallyComplete = !!(
         view.thumbnail &&
-        boxesExpected ==
+        boxesExpected ===
           (view.items || []).length +
-            (auctionManager.info.settings.openEditionConfig == null ? 0 : 1) &&
-        (auctionManager.info.settings.openEditionConfig == null ||
-          (auctionManager.info.settings.openEditionConfig != null &&
+            (auctionManager.info.settings.openEditionConfig === null ? 0 : 1) &&
+        (auctionManager.info.settings.openEditionConfig === null ||
+          (auctionManager.info.settings.openEditionConfig !== null &&
             view.openEditionItem)) &&
         view.vault
       );
       if (!view.thumbnail || !view.thumbnail.metadata) return undefined;
       if (
-        auctionManager.pubkey.toBase58() ==
+        auctionManager.pubkey.toBase58() ===
         '8wmPH76W8tkek269cPwSHJ1xhhcobCZCjXYdedBhaboJ'
       )
         console.log('Got here', view);

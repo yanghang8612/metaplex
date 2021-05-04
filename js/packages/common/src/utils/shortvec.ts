@@ -19,7 +19,7 @@ export function encodeLength(bytes: Array<number>, len: number) {
   for (;;) {
     let elem = rem_len & 0x7f;
     rem_len >>= 7;
-    if (rem_len == 0) {
+    if (rem_len === 0) {
       bytes.push(elem);
       break;
     } else {
