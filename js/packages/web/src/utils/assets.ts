@@ -32,10 +32,10 @@ export const getAssetTokenSymbol = (
 };
 
 export const solanaToUSD = async (amount: number): Promise<number> => {
-  const url = `${COINGECKO_COIN_PRICE_API}?ids=solana&vs_currencies=usd`
-  const resp = await window.fetch(url).then(resp => resp.json())
-  return amount * resp.solana.usd
-}
+  const url = `${COINGECKO_COIN_PRICE_API}?ids=solana&vs_currencies=usd`;
+  const resp = await window.fetch(url).then(resp => resp.json());
+  return amount * resp.solana.usd;
+};
 
 export enum ASSET_CHAIN {
   Solana = 1,
