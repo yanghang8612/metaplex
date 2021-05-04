@@ -3,7 +3,7 @@ module.exports = {
   extends: [
     "plugin:@typescript-eslint/recommended",
     "plugin:prettier/recommended",
-    "prettier/@typescript-eslint",
+    "prettier",
   ],
   plugins: ["@typescript-eslint", "prettier"],
   parserOptions: {
@@ -15,6 +15,8 @@ module.exports = {
     node: true,
   },
   rules: {
+    "@typescript-eslint/ban-ts-comment": "off",
+    "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/no-var-requires": "off",
     quotes: "off",
     // "@typescript-eslint/quotes": [
@@ -24,7 +26,7 @@ module.exports = {
     //     avoidEscape: true,
     //   },
     // ],
-    indent: ["error", 2, { SwitchCase: 1 }],
+    // indent: ["error", 2, { SwitchCase: 1 }],
     // "prettier/prettier": [
     //   "error",
     //   {
