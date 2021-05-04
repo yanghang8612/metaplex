@@ -121,8 +121,8 @@ pub fn process_create_metadata_accounts(
     let mut metadata: Metadata = try_from_slice_unchecked(&metadata_account_info.data.borrow())?;
     metadata.mint = *mint_info.key;
     metadata.key = Key::MetadataV1;
-    metadata.data.name = name.to_owned();
-    metadata.data.symbol = symbol.to_owned();
+    metadata.data.name = name;
+    metadata.data.symbol = symbol;
     metadata.data.uri = uri;
     metadata.update_authority = *update_authority_info.key;
 
