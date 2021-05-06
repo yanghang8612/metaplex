@@ -94,7 +94,7 @@ export const ArtCard = (props: ArtCardProps) => {
         description={
           <div>
             <Avatar src="img/artist1.jpeg" /> {artist}
-            {art.type === ArtType.LimitedMasterEdition && (
+            {/* {art.type === ArtType.Master && (
               <>
                 <br />
                 {!endAuctionAt && (
@@ -104,7 +104,7 @@ export const ArtCard = (props: ArtCardProps) => {
                   </span>
                 )}
               </>
-            )}
+            )} */}
             {endAuctionAt && (
               <div className="cd-container">
                 {hours === 0 && minutes === 0 && seconds === 0 ? (
@@ -127,57 +127,21 @@ export const ArtCard = (props: ArtCardProps) => {
 
   if (art.type === ArtType.NFT) {
     return <div className="normal-record">{card}</div>;
-  } else if (art.type === ArtType.LimitedEditionPrint) {
+  } else if (art.type === ArtType.Print) {
     return (
       <div className="normal-record">
-        <Badge.Ribbon text={`Edition #${art.edition}`}>{card}</Badge.Ribbon>
+        <Badge.Ribbon text={`#${art.edition} of ${art.supply || '∞'}`}>{card}</Badge.Ribbon>
       </div>
     );
-  } else if (art.type === ArtType.OpenEditionPrint) {
+  } else if (art.type === ArtType.Master) {
     return (
-      <div className="normal-record">
-        <Badge.Ribbon text={`Open Edition`}>{card}</Badge.Ribbon>
-      </div>
-    );
-  } else if (art.type === ArtType.LimitedMasterEdition) {
-    return (
-      <div
-        className={
-          editionType === EditionType.LimitedEdition
-            ? 'normal-record'
-            : 'limited-master-record'
-        }
-      >
-        <Badge.Ribbon
-          text={`Limited Edition ${
-            editionType === EditionType.LimitedEdition
-              ? 'Printing'
-              : 'Master Record'
-          }`}
-        >
+      <div className={'normal-record'}>
+        <Badge.Ribbon text={'Original'}>
           {card}
         </Badge.Ribbon>
       </div>
     );
-  } else if (art.type === ArtType.OpenMasterEdition) {
-    return (
-      <div
-        className={
-          editionType === EditionType.OpenEdition
-            ? 'normal-record'
-            : 'open-master-record'
-        }
-      >
-        <Badge.Ribbon
-          text={`Open Edition ${
-            editionType === EditionType.OpenEdition
-              ? 'Printing'
-              : 'Master Record'
-          }`}
-        >
-          {card}
-        </Badge.Ribbon>
-      </div>
-    );
-  } else return card;
+  } else {
+    return card;
+  }
 };

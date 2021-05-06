@@ -22,10 +22,8 @@ export interface Artist {
 }
 
 export enum ArtType {
-  LimitedEditionPrint,
-  LimitedMasterEdition,
-  OpenMasterEdition,
-  OpenEditionPrint,
+  Master,
+  Print,
   NFT,
 }
 export interface Art {
