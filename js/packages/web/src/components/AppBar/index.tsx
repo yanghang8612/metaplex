@@ -1,6 +1,6 @@
 import React from 'react';
 import './index.less';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Button } from 'antd';
 import { ConnectButton, CurrentUserBadge, useWallet } from '@oyster/common';
 
@@ -17,11 +17,7 @@ const UserActions = () => {
 }
 
 export const AppBar = () => {
-  const location = useLocation();
   const { connected } = useWallet();
-
-  const isRoot = location.pathname === '/';
-
 
   return (
     <>

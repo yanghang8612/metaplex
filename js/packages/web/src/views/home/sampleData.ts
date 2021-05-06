@@ -1,4 +1,4 @@
-import { Auction, Artist, Art, Presale } from '../../types';
+import { Auction, Artist, Presale } from '../../types';
 
 export const sampleAuction: Auction = {
   name: 'Liquidity Pool',

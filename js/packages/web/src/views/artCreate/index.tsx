@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Steps,
   Row,
@@ -11,7 +11,6 @@ import {
   Progress,
   Spin,
   InputNumber,
-  Select,
 } from 'antd';
 import { ArtCard } from './../../components/ArtCard';
 import { UserSearch, UserValue } from './../../components/UserSearch';
@@ -20,7 +19,6 @@ import './../styles.less';
 import { mintNFT } from '../../actions';
 import {
   MAX_METADATA_LEN,
-  MAX_URI_LENGTH,
   useConnection,
   useWallet,
   IMetadataExtension,
@@ -38,13 +36,12 @@ import { useHistory, useParams } from 'react-router-dom';
 import { cleanName } from '../../utils/utils';
 
 const { Step } = Steps;
-const { Option } = Select;
 const { Dragger } = Upload;
 
 export const ArtCreateView = () => {
   const connection = useConnection();
   const { env } = useConnectionConfig();
-  const { wallet, connected } = useWallet();
+  const { wallet } = useWallet();
   const { step_param }: { step_param: string } = useParams();
   const history = useHistory();
 
@@ -65,14 +62,14 @@ export const ArtCreateView = () => {
     category: MetadataCategory.Image,
   });
 
+  const gotoStep = useCallback((_step: number) => {
+    history.push(`/art/create/${_step.toString()}`);
+  }, [history]);
+
   useEffect(() => {
     if (step_param) setStep(parseInt(step_param));
     else gotoStep(0);
-  }, [step_param]);
-
-  const gotoStep = (_step: number) => {
-    history.push(`/art/create/${_step.toString()}`);
-  };
+  }, [step_param, gotoStep]);
 
   // store files
   const mint = async () => {
@@ -182,7 +179,7 @@ const CategoryStep = (props: {
       <Row className="call-to-action">
         <h2>Create a new item</h2>
         <p>
-          First time creating on Metaplex? <a>Read our creators’ guide.</a>
+          First time creating on Metaplex? <a href="#">Read our creators’ guide.</a>
         </p>
       </Row>
       <Row>
@@ -615,7 +612,7 @@ const RoyaltiesStep = (props: {
           <label className="action-field">
             <span className="field-title">Maximum Supply</span>
             <InputNumber
-              autoFocus
+              placeholder="Quantity"
               onChange={(val: number) => {
                 props.setAttributes({ ...props.attributes, maxSupply: val });
               }}
@@ -665,18 +662,18 @@ const LaunchStep = (props: {
       // TODO: cache this and batch in one call
       const [mintRent, metadataRent] = await rentCall;
 
-      const uriStr = 'x';
-      let uriBuilder = '';
-      for (let i = 0; i < MAX_URI_LENGTH; i++) {
-        uriBuilder += uriStr;
-      }
+      // const uriStr = 'x';
+      // let uriBuilder = '';
+      // for (let i = 0; i < MAX_URI_LENGTH; i++) {
+      //   uriBuilder += uriStr;
+      // }
 
       const additionalSol = (metadataRent + mintRent) / LAMPORT_MULTIPLIER;
 
       // TODO: add fees based on number of transactions and signers
       setCost(sol + additionalSol);
     });
-  }, [...files, setCost]);
+  }, [files, setCost]);
 
   useEffect(() => {
     cost && solanaToUSD(cost).then(setUSDcost);

@@ -397,8 +397,8 @@ export const AuctionCreateView = () => {
             >
               {stepsByCategory[attributes.category]
                 .filter(_ => !!_[0])
-                .map(step => (
-                  <Step title={step[0]} />
+                .map((step, idx) => (
+                  <Step title={step[0]} key={idx}/>
                 ))}
             </Steps>
           </Col>

@@ -3,12 +3,9 @@ import {
   deserializeBorsh,
   programIds,
   METADATA,
-  METADATA_PREFIX,
-  EDITION,
 } from '@oyster/common';
 import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
-import { serialize, BinaryReader, BinaryWriter } from 'borsh';
 
 export * from './initAuctionManager';
 export * from './redeemBid';
@@ -93,6 +90,17 @@ export class StartAuctionArgs {
   instruction = 5;
 }
 
+export enum WinningConstraint {
+  NoOpenEdition = 0,
+  OpenEditionGiven = 1,
+}
+
+export enum NonWinningConstraint {
+  NoOpenEdition = 0,
+  GivenForFixedPrice = 1,
+  GivenForBidPrice = 2,
+}
+
 export class AuctionManagerSettings {
   openEditionWinnerConstraint: WinningConstraint =
     WinningConstraint.NoOpenEdition;
@@ -105,17 +113,6 @@ export class AuctionManagerSettings {
   constructor(args?: AuctionManagerSettings) {
     Object.assign(this, args);
   }
-}
-
-export enum WinningConstraint {
-  NoOpenEdition = 0,
-  OpenEditionGiven = 1,
-}
-
-export enum NonWinningConstraint {
-  NoOpenEdition = 0,
-  GivenForFixedPrice = 1,
-  GivenForBidPrice = 2,
 }
 
 export enum EditionType {

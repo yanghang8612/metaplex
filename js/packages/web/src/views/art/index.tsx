@@ -27,7 +27,7 @@ export const ArtView = () => {
             <div style={{ fontWeight: 700 }}>{art.title}</div>
             <br />
             <div className="info-header">CREATED BY</div>
-            <div className="info-content"><img src={artist.image} className="artist-image" /> @{art.artist}</div>
+            <div className="info-content"><img src={artist.image} className="artist-image" alt={art.artist}/> @{art.artist}</div>
             <br />
             <div className="info-header">CREATOR ROYALTIES</div>
             <div className="royalties">{art.royalties}%</div>

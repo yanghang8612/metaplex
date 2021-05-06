@@ -3,7 +3,7 @@ import { Layout, Row, Col, Tabs } from 'antd';
 import Masonry from 'react-masonry-css';
 
 import { PreSaleBanner } from '../../components/PreSaleBanner';
-import { AuctionViewState, useArt, useAuctions } from '../../hooks';
+import { AuctionViewState, useAuctions } from '../../hooks';
 
 import './index.less';
 import { ArtCard } from '../../components/ArtCard';
@@ -29,13 +29,13 @@ export const HomeView = () => {
       className="my-masonry-grid"
       columnClassName="my-masonry-grid_column"
     >
-      {auctions.map(m => {
+      {auctions.map((m, idx) => {
         const id = m.auction.pubkey.toBase58();
         const winningConfig = m.auctionManager.info.settings.winningConfigs.find(
           w => w.safetyDepositBoxIndex === m.thumbnail.safetyDeposit.info.order,
         );
         return (
-          <Link to={`/auction/${id}`}>
+          <Link to={`/auction/${id}`} key={idx}>
             <ArtCard
               key={id}
               endAuctionAt={m.auction.info.endAuctionAt?.toNumber()}

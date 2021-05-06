@@ -6,7 +6,7 @@ import './index.less';
 import { LABELS } from '../../constants';
 import { AppBar } from '../AppBar';
 
-const { Header, Content, Footer } = Layout;
+const { Header, Content } = Layout;
 
 export const AppLayout = React.memo((props: any) => {
 

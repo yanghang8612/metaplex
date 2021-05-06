@@ -5,7 +5,7 @@ import {
   SystemProgram,
   TransactionInstruction,
 } from '@solana/web3.js';
-import { utils, actions, createMint, VAULT_SCHEMA } from '@oyster/common';
+import { utils, actions, createMint } from '@oyster/common';
 
 import { MintLayout } from '@solana/spl-token';
 import BN from 'bn.js';
