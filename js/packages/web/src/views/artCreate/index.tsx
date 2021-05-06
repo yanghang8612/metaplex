@@ -673,7 +673,7 @@ const LaunchStep = (props: {
       // TODO: add fees based on number of transactions and signers
       setCost(sol + additionalSol);
     });
-  }, [files, setCost, metadata, props]);
+  }, [files, setCost]);
 
   useEffect(() => {
     cost && solanaToUSD(cost).then(setUSDcost);
@@ -763,7 +763,7 @@ const WaitingStep = (props: {
       props.confirm();
     };
     func();
-  }, [props]);
+  }, []);
 
   return (
     <div style={{ marginTop: 70 }}>

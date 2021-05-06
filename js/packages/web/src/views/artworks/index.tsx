@@ -35,10 +35,10 @@ export const ArtworksView = () => {
       className="my-masonry-grid"
       columnClassName="my-masonry-grid_column"
     >
-      {items.map(m => {
+      {items.map((m, idx) => {
         const id = m.pubkey.toBase58();
         return (
-          <Link to={`/art/${id}`}>
+          <Link to={`/art/${id}`} key={idx}>
             <ArtCard
               key={id}
               pubkey={m.pubkey}
