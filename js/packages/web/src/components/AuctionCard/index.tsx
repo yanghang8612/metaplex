@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Row, Col, Button, InputNumber } from 'antd';
+import { Row, Col, Button, InputNumber, Alert } from 'antd';
 
 
 import './index.less';
@@ -28,6 +28,7 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
   const { wallet } = useWallet();
   const { userAccounts } = useUserAccounts();
   const [value, setValue] = useState<number>();
+  const [showAlert, setShowAlert] = useState<boolean>(false);
   const accountByMint = userAccounts.reduce((prev, acc) => {
     prev.set(acc.info.mint.toBase58(), acc);
     return prev;
@@ -56,6 +57,14 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
     }, 1000);
     return () => clearInterval(interval);
   }, [clock]);
+
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>
+    if (showAlert) {
+      timeout = setTimeout(() => setShowAlert(false), 5000)
+    }
+    return () => clearTimeout(timeout)
+  }, [showAlert])
 
   const isUpcoming = auctionView.state === AuctionViewState.Upcoming;
   const isStarted = auctionView.state === AuctionViewState.Live;
@@ -140,7 +149,7 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
           disabled={!myPayingAccount || value === undefined}
           onClick={() => {
             console.log('Auctionview', auctionView);
-            if (myPayingAccount && value)
+            if (myPayingAccount && value) {
               sendPlaceBid(
                 connection,
                 wallet,
@@ -148,6 +157,8 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
                 auctionView,
                 value,
               );
+              setShowAlert(true)
+            }
           }}
           style={{ marginTop: 20 }}
         >
@@ -155,6 +166,13 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
         </Button>
       )}
       <AuctionBids bids={bids} />
+      {showAlert && <Alert
+        message="Bid placed"
+        description="Congratulations! You've placed a bid successfully"
+        type="success"
+        showIcon
+        closable
+      />}
     </div>
   );
 };
