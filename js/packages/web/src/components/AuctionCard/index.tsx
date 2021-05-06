@@ -165,7 +165,7 @@ export const AuctionBids = ({ bids }: { bids: ParsedAccount<BidderMetadata>[] })
       {bids.map((bid, index) => {
         const bidder = bid.info.bidderPubkey.toBase58();
         return (
-          <Row>
+          <Row key={index}>
             <Col span={1}>{index + 1}.</Col>
             <Col span={17}><Row><Identicon style={{ width: 24, height: 24, marginRight: 10, marginTop: 2 }} address={bidder} /> {shortenAddress(bidder)}</Row></Col>
             <Col span={5} style={{ textAlign: 'right' }}>{bid.info.lastBid.toString()}</Col>

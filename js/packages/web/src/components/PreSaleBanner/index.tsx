@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { Col, Row } from 'antd'
 
 import './index.less'
@@ -26,7 +25,7 @@ export const PreSaleBanner = ({ artistName, productName, preSaleTS, image }: IPr
       setMinutes(minutes)
     }, 1000)
     return () => clearInterval(interval)
-  }, [])
+  }, [preSaleTS])
 
   return (
     <div style={{ backgroundImage: `url(${image})` }} className="presale-container">

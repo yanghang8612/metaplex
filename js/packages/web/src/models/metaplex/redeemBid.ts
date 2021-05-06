@@ -2,7 +2,6 @@ import { programIds, VAULT_PREFIX } from '@oyster/common';
 import {
   PublicKey,
   SystemProgram,
-  SYSVAR_CLOCK_PUBKEY,
   SYSVAR_RENT_PUBKEY,
   TransactionInstruction,
 } from '@solana/web3.js';

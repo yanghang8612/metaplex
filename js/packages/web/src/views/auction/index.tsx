@@ -1,8 +1,8 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { Row, Col, Divider, Layout, Image, Spin } from 'antd';
+import { Row, Col, Divider, Layout, Spin } from 'antd';
 import { AuctionCard } from '../../components/AuctionCard';
-import { metadataToArt, useArt, useAuction } from '../../hooks';
+import { useArt, useAuction } from '../../hooks';
 import { ArtContent } from '../../components/ArtContent';
 import { sampleArtist } from '../home/sampleData';
 
@@ -33,7 +33,7 @@ export const AuctionView = () => {
             <br />
             <div className="info-header">CREATED BY</div>
             <div className="info-content">
-              <img src={artist.image} className="artist-image" /> @{art.artist}
+              <img src={artist.image} className="artist-image" alt={art.artist}/> @{art.artist}
             </div>
             <br />
             <div className="info-header">CREATOR ROYALTIES</div>
