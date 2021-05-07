@@ -68,7 +68,7 @@ export const ArtCard = (props: ArtCardProps) => {
   const card = (
     <Card
       hoverable={true}
-      className={`art-card ${small ? 'small' : ''} ${className}`}
+      className={`art-card ${small ? 'small' : ''} ${className ?? ''}`}
       cover={
         <>
           {close && (
