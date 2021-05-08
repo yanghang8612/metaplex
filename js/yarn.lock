@@ -4233,45 +4233,45 @@
   dependencies:
     deepmerge "^4.2.2"
 
-"@toruslabs/openlogin-ed25519@^0.8.0":
-  version "0.8.0"
-  resolved "https://registry.yarnpkg.com/@toruslabs/openlogin-ed25519/-/openlogin-ed25519-0.8.0.tgz#e2313e7f05439c8fb001c87089ca6dc8b036f766"
-  integrity sha512-cTWs9I4B6Sue77mMTRFiz5i9mQnMsFUUduXCpb516ufvIerWac5Pru06QtXIqM4kmVlVcQS8SYagSkWAmwu6Lg==
+"@toruslabs/openlogin-ed25519@^0.8.2":
+  version "0.8.2"
+  resolved "https://registry.yarnpkg.com/@toruslabs/openlogin-ed25519/-/openlogin-ed25519-0.8.2.tgz#6144595bee4e2e92cd6e8a048cf7a585cb248f5c"
+  integrity sha512-5ip1jg57/TLuPVLi1o2im1CV5DZ8njDmS/tJaRVoY0CX6mDw8Jr5atMIGdlbY94R4b0X40CEPrdp7n2spXtHbA==
   dependencies:
     "@toruslabs/tweetnacl-js" "^1.0.3"
 
-"@toruslabs/openlogin-jrpc@^0.8.0":
-  version "0.8.0"
-  resolved "https://registry.yarnpkg.com/@toruslabs/openlogin-jrpc/-/openlogin-jrpc-0.8.0.tgz#0931b41789158b33556b3cd5700abbc76fd5eb9e"
-  integrity sha512-bQAbFHSD+ZOhRtUd1hbNYn44vpuoCPp/2QcqklM0fMqhgCLIsuVXtT7BYeI3nNmD6UHC6VFCAZhkbrNpg+nC0A==
+"@toruslabs/openlogin-jrpc@^0.8.2":
+  version "0.8.2"
+  resolved "https://registry.yarnpkg.com/@toruslabs/openlogin-jrpc/-/openlogin-jrpc-0.8.2.tgz#7a1bdb64346f4e29e99309d928bfa7a0970fe26a"
+  integrity sha512-BPfPZk+R/QfQoJ5PkCcb92XAEWBXA2iPM/m/iesqYS15yueaWnkGTGv7vABIQm4Ih6FzlQGKyZdcRhmMG6e8Qw==
   dependencies:
-    "@toruslabs/openlogin-utils" "^0.8.0"
+    "@toruslabs/openlogin-utils" "^0.8.2"
     end-of-stream "^1.4.4"
     fast-safe-stringify "^2.0.7"
     once "^1.4.0"
     pump "^3.0.0"
 
-"@toruslabs/openlogin-utils@^0.8.0":
-  version "0.8.0"
-  resolved "https://registry.yarnpkg.com/@toruslabs/openlogin-utils/-/openlogin-utils-0.8.0.tgz#21c9d7847e05176a20f770671e6dfd051b79ff9b"
-  integrity sha512-jQQmnN4iqO6HWT39vDaln1WTvZDQYV8GO0k1RvN6xGOvVzyPeaF9yYpsjQ8zvJvaWt1kZcq1b7qsoKsFpxuY/A==
+"@toruslabs/openlogin-utils@^0.8.2":
+  version "0.8.2"
+  resolved "https://registry.yarnpkg.com/@toruslabs/openlogin-utils/-/openlogin-utils-0.8.2.tgz#afb8aaa51277c246e00d4504aa84bb3cd3e54161"
+  integrity sha512-+lh1evdltU1nDPleSzFmqKEGeb0ODbiglfSdt0OzBJwOGDAf37rWzrd5Jpdl8BOZbXolgXo0Qd/U9CKfv8pgUw==
   dependencies:
     base64url "^3.0.1"
     keccak "^3.0.1"
     randombytes "^2.1.0"
 
-"@toruslabs/openlogin@^0.8.0":
-  version "0.8.0"
-  resolved "https://registry.yarnpkg.com/@toruslabs/openlogin/-/openlogin-0.8.0.tgz#fa04795db20390c23a131292535872e76642bf42"
-  integrity sha512-5GUJZnylXAGbZZLJUFk9eVwYri/GBQkPZQH/1pCw5MDuIF/DBWEsY6id44zXpS4KCnr54KoLvpQpkXkOMYtgTA==
+"@toruslabs/openlogin@^0.8.2":
+  version "0.8.2"
+  resolved "https://registry.yarnpkg.com/@toruslabs/openlogin/-/openlogin-0.8.2.tgz#2035a4410b78eab9ac7c2c8b1efd447376f6499e"
+  integrity sha512-ibT2DQ7WAS+MN7F8jsh0Et7l8OD04aCdSMJ8sBjlWlP2QqmaCQDxCfW4RPFW5+ItdfO0IrzmvzXR5trj6R4KEg==
   dependencies:
     "@toruslabs/eccrypto" "^1.1.6"
-    "@toruslabs/openlogin-jrpc" "^0.8.0"
-    "@toruslabs/openlogin-utils" "^0.8.0"
+    "@toruslabs/openlogin-jrpc" "^0.8.2"
+    "@toruslabs/openlogin-utils" "^0.8.2"
     lodash.merge "^4.6.2"
     pump "^3.0.0"
 
-"@toruslabs/torus-embed@^1.10.9", "@toruslabs/torus-embed@^1.8.0":
+"@toruslabs/torus-embed@^1.10.10", "@toruslabs/torus-embed@^1.8.0":
   version "1.10.10"
   resolved "https://registry.yarnpkg.com/@toruslabs/torus-embed/-/torus-embed-1.10.10.tgz#478feaafa7b6cdcff8d48513e2696fec26ae8a95"
   integrity sha512-RlJYk0mZHq1bR/F0G5tu8vrYNK2lUr7hMG91BX3vF10HsdmCRntbAsHAkUssdyVE6ZCBE1iYYgP4bTlP8gzc3w==
