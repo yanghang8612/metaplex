@@ -1,6 +1,6 @@
 use crate::{
     errors::AuctionError,
-    processor::{AuctionData, AuctionState, Bid, BidState, WinnerLimit},
+    processor::{AuctionData, AuctionState, Bid, BidState, PriceFloor, WinnerLimit},
     utils::{assert_derivation, assert_owned_by, assert_signer, create_or_allocate_account_raw},
     PREFIX,
 };
@@ -12,13 +12,27 @@ use {
         borsh::try_from_slice_unchecked,
         clock::Clock,
         entrypoint::ProgramResult,
-        msg,
+        hash, msg,
         program_error::ProgramError,
         pubkey::Pubkey,
         sysvar::Sysvar,
     },
     std::mem,
 };
+
+type Price = u64;
+type Salt = u64;
+type Revealer = (Price, Salt);
+
+#[repr(C)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
+pub struct EndAuctionArgs {
+    /// The resource being auctioned. See AuctionData.
+    pub resource: Pubkey,
+    /// If the auction was blinded, a revealing price must be specified to release the auction
+    /// winnings.
+    pub reveal: Option<Revealer>,
+}
 
 struct Accounts<'a, 'b: 'a> {
     authority: &'a AccountInfo<'b>,
@@ -41,23 +55,34 @@ fn parse_accounts<'a, 'b: 'a>(
     Ok(accounts)
 }
 
-#[repr(C)]
-#[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
-pub struct StartAuctionArgs {
-    /// The resource being auctioned. See AuctionData.
-    pub resource: Pubkey,
+fn reveal(price_floor: PriceFloor, revealer: Option<Revealer>) -> Result<PriceFloor, ProgramError> {
+    // If the price floor was blinded, we update it.
+    if let PriceFloor::BlindedPrice(blinded) = price_floor {
+        // If the hash matches, update the price to the actual minimum.
+        if let Some(reveal) = revealer {
+            let reveal_hash = hash::hashv(&[&reveal.0.to_be_bytes(), &reveal.1.to_be_bytes()]);
+            if reveal_hash != blinded {
+                return Err(AuctionError::InvalidReveal.into());
+            }
+            Ok(PriceFloor::MinimumPrice([reveal.0, 0, 0, 0]))
+        } else {
+            return Err(AuctionError::MustReveal.into());
+        }
+    } else {
+        // No change needed in the else case.
+        Ok(price_floor)
+    }
 }
 
-pub fn start_auction<'a, 'b: 'a>(
+pub fn end_auction<'a, 'b: 'a>(
     program_id: &Pubkey,
     accounts: &'a [AccountInfo<'b>],
-    args: StartAuctionArgs,
+    args: EndAuctionArgs,
 ) -> ProgramResult {
-    msg!("+ Processing StartAuction");
+    msg!("+ Processing EndAuction");
     let accounts = parse_accounts(program_id, accounts)?;
     let clock = Clock::from_account_info(accounts.clock_sysvar)?;
 
-    // Derive auction address so we can make the modifications necessary to start it.
     assert_derivation(
         program_id,
         accounts.auction,
@@ -68,7 +93,7 @@ pub fn start_auction<'a, 'b: 'a>(
         ],
     )?;
 
-    // Initialise a new auction. The end time is calculated relative to now.
+    // End auction.
     let mut auction: AuctionData = try_from_slice_unchecked(&accounts.auction.data.borrow())?;
 
     // Check authority is correct.
@@ -76,19 +101,15 @@ pub fn start_auction<'a, 'b: 'a>(
         return Err(AuctionError::InvalidAuthority.into());
     }
 
-    // Calculate the relative end time.
-    let ended_at = if let Some(end_auction_at) = auction.end_auction_at {
-        match clock.slot.checked_add(end_auction_at) {
-            Some(val) => Some(val),
-            None => return Err(AuctionError::NumericalOverflowError.into()),
-        }
-    } else {
-        None
-    };
+    // As long as it hasn't already ended.
+    if auction.ended_at.is_some() {
+        return Err(AuctionError::AuctionTransitionInvalid.into());
+    }
 
     AuctionData {
-        ended_at,
-        state: auction.state.start()?,
+        ended_at: Some(clock.slot),
+        state: auction.state.end()?,
+        price_floor: reveal(auction.price_floor, args.reveal)?,
         ..auction
     }
     .serialize(&mut *accounts.auction.data.borrow_mut())?;

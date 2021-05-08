@@ -4,20 +4,28 @@ use solana_program::{
     account_info::AccountInfo,
     clock::{Slot, UnixTimestamp},
     entrypoint::ProgramResult,
+    hash::Hash,
     msg,
     program_error::ProgramError,
     pubkey::Pubkey,
 };
 
+// Declare submodules, each contains a single handler for each instruction variant in the program.
 pub mod cancel_bid;
+pub mod claim_bid;
 pub mod create_auction;
+pub mod end_auction;
 pub mod place_bid;
 pub mod set_authority;
 pub mod start_auction;
 
+// Re-export submodules handlers + associated types for other programs to consume.
 pub use cancel_bid::*;
+pub use claim_bid::*;
 pub use create_auction::*;
+pub use end_auction::*;
 pub use place_bid::*;
+pub use set_authority::*;
 pub use start_auction::*;
 
 pub fn process_instruction(
@@ -26,50 +34,44 @@ pub fn process_instruction(
     input: &[u8],
 ) -> ProgramResult {
     use crate::instruction::AuctionInstruction;
-    use cancel_bid::cancel_bid;
-    use create_auction::create_auction;
-    use place_bid::place_bid;
-    use start_auction::start_auction;
-
     match AuctionInstruction::try_from_slice(input)? {
-        AuctionInstruction::CreateAuction(args) => {
-            msg!("+ Processing CreateAuction");
-            create_auction(program_id, accounts, args)
-        }
-        AuctionInstruction::StartAuction(args) => {
-            msg!("+ Processing StartAuction");
-            start_auction(program_id, accounts, args)
-        }
-        AuctionInstruction::PlaceBid(args) => {
-            msg!("+ Processing PlaceBid");
-            place_bid(program_id, accounts, args)
-        }
-        AuctionInstruction::CancelBid(args) => {
-            msg!("+ Processing Cancelbid");
-            cancel_bid(program_id, accounts)
-        }
-        AuctionInstruction::SetAuthority => {
-            msg!("+ Processing SetAuthority");
-            cancel_bid(program_id, accounts)
-        }
+        AuctionInstruction::CancelBid(args) => cancel_bid(program_id, accounts, args),
+        AuctionInstruction::ClaimBid(args) => claim_bid(program_id, accounts, args),
+        AuctionInstruction::CreateAuction(args) => create_auction(program_id, accounts, args),
+        AuctionInstruction::EndAuction(args) => end_auction(program_id, accounts, args),
+        AuctionInstruction::PlaceBid(args) => place_bid(program_id, accounts, args),
+        AuctionInstruction::SetAuthority => set_authority(program_id, accounts),
+        AuctionInstruction::StartAuction(args) => start_auction(program_id, accounts, args),
     }
 }
 
-/// Structure containing timing configuration, I.E when the auction ends.
+/// Structure with pricing floor data.
 #[repr(C)]
-#[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
-pub struct AuctionTiming {}
+#[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq, Debug)]
+pub enum PriceFloor {
+    /// Due to borsh on the front end disallowing different arguments in enums, we have to make sure data is
+    /// same size across all three
+    /// No price floor, any bid is valid.
+    None([u8; 32]),
+    /// Explicit minimum price, any bid below this is rejected.
+    MinimumPrice([u64; 4]),
+    /// Hidden minimum price, revealed at the end of the auction.
+    BlindedPrice(Hash),
+}
 
-// The two extra 8's are present, one 8 is for the Vec's amount of elements and one is for the max usize in
-// bid state.
-pub const BASE_AUCTION_DATA_SIZE: usize = 32 + 32 + 32 + 8 + 8 + 1 + 9 + 9 + 9 + 9;
+// The two extra 8's are present, one 8 is for the Vec's amount of elements and one is for the max
+// usize in bid state.
+pub const BASE_AUCTION_DATA_SIZE: usize = 32 + 32 + 9 + 9 + 9 + 9 + 1 + 32 + 1 + 8 + 8;
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq, Debug)]
 pub struct AuctionData {
     /// Pubkey of the authority with permission to modify this auction.
     pub authority: Pubkey,
     /// Pubkey of the resource being bid on.
-    pub resource: Pubkey,
+    /// TODO try to bring this back some day. Had to remove this due to a stack access violation bug
+    /// interactin that happens in metaplex during redemptions due to some low level rust error
+    /// that happens when AuctionData has too many fields. This field was the least used.
+    ///pub resource: Pubkey,
     /// Token mint for the SPL token being used to bid
     pub token_mint: Pubkey,
     /// The time the last bid was placed, used to keep track of auction timing.
@@ -80,10 +82,48 @@ pub struct AuctionData {
     pub end_auction_at: Option<Slot>,
     /// Gap time is the amount of time in slots after the previous bid at which the auction ends.
     pub end_auction_gap: Option<Slot>,
+    /// Minimum price for any bid to meet.
+    pub price_floor: PriceFloor,
     /// The state the auction is in, whether it has started or ended.
     pub state: AuctionState,
     /// Auction Bids, each user may have one bid open at a time.
     pub bid_state: BidState,
+}
+
+impl AuctionData {
+    pub fn ended(&self, now: Slot) -> Result<bool, ProgramError> {
+        // If there is an end time specified, handle conditions.
+        return match (self.ended_at, self.end_auction_gap) {
+            // Both end and gap present, means a bid can still be placed post-auction if it is
+            // within the gap time.
+            (Some(end), Some(gap)) => {
+                // Check if the bid is within the gap between the last bidder.
+                if let Some(last) = self.last_bid {
+                    let next_bid_time = match last.checked_add(gap) {
+                        Some(val) => val,
+                        None => return Err(AuctionError::NumericalOverflowError.into()),
+                    };
+                    Ok(now > end && now > next_bid_time)
+                } else {
+                    Ok(now > end)
+                }
+            }
+
+            // Simply whether now has passed the end.
+            (Some(end), None) => Ok(now > end),
+
+            // No other end conditions.
+            _ => Ok(false),
+        };
+    }
+
+    pub fn is_winner(&self, key: &Pubkey) -> Option<usize> {
+        let minimum = match self.price_floor {
+            PriceFloor::MinimumPrice(min) => min[0],
+            _ => 0,
+        };
+        self.bid_state.is_winner(key, minimum)
+    }
 }
 
 /// Define valid auction state transitions.
@@ -120,7 +160,7 @@ impl AuctionState {
 /// Bids associate a bidding key with an amount bid.
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq, Debug)]
-pub struct Bid(Pubkey, u64);
+pub struct Bid(pub Pubkey, pub u64);
 
 /// BidState tracks the running state of an auction, each variant represents a different kind of
 /// auction being run.
@@ -160,21 +200,22 @@ impl BidState {
             // In a capped auction, track the limited number of winners.
             BidState::EnglishAuction { ref mut bids, max } => match bids.last() {
                 Some(top) => {
-                    msg!("{} < {}", top.1, bid.1);
                     if top.1 < bid.1 {
                         bids.retain(|b| b.0 != bid.0);
                         bids.push(bid);
                         if bids.len() > *max {
                             bids.remove(0);
                         }
-                        return Ok(());
+                        Ok(())
+                    } else {
+                        msg!("This bid fails to make it onto the winner stack but can still register metadata.");
+                        Ok(())
                     }
-                    return Ok(());
                 }
                 _ => {
                     msg!("Pushing bid onto stack");
                     bids.push(bid);
-                    return Ok(());
+                    Ok(())
                 }
             },
 
@@ -199,10 +240,12 @@ impl BidState {
     }
 
     /// Check if a pubkey is currently a winner.
-    pub fn is_winner(&self, key: Pubkey) -> Option<usize> {
+    pub fn is_winner(&self, key: &Pubkey, min: u64) -> Option<usize> {
         match self {
             // Presense in the winner list is enough to check win state.
-            BidState::EnglishAuction { ref bids, max } => bids.iter().position(|bid| bid.0 == key),
+            BidState::EnglishAuction { bids, max } => {
+                bids.iter().position(|bid| &bid.0 == key && bid.1 > min)
+            }
             // There are no winners in an open edition, it is up to the auction manager to decide
             // what to do with open edition bids.
             BidState::OpenEdition { bids, max } => None,
@@ -241,10 +284,8 @@ pub struct BidderMetadata {
 pub struct BidderPot {
     /// Points at actual pot that is a token account
     pub bidder_pot: Pubkey,
-    /// These fields not technically required for the backend but used on the front end to index and search bidder pots
-    /// quickly, like indices in a database...
-    /// originating bidder acct
+    /// Originating bidder account
     pub bidder_act: Pubkey,
-    /// auction account
+    /// Auction account
     pub auction_act: Pubkey,
 }

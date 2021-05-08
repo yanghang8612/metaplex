@@ -51,7 +51,7 @@ export interface MetaContextState {
   editions: Record<string, ParsedAccount<Edition>>;
   masterEditions: Record<string, ParsedAccount<MasterEdition>>;
   masterEditionsByMasterMint: Record<string, ParsedAccount<MasterEdition>>;
-  auctionManagers: Record<string, ParsedAccount<AuctionManager>>;
+  auctionManagersByAuction: Record<string, ParsedAccount<AuctionManager>>;
   auctions: Record<string, ParsedAccount<AuctionData>>;
   vaults: Record<string, ParsedAccount<Vault>>;
   bidderMetadataByAuctionAndBidder: Record<
@@ -73,7 +73,7 @@ const MetaContext = React.createContext<MetaContextState>({
   masterEditionsByMasterMint: {},
   metadataByMasterEdition: {},
   editions: {},
-  auctionManagers: {},
+  auctionManagersByAuction: {},
   auctions: {},
   vaults: {},
   bidderMetadataByAuctionAndBidder: {},
@@ -109,9 +109,10 @@ export function MetaProvider({ children = null as any }) {
   const [editions, setEditions] = useState<
     Record<string, ParsedAccount<Edition>>
   >({});
-  const [auctionManagers, setAuctionManagers] = useState<
+  const [auctionManagersByAuction, setAuctionManagersByAuction] = useState<
     Record<string, ParsedAccount<AuctionManager>>
   >({});
+
   const [bidRedemptions, setBidRedemptions] = useState<
     Record<string, ParsedAccount<BidRedemptionTicket>>
   >({});
@@ -147,10 +148,6 @@ export function MetaProvider({ children = null as any }) {
             a.account,
             AuctionParser,
           ) as ParsedAccount<AuctionData>;
-          account.info.auctionManagerKey = await getAuctionManagerKey(
-            account.info.resource,
-            a.pubkey,
-          );
           const payerAcct = accountByMint.get(
             account.info.tokenMint.toBase58(),
           );
@@ -313,9 +310,9 @@ export function MetaProvider({ children = null as any }) {
               account: a.account,
               info: auctionManager,
             };
-            setAuctionManagers(e => ({
+            setAuctionManagersByAuction(e => ({
               ...e,
-              [a.pubkey.toBase58()]: account,
+              [auctionManager.auction.toBase58()]: account,
             }));
           } else if (a.account.data[0] === MetaplexKey.BidRedemptionTicketV1) {
             const ticket = await decodeBidRedemptionTicket(a.account.data);
@@ -363,7 +360,7 @@ export function MetaProvider({ children = null as any }) {
     return () => {
       dispose();
     };
-  }, [connection, setAuctionManagers, setBidRedemptions]);
+  }, [connection, setAuctionManagersByAuction, setBidRedemptions]);
 
   useEffect(() => {
     let dispose = () => {};
@@ -482,7 +479,7 @@ export function MetaProvider({ children = null as any }) {
         metadata,
         editions,
         masterEditions,
-        auctionManagers,
+        auctionManagersByAuction,
         auctions,
         metadataByMint,
         safetyDepositBoxesByVaultAndIndex,

@@ -104,13 +104,29 @@ export const decodeBidderMetadata = (buffer: Buffer) => {
   ) as BidderMetadata;
 };
 
-export const BASE_AUCTION_DATA_SIZE = 32 + 32 + 32 + 8 + 8 + 1 + 9 + 9 + 9 + 9;
+export const BASE_AUCTION_DATA_SIZE =
+  32 + 32 + 32 + 9 + 9 + 9 + 9 + 1 + 32 + 1 + 8 + 8;
+
+export enum PriceFloorType {
+  None = 0,
+  Minimum = 1,
+  BlindedPrice = 2,
+}
+export class PriceFloor {
+  type: PriceFloorType;
+  // It's an array of 32 u8s, when minimum, only first 4 are used (a u64), when blinded price, the entire
+  // thing is a hash and not actually a public key, and none is all zeroes
+  hash: PublicKey;
+
+  constructor(args: { type: PriceFloorType; hash: PublicKey }) {
+    this.type = args.type;
+    this.hash = args.hash;
+  }
+}
 
 export class AuctionData {
   /// Pubkey of the authority with permission to modify this auction.
   authority: PublicKey;
-  /// Pubkey of the resource being bid on.
-  resource: PublicKey;
   /// Token mint for the SPL token being used to bid
   tokenMint: PublicKey;
   /// The time the last bid was placed, used to keep track of auction timing.
@@ -121,34 +137,33 @@ export class AuctionData {
   endAuctionAt: BN | null;
   /// Gap time is the amount of time in slots after the previous bid at which the auction ends.
   auctionGap: BN | null;
+  /// Minimum price for any bid to meet.
+  priceFloor: PriceFloor;
   /// The state the auction is in, whether it has started or ended.
   state: AuctionState;
   /// Auction Bids, each user may have one bid open at a time.
   bidState: BidState;
-
-  /// Used for precalculation on the front end, not a backend key
-  auctionManagerKey?: PublicKey;
   /// Used for precalculation on the front end, not a backend key
   bidRedemptionKey?: PublicKey;
 
   constructor(args: {
     authority: PublicKey;
-    resource: PublicKey;
     tokenMint: PublicKey;
     lastBid: BN | null;
     endedAt: BN | null;
     endAuctionAt: BN | null;
     auctionGap: BN | null;
+    priceFloor: PriceFloor;
     state: AuctionState;
     bidState: BidState;
   }) {
     this.authority = args.authority;
-    this.resource = args.resource;
     this.tokenMint = args.tokenMint;
     this.lastBid = args.lastBid;
     this.endedAt = args.endedAt;
     this.endAuctionAt = args.endAuctionAt;
     this.auctionGap = args.auctionGap;
+    this.priceFloor = args.priceFloor;
     this.state = args.state;
     this.bidState = args.bidState;
   }
@@ -214,7 +229,7 @@ export class WinnerLimit {
 }
 
 class CreateAuctionArgs {
-  instruction: number = 0;
+  instruction: number = 1;
   /// How many winners are allowed for this auction. See AuctionData.
   winners: WinnerLimit;
   /// End time is the cut-off point that the auction is forced to end by. See AuctionData.
@@ -228,6 +243,8 @@ class CreateAuctionArgs {
   /// The resource being auctioned. See AuctionData.
   resource: PublicKey;
 
+  priceFloor: PriceFloor;
+
   constructor(args: {
     winners: WinnerLimit;
     endAuctionAt: BN | null;
@@ -235,6 +252,7 @@ class CreateAuctionArgs {
     tokenMint: PublicKey;
     authority: PublicKey;
     resource: PublicKey;
+    priceFloor: PriceFloor;
   }) {
     this.winners = args.winners;
     this.endAuctionAt = args.endAuctionAt;
@@ -242,11 +260,12 @@ class CreateAuctionArgs {
     this.tokenMint = args.tokenMint;
     this.authority = args.authority;
     this.resource = args.resource;
+    this.priceFloor = args.priceFloor;
   }
 }
 
 class StartAuctionArgs {
-  instruction: number = 1;
+  instruction: number = 4;
   resource: PublicKey;
 
   constructor(args: { resource: PublicKey }) {
@@ -255,7 +274,7 @@ class StartAuctionArgs {
 }
 
 class PlaceBidArgs {
-  instruction: number = 2;
+  instruction: number = 6;
   resource: PublicKey;
   amount: BN;
 
@@ -278,6 +297,7 @@ export const AUCTION_SCHEMA = new Map<any, any>([
         ['tokenMint', 'pubkey'],
         ['authority', 'pubkey'],
         ['resource', 'pubkey'],
+        ['priceFloor', PriceFloor],
       ],
     },
   ],
@@ -318,14 +338,24 @@ export const AUCTION_SCHEMA = new Map<any, any>([
       kind: 'struct',
       fields: [
         ['authority', 'pubkey'],
-        ['resource', 'pubkey'],
         ['tokenMint', 'pubkey'],
         ['lastBid', { kind: 'option', type: 'u64' }],
         ['endedAt', { kind: 'option', type: 'u64' }],
         ['endAuctionAt', { kind: 'option', type: 'u64' }],
         ['auctionGap', { kind: 'option', type: 'u64' }],
+        ['priceFloor', PriceFloor],
         ['state', 'u8'],
         ['bidState', BidState],
+      ],
+    },
+  ],
+  [
+    PriceFloor,
+    {
+      kind: 'struct',
+      fields: [
+        ['type', 'u8'],
+        ['hash', 'pubkey'],
       ],
     },
   ],
@@ -402,6 +432,10 @@ export async function createAuction(
         auctionGap,
         tokenMint,
         authority,
+        priceFloor: new PriceFloor({
+          type: PriceFloorType.None,
+          hash: SystemProgram.programId,
+        }),
       }),
     ),
   );

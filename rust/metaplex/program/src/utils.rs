@@ -364,28 +364,49 @@ pub struct CommonRedeemReturn {
     pub bidder_pot_pubkey: Pubkey,
 }
 
+pub struct CommonRedeemCheckArgs<'a> {
+    pub program_id: &'a Pubkey,
+    pub auction_manager_info: &'a AccountInfo<'a>,
+    pub store_info: &'a AccountInfo<'a>,
+    pub destination_info: &'a AccountInfo<'a>,
+    pub bid_redemption_info: &'a AccountInfo<'a>,
+    pub safety_deposit_info: &'a AccountInfo<'a>,
+    pub vault_info: &'a AccountInfo<'a>,
+    pub auction_info: &'a AccountInfo<'a>,
+    pub bidder_metadata_info: &'a AccountInfo<'a>,
+    pub bidder_info: &'a AccountInfo<'a>,
+    pub payer_info: &'a AccountInfo<'a>,
+    pub token_program_info: &'a AccountInfo<'a>,
+    pub token_vault_program_info: &'a AccountInfo<'a>,
+    pub token_metadata_program_info: &'a AccountInfo<'a>,
+    pub rent_info: &'a AccountInfo<'a>,
+    pub is_open_edition: bool,
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn common_redeem_checks(
-    program_id: &Pubkey,
-    auction_manager_info: &AccountInfo,
-    store_info: &AccountInfo,
-    destination_info: &AccountInfo,
-    bid_redemption_info: &AccountInfo,
-    safety_deposit_info: &AccountInfo,
-    vault_info: &AccountInfo,
-    _fraction_mint_info: &AccountInfo,
-    auction_info: &AccountInfo,
-    bidder_metadata_info: &AccountInfo,
-    bidder_info: &AccountInfo,
-    payer_info: &AccountInfo,
-    token_program_info: &AccountInfo,
-    token_vault_program_info: &AccountInfo,
-    token_metadata_program_info: &AccountInfo,
-    rent_info: &AccountInfo,
-    _system_info: &AccountInfo,
-    is_open_edition: bool,
+    args: CommonRedeemCheckArgs,
 ) -> Result<CommonRedeemReturn, ProgramError> {
-    let rent = &Rent::from_account_info(rent_info)?;
+    let CommonRedeemCheckArgs {
+        program_id,
+        auction_manager_info,
+        store_info,
+        destination_info,
+        bid_redemption_info,
+        safety_deposit_info,
+        vault_info,
+        auction_info,
+        bidder_metadata_info,
+        bidder_info,
+        payer_info,
+        token_program_info,
+        token_vault_program_info,
+        token_metadata_program_info,
+        rent_info,
+        is_open_edition,
+    } = args;
+
+    let rent = &Rent::from_account_info(&rent_info)?;
 
     if !bid_redemption_info.data_is_empty() {
         let bid_redemption: BidRedemptionTicket =
@@ -405,18 +426,18 @@ pub fn common_redeem_checks(
     let bidder_metadata: BidderMetadata =
         try_from_slice_unchecked(&bidder_metadata_info.data.borrow_mut())?;
     // Is it initialized and an actual Account?
-    let destination: Account = assert_initialized(destination_info)?;
+    let destination: Account = assert_initialized(&destination_info)?;
 
-    assert_owned_by(destination_info, token_program_info.key)?;
-    assert_owned_by(auction_manager_info, program_id)?;
+    assert_owned_by(&destination_info, token_program_info.key)?;
+    assert_owned_by(&auction_manager_info, &program_id)?;
     assert_store_safety_vault_manager_match(
         &auction_manager,
         &safety_deposit,
-        vault_info,
-        store_info,
+        &vault_info,
+        &store_info,
     )?;
     // looking out for you!
-    assert_rent_exempt(rent, destination_info)?;
+    assert_rent_exempt(rent, &destination_info)?;
 
     if auction_manager.auction != *auction_info.key {
         return Err(MetaplexError::AuctionManagerAuctionMismatch.into());
@@ -472,7 +493,7 @@ pub fn common_redeem_checks(
     }
 
     if !bidder_info.is_signer {
-        let bidder: Account = assert_initialized(bidder_info)?;
+        let bidder: Account = assert_initialized(&bidder_info)?;
         if bidder.owner != *payer_info.key {
             return Err(MetaplexError::BidderIsNotSigner.into());
         }
@@ -499,20 +520,35 @@ pub fn common_redeem_checks(
     })
 }
 
+pub struct CommonRedeemFinishArgs<'a> {
+    pub program_id: &'a Pubkey,
+    pub auction_manager: AuctionManager,
+    pub auction_manager_info: &'a AccountInfo<'a>,
+    pub bidder_metadata_info: &'a AccountInfo<'a>,
+    pub rent_info: &'a AccountInfo<'a>,
+    pub system_info: &'a AccountInfo<'a>,
+    pub payer_info: &'a AccountInfo<'a>,
+    pub bid_redemption_info: &'a AccountInfo<'a>,
+    pub redemption_bump_seed: u8,
+    pub bid_redeemed: bool,
+    pub open_edition_redeemed: bool,
+}
 #[allow(clippy::too_many_arguments)]
-pub fn common_redeem_finish<'a>(
-    program_id: &Pubkey,
-    auction_manager: &mut AuctionManager,
-    auction_manager_info: &AccountInfo<'a>,
-    bidder_metadata_info: &AccountInfo<'a>,
-    rent_info: &AccountInfo<'a>,
-    system_info: &AccountInfo<'a>,
-    payer_info: &AccountInfo<'a>,
-    bid_redemption_info: &AccountInfo<'a>,
-    redemption_bump_seed: u8,
-    bid_redeemed: bool,
-    open_edition_redeemed: bool,
-) -> ProgramResult {
+pub fn common_redeem_finish(args: CommonRedeemFinishArgs) -> ProgramResult {
+    let CommonRedeemFinishArgs {
+        program_id,
+        mut auction_manager,
+        auction_manager_info,
+        bidder_metadata_info,
+        rent_info,
+        system_info,
+        payer_info,
+        bid_redemption_info,
+        redemption_bump_seed,
+        bid_redeemed,
+        open_edition_redeemed,
+    } = args;
+
     if bid_redeemed || open_edition_redeemed {
         let redemption_seeds = &[
             PREFIX.as_bytes(),
@@ -524,10 +560,10 @@ pub fn common_redeem_finish<'a>(
         if bid_redemption_info.data_is_empty() {
             create_or_allocate_account_raw(
                 *program_id,
-                bid_redemption_info,
-                rent_info,
-                system_info,
-                payer_info,
+                &bid_redemption_info,
+                &rent_info,
+                &system_info,
+                &payer_info,
                 3,
                 redemption_seeds,
             )?;
@@ -646,33 +682,17 @@ pub fn shift_authority_back_to_originating_user<'a>(
     Ok(())
 }
 
-///TokenTransferParams
-pub struct TokenTransferParams<'a: 'b, 'b> {
-    /// source
-    pub source: AccountInfo<'a>,
-    /// destination
-    pub destination: AccountInfo<'a>,
-    /// amount
-    pub amount: u64,
-    /// authority
-    pub authority: AccountInfo<'a>,
-    /// authority_signer_seeds
-    pub authority_signer_seeds: &'b [&'b [u8]],
-    /// token_program
-    pub token_program: AccountInfo<'a>,
-}
-
+// TODO due to a weird stack access violation bug we had to remove the args struct from this method
+// to get redemptions working again after integrating new Auctions program. Try to bring it back one day
 #[inline(always)]
-pub fn spl_token_transfer(params: TokenTransferParams<'_, '_>) -> ProgramResult {
-    let TokenTransferParams {
-        source,
-        destination,
-        authority,
-        token_program,
-        amount,
-        authority_signer_seeds,
-    } = params;
-
+pub fn spl_token_transfer<'a: 'b, 'b>(
+    source: AccountInfo<'a>,
+    destination: AccountInfo<'a>,
+    amount: u64,
+    authority: AccountInfo<'a>,
+    authority_signer_seeds: &'b [&'b [u8]],
+    token_program: AccountInfo<'a>,
+) -> ProgramResult {
     let result = invoke_signed(
         &spl_token::instruction::transfer(
             token_program.key,
@@ -746,15 +766,16 @@ pub fn assert_edition_valid(
     Ok(())
 }
 
-pub fn spl_token_mint_to(params: TokenMintToParams<'_, '_>) -> ProgramResult {
-    let TokenMintToParams {
-        mint,
-        destination,
-        authority,
-        token_program,
-        amount,
-        authority_signer_seeds,
-    } = params;
+// TODO due to a weird stack access violation bug we had to remove the args struct from this method
+// to get redemptions working again after integrating new Auctions program. Try to bring it back one day.
+pub fn spl_token_mint_to<'a: 'b, 'b>(
+    mint: AccountInfo<'a>,
+    destination: AccountInfo<'a>,
+    amount: u64,
+    authority: AccountInfo<'a>,
+    authority_signer_seeds: &'b [&'b [u8]],
+    token_program: AccountInfo<'a>,
+) -> ProgramResult {
     let result = invoke_signed(
         &spl_token::instruction::mint_to(
             token_program.key,
@@ -768,20 +789,4 @@ pub fn spl_token_mint_to(params: TokenMintToParams<'_, '_>) -> ProgramResult {
         &[authority_signer_seeds],
     );
     result.map_err(|_| MetaplexError::TokenMintToFailed.into())
-}
-
-/// TokenMintToParams
-pub struct TokenMintToParams<'a: 'b, 'b> {
-    /// mint
-    pub mint: AccountInfo<'a>,
-    /// destination
-    pub destination: AccountInfo<'a>,
-    /// amount
-    pub amount: u64,
-    /// authority
-    pub authority: AccountInfo<'a>,
-    /// authority_signer_seeds
-    pub authority_signer_seeds: &'b [&'b [u8]],
-    /// token_program
-    pub token_program: AccountInfo<'a>,
 }

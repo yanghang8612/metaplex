@@ -15,7 +15,7 @@ export const useAuction = (id: string) => {
 
   const {
     auctions,
-    auctionManagers,
+    auctionManagersByAuction,
     safetyDepositBoxesByVaultAndIndex,
     metadataByMint,
     bidderMetadataByAuctionAndBidder,
@@ -33,7 +33,7 @@ export const useAuction = (id: string) => {
     if (auction) {
       const auctionView = processAccountsIntoAuctionView(
         auction,
-        auctionManagers,
+        auctionManagersByAuction,
         safetyDepositBoxesByVaultAndIndex,
         metadataByMint,
         bidRedemptions,
@@ -51,7 +51,7 @@ export const useAuction = (id: string) => {
     }
   }, [
     auctions,
-    auctionManagers,
+    auctionManagersByAuction,
     safetyDepositBoxesByVaultAndIndex,
     metadataByMint,
     bidderMetadataByAuctionAndBidder,

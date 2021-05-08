@@ -434,7 +434,7 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
     let (bidder_pot_pubkey, _) =
         Pubkey::find_program_address(bidder_pot_seeds, &manager.auction_program);
 
-    if let Some(winning_index) = auction.bid_state.is_winner(bidder_pot_pubkey) {
+    if let Some(winning_index) = auction.is_winner(&bidder_pot_pubkey) {
         let destination = Keypair::new();
         let winning_config = manager.settings.winning_configs[winning_index];
         let safety_deposit_result = safety_deposits

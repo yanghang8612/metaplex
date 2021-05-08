@@ -88,7 +88,7 @@ pub fn make_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
                     &token_key,
                     &new_bidder_pot.pubkey(),
                     &auction.token_mint,
-                    &auction_program_key,
+                    &manager.auction,
                 )
                 .unwrap(),
             );

@@ -18,7 +18,7 @@ use {
     },
     spl_auction::{
         instruction::create_auction_instruction,
-        processor::{create_auction::CreateAuctionArgs, WinnerLimit},
+        processor::{create_auction::CreateAuctionArgs, PriceFloor, WinnerLimit},
     },
     spl_metaplex::{instruction::create_init_auction_manager_instruction, state::AuctionManager},
     spl_token::{
@@ -160,6 +160,7 @@ fn find_or_initialize_auction(
                     val => WinnerLimit::Capped(val.try_into().unwrap()),
                 },
                 token_mint: *payer_mint_key,
+                price_floor: PriceFloor::None([0; 32]),
             },
         )];
 

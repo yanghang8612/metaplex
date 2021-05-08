@@ -56,7 +56,7 @@ export const useAuctions = (state: AuctionViewState) => {
 
   const {
     auctions,
-    auctionManagers,
+    auctionManagersByAuction,
     safetyDepositBoxesByVaultAndIndex,
     metadataByMint,
     bidderMetadataByAuctionAndBidder,
@@ -74,7 +74,7 @@ export const useAuctions = (state: AuctionViewState) => {
       const existingAuctionView = auctionViews[a];
       const nextAuctionView = processAccountsIntoAuctionView(
         auction,
-        auctionManagers,
+        auctionManagersByAuction,
         safetyDepositBoxesByVaultAndIndex,
         metadataByMint,
         bidRedemptions,
@@ -93,7 +93,7 @@ export const useAuctions = (state: AuctionViewState) => {
   }, [
     state,
     auctions,
-    auctionManagers,
+    auctionManagersByAuction,
     safetyDepositBoxesByVaultAndIndex,
     metadataByMint,
     bidderMetadataByAuctionAndBidder,
@@ -111,7 +111,7 @@ export const useAuctions = (state: AuctionViewState) => {
 
 export function processAccountsIntoAuctionView(
   auction: ParsedAccount<AuctionData>,
-  auctionManagers: Record<string, ParsedAccount<AuctionManager>>,
+  auctionManagersByAuction: Record<string, ParsedAccount<AuctionManager>>,
   safetyDepositBoxesByVaultAndIndex: Record<
     string,
     ParsedAccount<SafetyDepositBox>
@@ -147,7 +147,7 @@ export function processAccountsIntoAuctionView(
   const myPayingAccount = accountByMint.get(auction.info.tokenMint.toBase58());
 
   const auctionManager =
-    auctionManagers[auction.info.auctionManagerKey?.toBase58() || ''];
+    auctionManagersByAuction[auction.pubkey.toBase58() || ''];
   if (auctionManager) {
     const boxesExpected = auctionManager.info.state.winningConfigsValidated;
 
