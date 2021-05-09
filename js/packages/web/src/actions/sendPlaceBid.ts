@@ -6,16 +6,17 @@ import {
 } from '@solana/web3.js';
 import {
   actions,
-  ParsedAccount,
-  SequenceType,
   sendTransactionWithRetry,
   placeBid,
-  programIds,
-  BidderPot,
   models,
+  cache,
+  TokenAccount,
+  ensureWrappedAccount,
+  toLamports,
+  ParsedAccount,
 } from '@oyster/common';
 
-import { AccountLayout } from '@solana/spl-token';
+import { AccountLayout, MintInfo, Token } from '@solana/spl-token';
 import { AuctionView } from '../hooks';
 import BN from 'bn.js';
 const { createTokenAccount } = actions;
@@ -26,10 +27,16 @@ export async function sendPlaceBid(
   wallet: any,
   bidderAccount: PublicKey,
   auctionView: AuctionView,
+  // value entered by the user adjust to decimals of the mint
   amount: number,
 ) {
+  const tokenAccount = cache.get(bidderAccount) as TokenAccount;
+  const mint = cache.get(tokenAccount.info.mint) as ParsedAccount<MintInfo>;
+  let lamports = toLamports(amount, mint.info);
+
   let signers: Account[] = [];
   let instructions: TransactionInstruction[] = [];
+  let cleanupInstructions: TransactionInstruction[] = [];
 
   const accountRentExempt = await connection.getMinimumBalanceForRentExemption(
     AccountLayout.span,
@@ -47,31 +54,40 @@ export async function sendPlaceBid(
     );
   } else bidderPotTokenAccount = auctionView.myBidderPot?.info.bidderPot;
 
+  const toAccount = ensureWrappedAccount(
+    instructions,
+    cleanupInstructions,
+    tokenAccount,
+    wallet.publicKey,
+    lamports,
+    signers,
+  );
+
   const transferAuthority = approve(
     instructions,
-    [],
-    bidderAccount,
+    cleanupInstructions,
+    toAccount,
     wallet.publicKey,
-    amount,
+    lamports,
   );
 
   signers.push(transferAuthority);
 
   await placeBid(
-    bidderAccount,
+    toAccount,
     bidderPotTokenAccount,
     auctionView.auction.info.tokenMint,
     transferAuthority.publicKey,
     wallet.publicKey,
     auctionView.auctionManager.info.vault,
-    new BN(amount),
+    new BN(lamports),
     instructions,
   );
 
   await sendTransactionWithRetry(
     connection,
     wallet,
-    instructions,
+    [...instructions, ...cleanupInstructions],
     signers,
     'single',
   );

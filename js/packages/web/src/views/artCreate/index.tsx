@@ -28,12 +28,12 @@ import {
 import {
   getAssetCostToStore,
   LAMPORT_MULTIPLIER,
-  solanaToUSD,
 } from '../../utils/assets';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { MintLayout } from '@solana/spl-token';
 import { useHistory, useParams } from 'react-router-dom';
 import { cleanName } from '../../utils/utils';
+import { useSolPrice } from '../../contexts';
 
 const { Step } = Steps;
 const { Dragger } = Upload;
@@ -647,6 +647,7 @@ const LaunchStep = (props: {
   };
   const [cost, setCost] = useState(0);
   const [USDcost, setUSDcost] = useState(0);
+  const solPrice = useSolPrice();
   useEffect(() => {
     const rentCall = Promise.all([
       props.connection.getMinimumBalanceForRentExemption(MintLayout.span),
@@ -676,8 +677,8 @@ const LaunchStep = (props: {
   }, [files, setCost]);
 
   useEffect(() => {
-    cost && solanaToUSD(cost).then(setUSDcost);
-  }, [cost]);
+    cost && setUSDcost(solPrice * cost);
+  }, [cost, solPrice]);
 
   return (
     <>

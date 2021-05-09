@@ -4,52 +4,9 @@ import {
   KnownTokenMap,
 } from '@oyster/common';
 import { TokenInfo } from '@solana/spl-token-registry';
-import { COINGECKO_COIN_PRICE_API } from '../contexts/coingecko';
-
-export const getAssetName = (
-  parsedAssetAddress: string,
-  assetChain: number,
-  solanaTokens: KnownTokenMap,
-  ethTokens: KnownTokenMap,
-) => {
-  if (assetChain === ASSET_CHAIN.Solana)
-    return getVerboseTokenName(solanaTokens, parsedAssetAddress);
-  else return getVerboseTokenName(ethTokens, `0x${parsedAssetAddress}`);
-};
 
 export const LAMPORT_MULTIPLIER = 10 ** 9;
 const WINSTON_MULTIPLIER = 10 ** 12;
-
-export const getAssetTokenSymbol = (
-  parsedAssetAddress: string,
-  assetChain: number,
-  solanaTokens: KnownTokenMap,
-  ethTokens: KnownTokenMap,
-) => {
-  if (assetChain === ASSET_CHAIN.Solana)
-    return getTokenName(solanaTokens, parsedAssetAddress);
-  else return getTokenName(ethTokens, `0x${parsedAssetAddress}`);
-};
-
-export const solanaToUSD = async (amount: number): Promise<number> => {
-  const url = `${COINGECKO_COIN_PRICE_API}?ids=solana&vs_currencies=usd`;
-  const resp = await window.fetch(url).then(resp => resp.json());
-  return amount * resp.solana.usd;
-};
-
-export enum ASSET_CHAIN {
-  Solana = 1,
-  Ethereum = 2,
-}
-
-const CHAIN_NAME = {
-  [ASSET_CHAIN.Solana]: 'Solana',
-  [ASSET_CHAIN.Ethereum]: 'Ethereum',
-};
-
-export const chainToName = (chain?: ASSET_CHAIN) => {
-  return CHAIN_NAME[chain || ASSET_CHAIN.Ethereum];
-};
 
 export const filterModalSolTokens = (tokens: TokenInfo[]) => {
   return tokens;
