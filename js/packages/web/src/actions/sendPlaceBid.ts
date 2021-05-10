@@ -8,6 +8,7 @@ import {
   actions,
   sendTransactionWithRetry,
   placeBid,
+  programIds,
   models,
   cache,
   TokenAccount,
