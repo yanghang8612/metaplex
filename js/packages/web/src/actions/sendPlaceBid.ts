@@ -54,7 +54,7 @@ export async function sendPlaceBid(
 
   signers.push(transferAuthority);
 
-  await placeBid(
+  const bid = await placeBid(
     bidderAccount,
     bidderPotTokenAccount,
     auctionView.auction.info.tokenMint,
@@ -72,4 +72,6 @@ export async function sendPlaceBid(
     signers,
     'single',
   );
+
+  return bid;
 }
