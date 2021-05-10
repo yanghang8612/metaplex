@@ -12,8 +12,9 @@ import {
   BidderMetadata,
   ParsedAccount,
   Identicon,
+  formatAmount,
 } from '@oyster/common';
-import { AuctionView, AuctionViewState, useBidsForAuction } from '../../hooks';
+import { AuctionView, AuctionViewState, useBidsForAuction, useUserBalance } from '../../hooks';
 import { sendPlaceBid } from '../../actions/sendPlaceBid';
 import { sendRedeemBid } from '../../actions/sendRedeemBid';
 const { useWallet } = contexts.Wallet;
@@ -35,9 +36,9 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
 
   const bids = useBidsForAuction(auctionView.auction.pubkey);
 
-  const myPayingAccount = accountByMint.get(
-    auctionView.auction.info.tokenMint.toBase58(),
-  );
+  const balance = useUserBalance(auctionView.auction.info.tokenMint);
+
+  const myPayingAccount = balance.accounts[0];
 
   useEffect(() => {
     connection.getSlot().then(setClock);
@@ -132,8 +133,7 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
         className="info-content"
         style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem' }}
       >
-        Your Balance: $
-        {myPayingAccount ? myPayingAccount.info.amount.toNumber() : 0.0}
+        Your Balance: ◎{formatAmount(balance.balance, 2)} (${formatAmount(balance.balanceInUSD, 2)})
       </div>
 
       {auctionView.state === AuctionViewState.Ended ? (
