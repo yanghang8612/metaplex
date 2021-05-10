@@ -1,16 +1,19 @@
 import { WalletAdapter } from "@solana/wallet-base";
 
 import Wallet from "@project-serum/sol-wallet-adapter";
-import { Button, Modal } from "antd";
+import { Button } from "antd";
 import React, { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { notify } from "./../utils/notifications";
 import { useConnectionConfig } from "./connection";
 import { useLocalStorageState } from "../utils/utils";
-import { LedgerProvider, LedgerWalletAdapter } from "@solana/wallet-ledger";
+import { LedgerWalletAdapter } from "@solana/wallet-ledger";
 import { SolongWalletAdapter } from "../wallet-adapters/solong";
 import { PhantomWalletAdapter } from "../wallet-adapters/phantom";
 import { TorusWalletAdapter } from "../wallet-adapters/torus";
 import { useLocation } from "react-router";
+import { MetaplexModal } from "../components/MetaplexModal";
+
+import './wallet.css'
 
 
 const ASSETS_URL = 'https://raw.githubusercontent.com/solana-labs/oyster/main/assets/wallets/';
@@ -131,9 +134,15 @@ export function WalletProvider({ children = null as any }) {
   }, [wallet, autoConnect]);
 
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [showProviders, setShowProviders] = useState(false);
 
   const select = useCallback(() => setIsModalVisible(true), []);
-  const close = useCallback(() => setIsModalVisible(false), []);
+  const close = useCallback(() => {
+    setIsModalVisible(false)
+    setShowProviders(false)
+  }, []);
+
+  const pp = WALLET_PROVIDERS.find(wp => wp.name === "Phantom")
 
   return (
     <WalletContext.Provider
@@ -145,43 +154,81 @@ export function WalletProvider({ children = null as any }) {
       }}
     >
       {children}
-      <Modal
-        title="Select Wallet"
-        okText="Connect"
+      <MetaplexModal
         visible={isModalVisible}
-        okButtonProps={{ style: { display: "none" } }}
         onCancel={close}
-        width={400}>
-        {WALLET_PROVIDERS.map((provider, idx) => {
-          const onClick = function () {
-            setProviderUrl(provider.url);
-            setAutoConnect(true);
-            close();
-          }
+      >
+        <div style={{
+          background: 'linear-gradient(180deg, #D329FC 0%, #8F6DDE 49.48%, #19E6AD 100%)',
+          borderRadius: 36,
+          width: 50,
+          height: 50,
+          textAlign: 'center',
+          verticalAlign: 'middle',
+          fontWeight: 700,
+          fontSize: '1.3rem',
+          lineHeight: 2.4,
+          marginBottom: 10,
+        }}>M</div>
 
-          return (
-            <Button
-              key={idx}
-              size="large"
-              type={providerUrl === provider.url ? "primary" : "ghost"}
-              onClick={onClick}
-              icon={
-                <img
-                  alt={`${provider.name}`}
-                  width={20}
-                  height={20}
-                  src={provider.icon}
-                  style={{ marginRight: 8 }} />
-              }
-              style={{
-                display: "block",
-                width: "100%",
-                textAlign: "left",
-                marginBottom: 8,
-              }}>{provider.name}</Button>
-          )
-        })}
-      </Modal>
+        <h2>{provider ? 'Change provider' : 'Welcome to Metaplex'}</h2>
+        <p>{provider ? 'Feel free to switch wallet provider' : 'You must be signed in to place a bid'}</p>
+
+        <br />
+
+        {(provider || showProviders) ? <>
+          {WALLET_PROVIDERS.map((provider, idx) => {
+            if (providerUrl === provider.url) return null
+
+            const onClick = function () {
+              setProviderUrl(provider.url);
+              setAutoConnect(true);
+              close();
+            }
+            return (
+              <Button
+                key={idx}
+                size="large"
+                type={providerUrl === provider.url ? "primary" : "ghost"}
+                onClick={onClick}
+                icon={
+                  <img
+                    alt={`${provider.name}`}
+                    width={20}
+                    height={20}
+                    src={provider.icon}
+                    style={{ marginRight: 8 }} />
+                }
+                style={{
+                  display: "block",
+                  width: "100%",
+                  textAlign: "left",
+                  marginBottom: 8,
+                }}>{provider.name}</Button>
+            )
+          })}
+        </> : <>
+          <Button
+            className="congrats-button"
+            style={{
+              width: '80%',
+              fontWeight: 'unset',
+            }}
+            onClick={_ => {
+              setProviderUrl(pp?.url);
+              setAutoConnect(true);
+              close();
+            }}
+          >
+            <span><img src={pp?.icon} style={{ width: '1.2rem' }} />&nbsp;Sign in with Phantom</span>
+            <span>&gt;</span>
+          </Button>
+          <p onClick={_ => setShowProviders(true)} style={{ cursor: 'pointer', marginTop: 10 }}>
+            Select a different Solana wallet
+          </p>
+        </>}
+
+      </MetaplexModal>
     </WalletContext.Provider>
   );
 }

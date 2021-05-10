@@ -27,7 +27,7 @@ export const ConnectButton = (
       onClick={connected ? onClick : connect}
       disabled={connected && disabled}
     >
-      {connected ? props.children : 'Connect'}
+      {connected ? children : 'Connect'}
     </Button>;
   }
 

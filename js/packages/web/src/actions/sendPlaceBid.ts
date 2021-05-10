@@ -6,12 +6,9 @@ import {
 } from '@solana/web3.js';
 import {
   actions,
-  ParsedAccount,
-  SequenceType,
   sendTransactionWithRetry,
   placeBid,
   programIds,
-  BidderPot,
   models,
 } from '@oyster/common';
 

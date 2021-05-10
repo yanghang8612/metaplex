@@ -404,14 +404,7 @@ export const AuctionCreateView = () => {
         )}
         <Col {...(saving ? { xl: 24 } : { xl: 16, md: 17 })}>
           {stepsByCategory[attributes.category][step][1]}
-          {0 < step && step < stepsByCategory[attributes.category].length - 1 && (
-            <Button
-              style={{ width: '100%' }}
-              onClick={() => gotoNextStep(step - 1)}
-            >
-              Back
-            </Button>
-          )}
+          {0 < step && !saving && <Button onClick={() => gotoNextStep(step - 1)}>Back</Button>}
         </Col>
       </Row>
     </>

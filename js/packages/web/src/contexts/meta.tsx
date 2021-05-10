@@ -34,7 +34,6 @@ import BN from 'bn.js';
 import React, { useContext, useEffect, useState } from 'react';
 import {
   AuctionManager,
-  AuctionManagerStatus,
   BidRedemptionTicket,
   decodeAuctionManager,
   decodeBidRedemptionTicket,
@@ -505,7 +504,6 @@ const queryExtendedMetadata = async (
   mintToMeta: Record<string, ParsedAccount<Metadata>>,
 ) => {
   const mintToMetadata = { ...mintToMeta };
-  const extendedMetadataFetch = new Map<string, Promise<any>>();
 
   const mints = await getMultipleAccounts(
     connection,
@@ -523,7 +521,7 @@ const queryExtendedMetadata = async (
       // naive not NFT check
       delete mintToMetadata[key];
     } else {
-      const metadata = mintToMetadata[key];
+      // const metadata = mintToMetadata[key];
     }
   });
 
