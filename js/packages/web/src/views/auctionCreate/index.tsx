@@ -237,7 +237,7 @@ export const AuctionCreateView = () => {
         ? attributes.items[0]
         : attributes.participationNFT,
       // TODO: move to config
-      new PublicKey('4XEUcBjLyBHuMDKTARycf4VXqpsAsDcThMbhWgFuDGsC'),
+      new PublicKey('9GRbwGwxpUh1zTsCJ4kH8pVbMkLAFhcZeakheZzVmtf9'),
     );
     setAuctionObj(_auctionObj);
   };
@@ -1543,14 +1543,14 @@ const Congrats = (props: {
         </div>
         <div className="congrats-button-container">
           <Button
-            className="congrats-button"
+            className="metaplex-button"
             onClick={_ => window.open(newTweetURL(), '_blank')}
           >
             <span>Share it on Twitter</span>
             <span>&gt;</span>
           </Button>
           <Button
-            className="congrats-button"
+            className="metaplex-button"
             onClick={_ =>
               history.push(`/auction/${props.auction?.auction.toString()}`)
             }
@@ -1558,10 +1558,6 @@ const Congrats = (props: {
             <span>See it in your auctions</span>
             <span>&gt;</span>
           </Button>
-          {/* <Button className="congrats-button">
-            <span>Sell it via auction</span>
-            <span>&gt;</span>
-          </Button> */}
         </div>
       </div>
       <Confetti />

@@ -209,7 +209,7 @@ export function WalletProvider({ children = null as any }) {
           })}
         </> : <>
           <Button
-            className="congrats-button"
+            className="metaplex-button"
             style={{
               width: '80%',
               fontWeight: 'unset',

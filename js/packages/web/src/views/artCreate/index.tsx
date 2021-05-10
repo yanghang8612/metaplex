@@ -805,14 +805,14 @@ const Congrats = (props: {
         </div>
         <div className="congrats-button-container">
           <Button
-            className="congrats-button"
+            className="metaplex-button"
             onClick={_ => window.open(newTweetURL(), '_blank')}
           >
             <span>Share it on Twitter</span>
             <span>&gt;</span>
           </Button>
           <Button
-            className="congrats-button"
+            className="metaplex-button"
             onClick={_ =>
               history.push(`/art/${props.nft?.metadataAccount.toString()}`)
             }
@@ -821,7 +821,7 @@ const Congrats = (props: {
             <span>&gt;</span>
           </Button>
           <Button
-            className="congrats-button"
+            className="metaplex-button"
             onClick={_ => history.push('/auction/create')}
           >
             <span>Sell it via auction</span>

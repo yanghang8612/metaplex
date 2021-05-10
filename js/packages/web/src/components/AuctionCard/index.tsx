@@ -185,6 +185,14 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
         <p>Your bid has been placed</p>
         <br/>
         <AmountLabel amount={lastBid?.amount.toNumber() as number}/>
+        <br/>
+        <Button
+          className="metaplex-button"
+          onClick={_ => setShowMModal(false)}
+        >
+          <span>Continue</span>
+          <span>&gt;</span>
+        </Button>
       </MetaplexModal>
     </div>
   );
