@@ -8,7 +8,6 @@ import {
   Col,
   Input,
   Statistic,
-  Modal,
   Progress,
   Spin,
   InputNumber,
@@ -18,7 +17,6 @@ import {
   Radio,
 } from 'antd';
 import { ArtCard } from './../../components/ArtCard';
-import { UserSearch, UserValue } from './../../components/UserSearch';
 import { Confetti } from './../../components/Confetti';
 import { ArtSelector } from './artSelector';
 import './../styles.less';
@@ -27,31 +25,21 @@ import {
   useConnection,
   useWallet,
   useConnectionConfig,
-  Metadata,
-  ParsedAccount,
-  deserializeBorsh,
   WinnerLimit,
   WinnerLimitType,
 } from '@oyster/common';
-import { getAssetCostToStore, LAMPORT_MULTIPLIER } from '../../utils/assets';
-import { Connection, ParsedAccountData, PublicKey } from '@solana/web3.js';
-import { MintLayout, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { Connection, PublicKey } from '@solana/web3.js';
+import { MintLayout } from '@solana/spl-token';
 import { useHistory, useParams } from 'react-router-dom';
 import { useUserArts } from '../../hooks';
-import Masonry from 'react-masonry-css';
 import { capitalize } from 'lodash';
 import {
-  AuctionManager,
   AuctionManagerSettings,
-  AuctionManagerState,
-  AuctionManagerStatus,
   EditionType,
   NonWinningConstraint,
-  SCHEMA,
   WinningConfig,
   WinningConstraint,
 } from '../../models/metaplex';
-import { serialize } from 'borsh';
 import moment from 'moment';
 import {
   createAuctionManager,
@@ -61,8 +49,6 @@ import BN from 'bn.js';
 import { ZERO } from '@oyster/common/dist/lib/constants';
 
 const { Step } = Steps;
-const { Option } = Select;
-const { Dragger } = Upload;
 const { TextArea } = Input;
 
 export enum AuctionCategory {
@@ -103,7 +89,7 @@ export interface AuctionState {
   priceFloor?: number;
   priceTick?: number;
 
-  startSaleTS?: number; // Why do I prefer to work with unix ts?
+  startSaleTS?: number;
   startListTS?: number;
   endTS?: number;
 
@@ -119,9 +105,7 @@ export interface AuctionState {
 
 export const AuctionCreateView = () => {
   const connection = useConnection();
-  const { env } = useConnectionConfig();
-  const items = useUserArts();
-  const { wallet, connected } = useWallet();
+  const { wallet } = useWallet();
   const { step_param }: { step_param: string } = useParams();
   const history = useHistory();
 

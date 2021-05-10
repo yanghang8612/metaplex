@@ -184,7 +184,7 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
         <h2>Congratulations!</h2>
         <p>Your bid has been placed</p>
         <br/>
-        <AmountLabel amount={lastBid?.amount.toNumber() as number}/>
+        {lastBid && <AmountLabel amount={lastBid.amount.toNumber()}/>}
         <br/>
         <Button
           className="metaplex-button"
