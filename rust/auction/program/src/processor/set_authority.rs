@@ -13,18 +13,19 @@ use {
         account_info::{next_account_info, AccountInfo},
         borsh::try_from_slice_unchecked,
         entrypoint::ProgramResult,
+        msg,
         pubkey::Pubkey,
     },
 };
 
 pub fn set_authority(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+    msg!("+ Processing SetAuthority");
     let account_iter = &mut accounts.iter();
     let auction_act = next_account_info(account_iter)?;
     let current_authority = next_account_info(account_iter)?;
     let new_authority = next_account_info(account_iter)?;
 
     let mut auction: AuctionData = try_from_slice_unchecked(&auction_act.data.borrow_mut())?;
-
     assert_owned_by(auction_act, program_id)?;
 
     if auction.authority != *current_authority.key {
@@ -36,8 +37,6 @@ pub fn set_authority(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramRe
     }
 
     auction.authority = *new_authority.key;
-
     auction.serialize(&mut *auction_act.data.borrow_mut())?;
-
     Ok(())
 }

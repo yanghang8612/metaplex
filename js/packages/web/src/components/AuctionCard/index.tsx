@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Row, Col, Button, InputNumber, Alert } from 'antd';
 
-
 import './index.less';
 import { getCountdown } from '../../utils/utils';
 import {
@@ -39,15 +38,15 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
   const myPayingAccount = accountByMint.get(
     auctionView.auction.info.tokenMint.toBase58(),
   );
+
   useEffect(() => {
     connection.getSlot().then(setClock);
   }, [connection]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-
       const { days, hours, minutes, seconds } = getCountdown(
-        auctionView.auction.info.endAuctionAt?.toNumber() as number
+        auctionView.auction.info.endAuctionAt?.toNumber() as number,
       );
 
       setDays(Math.min(days, 99));
@@ -72,19 +71,26 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
   return (
     <div className="presale-card-container">
       {isUpcoming && <div className="info-header">STARTING BID</div>}
-      {isUpcoming && <div style={{ fontWeight: 700, fontSize: '1.6rem' }}>◎40.00</div>}
+      {isUpcoming && (
+        <div style={{ fontWeight: 700, fontSize: '1.6rem' }}>◎40.00</div>
+      )}
       {isStarted && <div className="info-header">HIGHEST BID</div>}
-      {isStarted && <div style={{ fontWeight: 700, fontSize: '1.6rem' }}>◎40.00</div>}
+      {isStarted && (
+        <div style={{ fontWeight: 700, fontSize: '1.6rem' }}>◎40.00</div>
+      )}
       <br />
-      {(days === 0 && hours === 0 && minutes === 0 && seconds === 0) ?
+      {days === 0 && hours === 0 && minutes === 0 && seconds === 0 ? (
         <div className="info-header">AUCTION HAS ENDED</div>
-        : <>
+      ) : (
+        <>
           <div className="info-header">AUCTION ENDS IN</div>
           <Row style={{ width: 300 }}>
-            {days > 0 && <Col span={8}>
-              <div className="cd-number">{days}</div>
-              <div className="cd-label">days</div>
-            </Col>}
+            {days > 0 && (
+              <Col span={8}>
+                <div className="cd-number">{days}</div>
+                <div className="cd-label">days</div>
+              </Col>
+            )}
             <Col span={8}>
               <div className="cd-number">{hours}</div>
               <div className="cd-label">hours</div>
@@ -93,12 +99,15 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
               <div className="cd-number">{minutes}</div>
               <div className="cd-label">minutes</div>
             </Col>
-            {!days && <Col span={8}>
-              <div className="cd-number">{seconds}</div>
-              <div className="cd-label">seconds</div>
-            </Col>}
+            {!days && (
+              <Col span={8}>
+                <div className="cd-number">{seconds}</div>
+                <div className="cd-label">seconds</div>
+              </Col>
+            )}
           </Row>
-        </>}
+        </>
+      )}
       <br />
       <div
         className="info-content"
@@ -177,7 +186,11 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
   );
 };
 
-export const AuctionBids = ({ bids }: { bids: ParsedAccount<BidderMetadata>[] }) => {
+export const AuctionBids = ({
+  bids,
+}: {
+  bids: ParsedAccount<BidderMetadata>[];
+}) => {
   return (
     <Col style={{ width: '100%' }}>
       {bids.map((bid, index) => {
@@ -185,8 +198,23 @@ export const AuctionBids = ({ bids }: { bids: ParsedAccount<BidderMetadata>[] })
         return (
           <Row key={index}>
             <Col span={1}>{index + 1}.</Col>
-            <Col span={17}><Row><Identicon style={{ width: 24, height: 24, marginRight: 10, marginTop: 2 }} address={bidder} /> {shortenAddress(bidder)}</Row></Col>
-            <Col span={5} style={{ textAlign: 'right' }}>{bid.info.lastBid.toString()}</Col>
+            <Col span={17}>
+              <Row>
+                <Identicon
+                  style={{
+                    width: 24,
+                    height: 24,
+                    marginRight: 10,
+                    marginTop: 2,
+                  }}
+                  address={bidder}
+                />{' '}
+                {shortenAddress(bidder)}
+              </Row>
+            </Col>
+            <Col span={5} style={{ textAlign: 'right' }}>
+              {bid.info.lastBid.toString()}
+            </Col>
           </Row>
         );
       })}

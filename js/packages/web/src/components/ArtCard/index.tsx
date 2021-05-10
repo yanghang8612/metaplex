@@ -49,9 +49,10 @@ export const ArtCard = (props: ArtCardProps) => {
   artist = art?.artist || artist;
   description = art?.about || description;
 
-  const [hours, setHours] = useState<number>(23);
-  const [minutes, setMinutes] = useState<number>(59);
-  const [seconds, setSeconds] = useState<number>(59);
+  const [hours, setHours] = useState<number>(0);
+  const [minutes, setMinutes] = useState<number>(0);
+  const [seconds, setSeconds] = useState<number>(0);
+  const [hasTimer, setHasTimer] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -61,9 +62,19 @@ export const ArtCard = (props: ArtCardProps) => {
       setHours(hours);
       setMinutes(minutes);
       setSeconds(seconds);
+      setHasTimer(true);
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  let badge = '';
+  if (art.type === ArtType.NFT) {
+    badge = "Unique";
+  } else if (art.type === ArtType.Master) {
+    badge = "NFT 0";
+  } else if (art.type === ArtType.Print) {
+    badge = `${art.edition} of ${art.supply}`;
+  }
 
   const card = (
     <Card
@@ -92,7 +103,7 @@ export const ArtCard = (props: ArtCardProps) => {
       <Meta
         title={`${name}`}
         description={
-          <div>
+          <>
             <Avatar src="img/artist1.jpeg" /> {artist}
             {/* {art.type === ArtType.Master && (
               <>
@@ -105,7 +116,9 @@ export const ArtCard = (props: ArtCardProps) => {
                 )}
               </>
             )} */}
-            {endAuctionAt && (
+
+            <div className="edition-badge">{badge}</div>
+            {endAuctionAt && hasTimer && (
               <div className="cd-container">
                 {hours === 0 && minutes === 0 && seconds === 0 ? (
                   <div className="cd-title">Finished</div>
@@ -119,29 +132,11 @@ export const ArtCard = (props: ArtCardProps) => {
                 )}
               </div>
             )}
-          </div>
+          </>
         }
       />
     </Card>
   );
 
-  if (art.type === ArtType.NFT) {
-    return <div className="normal-record">{card}</div>;
-  } else if (art.type === ArtType.Print) {
-    return (
-      <div className="normal-record">
-        <Badge.Ribbon text={`#${art.edition} of ${art.supply || '∞'}`}>{card}</Badge.Ribbon>
-      </div>
-    );
-  } else if (art.type === ArtType.Master) {
-    return (
-      <div className={'normal-record'}>
-        <Badge.Ribbon text={'Original'}>
-          {card}
-        </Badge.Ribbon>
-      </div>
-    );
-  } else {
-    return card;
-  }
+  return card;
 };

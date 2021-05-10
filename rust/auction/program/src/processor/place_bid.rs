@@ -10,17 +10,19 @@
 //! A few solutions come to mind: don't allow cancelling bids, and simply prune all bids that
 //! are not winning bids from the state.
 
+use borsh::try_to_vec_with_schema;
+
 use crate::{
     errors::AuctionError,
-    processor::{AuctionData, Bid, BidderMetadata, BidderPot},
+    processor::{AuctionData, AuctionState, Bid, BidderMetadata, BidderPot, PriceFloor},
     utils::{
-        assert_derivation, assert_initialized, assert_owned_by, create_or_allocate_account_raw,
-        spl_token_transfer, TokenTransferParams,
+        assert_derivation, assert_initialized, assert_owned_by, assert_signer,
+        create_or_allocate_account_raw, spl_token_transfer, TokenTransferParams,
     },
     PREFIX,
 };
 
-use super::{AuctionState, BIDDER_METADATA_LEN};
+use super::BIDDER_METADATA_LEN;
 
 use {
     borsh::{BorshDeserialize, BorshSerialize},
@@ -30,6 +32,7 @@ use {
         entrypoint::ProgramResult,
         msg,
         program::{invoke, invoke_signed},
+        program_error::ProgramError,
         program_pack::Pack,
         pubkey::Pubkey,
         rent::Rent,
@@ -51,39 +54,140 @@ pub struct PlaceBidArgs {
     pub resource: Pubkey,
 }
 
-pub fn place_bid(
+struct Accounts<'a, 'b: 'a> {
+    auction: &'a AccountInfo<'b>,
+    bidder_meta: &'a AccountInfo<'b>,
+    bidder_pot: &'a AccountInfo<'b>,
+    bidder_pot_token: &'a AccountInfo<'b>,
+    bidder: &'a AccountInfo<'b>,
+    clock_sysvar: &'a AccountInfo<'b>,
+    mint: &'a AccountInfo<'b>,
+    payer: &'a AccountInfo<'b>,
+    rent: &'a AccountInfo<'b>,
+    system: &'a AccountInfo<'b>,
+    token_program: &'a AccountInfo<'b>,
+    transfer_authority: &'a AccountInfo<'b>,
+}
+
+fn parse_accounts<'a, 'b: 'a>(
     program_id: &Pubkey,
-    accounts: &[AccountInfo],
+    accounts: &'a [AccountInfo<'b>],
+) -> Result<Accounts<'a, 'b>, ProgramError> {
+    let account_iter = &mut accounts.iter();
+    let accounts = Accounts {
+        bidder: next_account_info(account_iter)?,
+        bidder_pot: next_account_info(account_iter)?,
+        bidder_pot_token: next_account_info(account_iter)?,
+        bidder_meta: next_account_info(account_iter)?,
+        auction: next_account_info(account_iter)?,
+        mint: next_account_info(account_iter)?,
+        transfer_authority: next_account_info(account_iter)?,
+        payer: next_account_info(account_iter)?,
+        clock_sysvar: next_account_info(account_iter)?,
+        rent: next_account_info(account_iter)?,
+        system: next_account_info(account_iter)?,
+        token_program: next_account_info(account_iter)?,
+    };
+
+    assert_owned_by(accounts.auction, program_id)?;
+    assert_owned_by(accounts.mint, &spl_token::id())?;
+    assert_owned_by(accounts.bidder_pot_token, &spl_token::id())?;
+    let bidder: Account = assert_initialized(accounts.bidder)?;
+    if bidder.owner != *accounts.payer.key {
+        assert_signer(accounts.bidder)?;
+    }
+    assert_signer(accounts.transfer_authority)?;
+
+    Ok(accounts)
+}
+
+pub fn place_bid<'r, 'b: 'r>(
+    program_id: &Pubkey,
+    accounts: &'r [AccountInfo<'b>],
     args: PlaceBidArgs,
 ) -> ProgramResult {
-    msg!("Iterating Accounts");
-    let account_iter = &mut accounts.iter();
-    let bidder_act = next_account_info(account_iter)?;
-    let bidder_pot_act = next_account_info(account_iter)?;
-    let bidder_pot_token_act = next_account_info(account_iter)?;
-    let bidder_meta_act = next_account_info(account_iter)?;
-    let auction_act = next_account_info(account_iter)?;
-    let mint_account = next_account_info(account_iter)?;
-    let transfer_authority = next_account_info(account_iter)?;
-    let payer = next_account_info(account_iter)?;
-    let clock_sysvar = next_account_info(account_iter)?;
-    let rent_act = next_account_info(account_iter)?;
-    let system_account = next_account_info(account_iter)?;
-    let token_program_account = next_account_info(account_iter)?;
+    msg!("+ Processing PlaceBid");
+    let accounts = parse_accounts(program_id, accounts)?;
 
-    msg!("Assert Owner");
-    assert_owned_by(auction_act, program_id)?;
-    assert_owned_by(bidder_pot_token_act, &spl_token::id())?;
-    let actual_account: Account = assert_initialized(bidder_pot_token_act)?;
-    if actual_account.owner != *program_id {
+    // Load the auction and verify this bid is valid.
+    let mut auction: AuctionData = try_from_slice_unchecked(&accounts.auction.data.borrow())?;
+
+    // Load the clock, used for various auction timing.
+    let clock = Clock::from_account_info(accounts.clock_sysvar)?;
+
+    // Verify auction has not ended.
+    if auction.ended(clock.slot)? {
+        auction.state = auction.state.end()?;
+        auction.serialize(&mut *accounts.auction.data.borrow_mut())?;
+        msg!("Auction ended!");
+        return Ok(());
+    }
+
+    // Derive Metadata key and load it.
+    let metadata_bump = assert_derivation(
+        program_id,
+        accounts.bidder_meta,
+        &[
+            PREFIX.as_bytes(),
+            program_id.as_ref(),
+            accounts.auction.key.as_ref(),
+            accounts.bidder.key.as_ref(),
+            "metadata".as_bytes(),
+        ],
+    )?;
+
+    // If metadata doesn't exist, create it.
+    if accounts.bidder_meta.owner != program_id {
+        create_or_allocate_account_raw(
+            *program_id,
+            accounts.bidder_meta,
+            accounts.rent,
+            accounts.system,
+            accounts.payer,
+            // For whatever reason, using Mem function here returns 7, which is wholly wrong for this struct
+            // seems to be issues with UnixTimestamp
+            BIDDER_METADATA_LEN,
+            &[
+                PREFIX.as_bytes(),
+                program_id.as_ref(),
+                accounts.auction.key.as_ref(),
+                accounts.bidder.key.as_ref(),
+                "metadata".as_bytes(),
+                &[metadata_bump],
+            ],
+        )?;
+    } else {
+        // Verify the last bid was cancelled before continuing.
+        let bidder_metadata: BidderMetadata =
+            try_from_slice_unchecked(&accounts.bidder_meta.data.borrow_mut())?;
+        if bidder_metadata.cancelled == false {
+            return Err(AuctionError::BidAlreadyActive.into());
+        }
+    };
+
+    // Derive Pot address, this account wraps/holds an SPL account to transfer tokens into and is
+    // also used as the authoriser of the SPL pot.
+    let pot_bump = assert_derivation(
+        program_id,
+        accounts.bidder_pot,
+        &[
+            PREFIX.as_bytes(),
+            program_id.as_ref(),
+            accounts.auction.key.as_ref(),
+            accounts.bidder.key.as_ref(),
+        ],
+    )?;
+
+    // The account within the pot must be owned by us.
+    let actual_account: Account = assert_initialized(accounts.bidder_pot_token)?;
+    if actual_account.owner != *accounts.auction.key {
         return Err(AuctionError::BidderPotTokenAccountOwnerMismatch.into());
     }
 
-    // Load the auction, we'll need the state to do anything useful.
-    msg!("Assert Auction");
+    // Derive and load Auction.
     let auction_bump = assert_derivation(
         program_id,
-        auction_act,
+        accounts.auction,
         &[
             PREFIX.as_bytes(),
             program_id.as_ref(),
@@ -91,157 +195,107 @@ pub fn place_bid(
         ],
     )?;
 
-    // Load the auction and verify this bid is valid.
-    let mut auction: AuctionData = try_from_slice_unchecked(&auction_act.data.borrow_mut())?;
-
-    // If the auction mint does not match the passed mint, bail.
-    if auction.token_mint != *mint_account.key {
-        return Ok(());
+    // Can't bid on an auction that isn't running.
+    if auction.state != AuctionState::Started {
+        return Err(AuctionError::InvalidState.into());
     }
 
-    // Use the clock sysvar for timing the auction.
-    msg!("Get Clock");
-    let clock = Clock::from_account_info(clock_sysvar)?;
-
-    // Do not allow bids post gap-time.
-    if let Some(gap) = auction.end_auction_gap {
-        if let Some(last_bid) = auction.last_bid {
-            if clock.slot - last_bid > gap {
-                auction.state = AuctionState::end(auction.state)?;
-                auction.serialize(&mut *auction_act.data.borrow_mut())?;
-                return Ok(());
-            }
+    // Can't bid smaller than the minimum price.
+    if let PriceFloor::MinimumPrice(min) = auction.price_floor {
+        msg!(
+            "Amount is too small: {:?}, compared to price floor of {:?}",
+            args.amount,
+            min[0]
+        );
+        if args.amount <= min[0] {
+            return Err(AuctionError::BidTooSmall.into());
         }
     }
-
-    // Do not allow bids post end-time
-    if let Some(end) = auction.ended_at {
-        msg!("Auction finished, passed end time.");
-        if clock.slot > end {
-            auction.state = AuctionState::end(auction.state)?;
-            auction.serialize(&mut *auction_act.data.borrow_mut())?;
-            return Ok(());
-        }
-    }
-
-    msg!("Assert Metadata");
-    let metadata_bump = assert_derivation(
-        program_id,
-        bidder_meta_act,
-        &[
-            PREFIX.as_bytes(),
-            program_id.as_ref(),
-            auction_act.key.as_ref(),
-            bidder_act.key.as_ref(),
-            "metadata".as_bytes(),
-        ],
-    )?;
-
-    // Load the users account metadata.
-    msg!("Check Meta Allocation");
-    if bidder_meta_act.owner != program_id {
-        msg!("Failed, Creating");
-        create_or_allocate_account_raw(
-            *program_id,
-            bidder_meta_act,
-            rent_act,
-            system_account,
-            payer,
-            BIDDER_METADATA_LEN, // Memsize does not do a good job sizing UnixTimestamp
-            &[
-                PREFIX.as_bytes(),
-                program_id.as_ref(),
-                auction_act.key.as_ref(),
-                bidder_act.key.as_ref(),
-                "metadata".as_bytes(),
-                &[metadata_bump],
-            ],
-        )?;
-    }
-    let mut bidder_meta: BidderMetadata =
-        try_from_slice_unchecked(&bidder_meta_act.data.borrow_mut())?;
-
-    bidder_meta.bidder_pubkey = *bidder_act.key;
-    bidder_meta.auction_pubkey = *auction_act.key;
-    bidder_meta.last_bid = args.amount;
-    bidder_meta.serialize(&mut *bidder_meta_act.data.borrow_mut())?;
-
-    msg!("Checking Pot Allocation");
-    let pot_bump = assert_derivation(
-        program_id,
-        bidder_pot_act,
-        &[
-            PREFIX.as_bytes(),
-            program_id.as_ref(),
-            auction_act.key.as_ref(),
-            bidder_act.key.as_ref(),
-        ],
-    )?;
 
     let bump_authority_seeds = &[
         PREFIX.as_bytes(),
         program_id.as_ref(),
-        auction_act.key.as_ref(),
-        bidder_act.key.as_ref(),
+        accounts.auction.key.as_ref(),
+        accounts.bidder.key.as_ref(),
         &[pot_bump],
     ];
 
-    if bidder_pot_act.data_is_empty() {
+    // If the bidder pot account is empty, we need to generate one.
+    if accounts.bidder_pot.data_is_empty() {
         create_or_allocate_account_raw(
             *program_id,
-            bidder_pot_act,
-            rent_act,
-            system_account,
-            payer,
+            accounts.bidder_pot,
+            accounts.rent,
+            accounts.system,
+            accounts.payer,
             mem::size_of::<BidderPot>(),
             bump_authority_seeds,
         )?;
 
-        let mut bidder_pot: BidderPot =
-            try_from_slice_unchecked(&bidder_pot_act.data.borrow_mut())?;
-
-        bidder_pot.bidder_pot = *bidder_pot_token_act.key;
-        bidder_pot.auction_act = *auction_act.key;
-        bidder_pot.bidder_act = *bidder_act.key;
-        bidder_pot.serialize(&mut *bidder_pot_act.data.borrow_mut())?;
-
-        msg!("Cool");
+        // Attach SPL token address to pot account.
+        let mut pot: BidderPot = try_from_slice_unchecked(&accounts.bidder_pot.data.borrow_mut())?;
+        pot.bidder_pot = *accounts.bidder_pot_token.key;
+        pot.bidder_act = *accounts.bidder.key;
+        pot.auction_act = *accounts.auction.key;
+        pot.serialize(&mut *accounts.bidder_pot.data.borrow_mut())?;
     } else {
-        let bidder_pot: BidderPot = try_from_slice_unchecked(&bidder_pot_act.data.borrow_mut())?;
-        if bidder_pot.bidder_pot != *bidder_pot_token_act.key {
-            return Err(AuctionError::BidderPotTokenAccountMismatch.into());
+        // Already exists, verify that the pot contains the specified SPL address.
+        let bidder_pot: BidderPot =
+            try_from_slice_unchecked(&accounts.bidder_pot.data.borrow_mut())?;
+        if bidder_pot.bidder_pot != *accounts.bidder_pot_token.key {
+            return Err(AuctionError::BidderPotTokenAccountOwnerMismatch.into());
         }
     }
 
     // Confirm payers SPL token balance is enough to pay the bid.
-    msg!("Loading SPL Token");
-    let account: Account = Account::unpack_from_slice(&bidder_act.data.borrow())?;
-
-    msg!("Amount: {} < Cost: {}", args.amount, account.amount);
+    let account: Account = Account::unpack_from_slice(&accounts.bidder.data.borrow())?;
     if account.amount.saturating_sub(args.amount) == 0 {
         return Err(AuctionError::BalanceTooLow.into());
     }
 
     // Transfer amount of SPL token to bid account.
-    msg!("Transferring SPL Token");
     spl_token_transfer(TokenTransferParams {
-        source: bidder_act.clone(),
-        destination: bidder_pot_token_act.clone(),
-        amount: args.amount,
-        authority: transfer_authority.clone(),
+        source: accounts.bidder.clone(),
+        destination: accounts.bidder_pot_token.clone(),
+        authority: accounts.transfer_authority.clone(),
         authority_signer_seeds: bump_authority_seeds,
-        token_program: token_program_account.clone(),
-    });
+        token_program: accounts.token_program.clone(),
+        amount: args.amount,
+    })?;
 
-    // result.map_err(|_| VaultError::TokenTransferFailed.into());
-
-    //
-    //    msg!("Storing new auction state");
+    // Serialize new Auction State
     auction.last_bid = Some(clock.slot);
     auction
         .bid_state
-        .place_bid(Bid(*bidder_pot_act.key, args.amount))?;
-    auction.serialize(&mut *auction_act.data.borrow_mut())?;
+        .place_bid(Bid(*accounts.bidder_pot.key, args.amount))?;
+    auction.serialize(&mut *accounts.auction.data.borrow_mut())?;
+
+    let mut buffer = vec![];
+    msg!(
+        "Data size {:?}",
+        BidderMetadata {
+            bidder_pubkey: *accounts.bidder.key,
+            auction_pubkey: *accounts.auction.key,
+            last_bid: clock.slot,
+            last_bid_timestamp: clock.unix_timestamp,
+            cancelled: false,
+        }
+        .serialize(&mut buffer)?
+    );
+    msg!("Buffer len2 {:?}", buffer.len());
+    msg!(
+        "Bidder meta's data size is {:?}",
+        accounts.bidder_meta.data_len()
+    );
+    // Update latest metadata with results from the bid.
+    BidderMetadata {
+        bidder_pubkey: *accounts.bidder.key,
+        auction_pubkey: *accounts.auction.key,
+        last_bid: args.amount,
+        last_bid_timestamp: clock.unix_timestamp,
+        cancelled: false,
+    }
+    .serialize(&mut *accounts.bidder_meta.data.borrow_mut())?;
 
     Ok(())
 }

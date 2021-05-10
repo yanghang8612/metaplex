@@ -223,8 +223,7 @@ export const AuctionCreateView = () => {
       throw new Error('Not supported');
     }
 
-    const endAuctionAt =
-      moment().unix() + (attributes.auctionDuration || 0) * 60;
+    const endAuctionAt = (attributes.auctionDuration || 0) * 60;
 
     const _auctionObj = await createAuctionManager(
       connection,

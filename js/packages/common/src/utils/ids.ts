@@ -31,7 +31,7 @@ export const VAULT_ID = new PublicKey(
 );
 
 export const AUCTION_ID = new PublicKey(
-  '7av4YU7SU9wUgL54XrZjYzcGyg9zB9CWifizXyyjpGfE',
+  '8penQkW1ByRHECArWpV5W7htAKkcieY3dXhz4XxFVnu5',
 );
 
 export const METAPLEX_ID = new PublicKey(

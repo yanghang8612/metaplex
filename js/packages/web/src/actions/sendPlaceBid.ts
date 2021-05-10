@@ -39,7 +39,7 @@ export async function sendPlaceBid(
       wallet.publicKey,
       accountRentExempt,
       auctionView.auction.info.tokenMint,
-      programIds().auction,
+      auctionView.auction.pubkey,
       signers,
     );
   } else bidderPotTokenAccount = auctionView.myBidderPot?.info.bidderPot;

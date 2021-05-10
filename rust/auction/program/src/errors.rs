@@ -79,9 +79,33 @@ pub enum AuctionError {
     #[error("Uninitialized")]
     Uninitialized,
 
-    /// The token account provided does not match the token account on the bidder pot
-    #[error("The token account provided does not match the token account on the bidder pot")]
-    BidderPotTokenAccountMismatch,
+    /// Metadata account is missing or invalid.
+    #[error("Metadata account is missing or invalid.")]
+    MetadataInvalid,
+
+    /// Bidder pot is missing, and required for SPL trades.
+    #[error("Bidder pot is missing, and required for SPL trades.")]
+    BidderPotDoesNotExist,
+
+    /// Existing Bid is already active.
+    #[error("Existing Bid is already active.")]
+    BidAlreadyActive,
+
+    /// Incorrect mint specified, must match auction.
+    #[error("Incorrect mint specified, must match auction.")]
+    IncorrectMint,
+
+    /// Must reveal price when ending a blinded auction.
+    #[error("Must reveal price when ending a blinded auction.")]
+    MustReveal,
+
+    /// The revealing hash is invalid.
+    #[error("The revealing hash is invalid.")]
+    InvalidReveal,
+
+    /// The pot for this bid is already empty.
+    #[error("The pot for this bid is already empty.")]
+    BidderPotEmpty,
 }
 
 impl PrintProgramError for AuctionError {

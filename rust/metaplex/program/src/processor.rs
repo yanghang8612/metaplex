@@ -13,8 +13,8 @@ use {
             common_metadata_checks, common_redeem_checks, common_redeem_finish,
             common_winning_config_checks, create_or_allocate_account_raw, issue_start_auction,
             spl_token_mint_to, spl_token_transfer, transfer_metadata_ownership,
-            transfer_safety_deposit_box_items, CommonRedeemReturn, CommonWinningConfigCheckReturn,
-            TokenMintToParams, TokenTransferParams,
+            transfer_safety_deposit_box_items, CommonRedeemCheckArgs, CommonRedeemFinishArgs,
+            CommonRedeemReturn, CommonWinningConfigCheckReturn,
         },
     },
     borsh::{BorshDeserialize, BorshSerialize},
@@ -34,9 +34,9 @@ use {
     spl_token_vault::state::{SafetyDepositBox, Vault, VaultState},
 };
 
-pub fn process_instruction(
-    program_id: &Pubkey,
-    accounts: &[AccountInfo],
+pub fn process_instruction<'a>(
+    program_id: &'a Pubkey,
+    accounts: &'a [AccountInfo<'a>],
     input: &[u8],
 ) -> ProgramResult {
     let instruction = MetaplexInstruction::try_from_slice(input)?;
@@ -68,19 +68,19 @@ pub fn process_instruction(
     }
 }
 
-pub fn process_redeem_open_edition_bid(
-    program_id: &Pubkey,
-    accounts: &[AccountInfo],
+pub fn process_redeem_open_edition_bid<'a>(
+    program_id: &'a Pubkey,
+    accounts: &'a [AccountInfo<'a>],
 ) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
-
     let auction_manager_info = next_account_info(account_info_iter)?;
     let store_info = next_account_info(account_info_iter)?;
     let destination_info = next_account_info(account_info_iter)?;
     let bid_redemption_info = next_account_info(account_info_iter)?;
     let safety_deposit_info = next_account_info(account_info_iter)?;
     let vault_info = next_account_info(account_info_iter)?;
-    let fraction_mint_info = next_account_info(account_info_iter)?;
+    // We keep it here to keep API base identical to the other redeem calls for ease of use by callers
+    let _fraction_mint_info = next_account_info(account_info_iter)?;
     let auction_info = next_account_info(account_info_iter)?;
     let bidder_metadata_info = next_account_info(account_info_iter)?;
     let bidder_info = next_account_info(account_info_iter)?;
@@ -90,9 +90,6 @@ pub fn process_redeem_open_edition_bid(
     let token_metadata_program_info = next_account_info(account_info_iter)?;
     let system_info = next_account_info(account_info_iter)?;
     let rent_info = next_account_info(account_info_iter)?;
-
-    // add checks for master mint/metadata/master edition combo. pull
-    // assert
     let master_metadata_info = next_account_info(account_info_iter)?;
     let master_mint_info = next_account_info(account_info_iter)?;
     let master_edition_info = next_account_info(account_info_iter)?;
@@ -100,7 +97,7 @@ pub fn process_redeem_open_edition_bid(
     let accept_payment_info = next_account_info(account_info_iter)?;
 
     let CommonRedeemReturn {
-        mut auction_manager,
+        auction_manager,
         redemption_bump_seed,
         bidder_metadata,
         safety_deposit,
@@ -108,7 +105,7 @@ pub fn process_redeem_open_edition_bid(
         rent: _rent,
         destination,
         bidder_pot_pubkey,
-    } = common_redeem_checks(
+    } = common_redeem_checks(CommonRedeemCheckArgs {
         program_id,
         auction_manager_info,
         store_info,
@@ -116,7 +113,6 @@ pub fn process_redeem_open_edition_bid(
         bid_redemption_info,
         safety_deposit_info,
         vault_info,
-        fraction_mint_info,
         auction_info,
         bidder_metadata_info,
         bidder_info,
@@ -125,10 +121,8 @@ pub fn process_redeem_open_edition_bid(
         token_vault_program_info,
         token_metadata_program_info,
         rent_info,
-        system_info,
-        true,
-    )?;
-
+        is_open_edition: true,
+    })?;
     common_metadata_checks(
         master_metadata_info,
         master_edition_info,
@@ -147,7 +141,7 @@ pub fn process_redeem_open_edition_bid(
             != NonWinningConstraint::NoOpenEdition;
 
     if !bidder_metadata.cancelled {
-        if let Some(winning_index) = auction.bid_state.is_winner(bidder_pot_pubkey) {
+        if let Some(winning_index) = auction.is_winner(&bidder_pot_pubkey) {
             if winning_index < auction_manager.settings.winning_configs.len() {
                 // Okay, so they placed in the auction winning prizes section!
                 gets_open_edition = auction_manager.settings.open_edition_winner_constraint
@@ -164,33 +158,32 @@ pub fn process_redeem_open_edition_bid(
             &auction_manager.auction.as_ref(),
             &[bump_seed],
         ];
-
-        spl_token_mint_to(TokenMintToParams {
-            mint: master_mint_info.clone(),
-            destination: destination_info.clone(),
-            amount: 1,
-            authority: auction_manager_info.clone(),
-            authority_signer_seeds: mint_seeds,
-            token_program: token_program_info.clone(),
-        })?;
-
+        spl_token_mint_to(
+            master_mint_info.clone(),
+            destination_info.clone(),
+            1,
+            auction_manager_info.clone(),
+            mint_seeds,
+            token_program_info.clone(),
+        )?;
         if let Some(open_edition_fixed_price) = auction_manager.settings.open_edition_fixed_price {
-            spl_token_transfer(TokenTransferParams {
-                source: bidder_info.clone(),
-                destination: accept_payment_info.clone(),
-                amount: open_edition_fixed_price,
-                authority: transfer_authority_info.clone(),
-                authority_signer_seeds: mint_seeds,
-                token_program: token_program_info.clone(),
-            })?;
+            spl_token_transfer(
+                bidder_info.clone(),
+                accept_payment_info.clone(),
+                open_edition_fixed_price,
+                transfer_authority_info.clone(),
+                mint_seeds,
+                token_program_info.clone(),
+            )?;
         }
     } else {
         return Err(MetaplexError::NotEligibleForOpenEdition.into());
     }
 
-    common_redeem_finish(
+    msg!("Got here4");
+    common_redeem_finish(CommonRedeemFinishArgs {
         program_id,
-        &mut auction_manager,
+        auction_manager,
         auction_manager_info,
         bidder_metadata_info,
         rent_info,
@@ -198,15 +191,15 @@ pub fn process_redeem_open_edition_bid(
         payer_info,
         bid_redemption_info,
         redemption_bump_seed,
-        false,
-        true,
-    )?;
+        bid_redeemed: false,
+        open_edition_redeemed: true,
+    })?;
     Ok(())
 }
 
-pub fn process_redeem_master_edition_bid(
-    program_id: &Pubkey,
-    accounts: &[AccountInfo],
+pub fn process_redeem_master_edition_bid<'a>(
+    program_id: &'a Pubkey,
+    accounts: &'a [AccountInfo<'a>],
 ) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
 
@@ -240,7 +233,7 @@ pub fn process_redeem_master_edition_bid(
         rent: _rent,
         destination: _destination,
         bidder_pot_pubkey,
-    } = common_redeem_checks(
+    } = common_redeem_checks(CommonRedeemCheckArgs {
         program_id,
         auction_manager_info,
         store_info,
@@ -248,7 +241,6 @@ pub fn process_redeem_master_edition_bid(
         bid_redemption_info,
         safety_deposit_info,
         vault_info,
-        fraction_mint_info,
         auction_info,
         bidder_metadata_info,
         bidder_info,
@@ -257,12 +249,11 @@ pub fn process_redeem_master_edition_bid(
         token_vault_program_info,
         token_metadata_program_info,
         rent_info,
-        system_info,
-        false,
-    )?;
+        is_open_edition: false,
+    })?;
 
     if !bidder_metadata.cancelled {
-        if let Some(winning_index) = auction.bid_state.is_winner(bidder_pot_pubkey) {
+        if let Some(winning_index) = auction.is_winner(&bidder_pot_pubkey) {
             if winning_index < auction_manager.settings.winning_configs.len() {
                 let CommonWinningConfigCheckReturn {
                     winning_config,
@@ -327,9 +318,9 @@ pub fn process_redeem_master_edition_bid(
         }
     };
 
-    common_redeem_finish(
+    common_redeem_finish(CommonRedeemFinishArgs {
         program_id,
-        &mut auction_manager,
+        auction_manager,
         auction_manager_info,
         bidder_metadata_info,
         rent_info,
@@ -337,14 +328,17 @@ pub fn process_redeem_master_edition_bid(
         payer_info,
         bid_redemption_info,
         redemption_bump_seed,
-        true,
-        false,
-    )?;
+        bid_redeemed: true,
+        open_edition_redeemed: false,
+    })?;
 
     Ok(())
 }
 
-pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
+pub fn process_redeem_bid<'a>(
+    program_id: &'a Pubkey,
+    accounts: &'a [AccountInfo<'a>],
+) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
 
     let auction_manager_info = next_account_info(account_info_iter)?;
@@ -367,7 +361,7 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
     let transfer_authority_info = next_account_info(account_info_iter)?;
 
     let CommonRedeemReturn {
-        mut auction_manager,
+        auction_manager,
         redemption_bump_seed,
         bidder_metadata,
         safety_deposit,
@@ -375,7 +369,7 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
         rent: _rent,
         destination: _destination,
         bidder_pot_pubkey,
-    } = common_redeem_checks(
+    } = common_redeem_checks(CommonRedeemCheckArgs {
         program_id,
         auction_manager_info,
         store_info,
@@ -383,7 +377,6 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
         bid_redemption_info,
         safety_deposit_info,
         vault_info,
-        fraction_mint_info,
         auction_info,
         bidder_metadata_info,
         bidder_info,
@@ -392,12 +385,11 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
         token_vault_program_info,
         token_metadata_program_info,
         rent_info,
-        system_info,
-        false,
-    )?;
+        is_open_edition: false,
+    })?;
 
     if !bidder_metadata.cancelled {
-        if let Some(winning_index) = auction.bid_state.is_winner(bidder_pot_pubkey) {
+        if let Some(winning_index) = auction.is_winner(&bidder_pot_pubkey) {
             if winning_index < auction_manager.settings.winning_configs.len() {
                 // Okay, so they placed in the auction winning prizes section!
                 let CommonWinningConfigCheckReturn {
@@ -445,9 +437,9 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
         }
     }
 
-    common_redeem_finish(
+    common_redeem_finish(CommonRedeemFinishArgs {
         program_id,
-        &mut auction_manager,
+        auction_manager,
         auction_manager_info,
         bidder_metadata_info,
         rent_info,
@@ -455,9 +447,9 @@ pub fn process_redeem_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Prog
         payer_info,
         bid_redemption_info,
         redemption_bump_seed,
-        true,
-        false,
-    )?;
+        bid_redeemed: true,
+        open_edition_redeemed: false,
+    })?;
     Ok(())
 }
 
@@ -799,7 +791,14 @@ pub fn process_init_auction_manager(
         return Err(MetaplexError::AuctionAuthorityMismatch.into());
     }
 
-    if auction.resource != *vault_info.key {
+    let auction_seeds = &[
+        spl_auction::PREFIX.as_bytes(),
+        &auction_program_info.key.as_ref(),
+        &vault_info.key.as_ref(),
+    ];
+    let (auction_id, _) = Pubkey::find_program_address(auction_seeds, &auction_program_info.key);
+
+    if auction_id != *auction_info.key {
         return Err(MetaplexError::AuctionVaultMismatch.into());
     }
 
