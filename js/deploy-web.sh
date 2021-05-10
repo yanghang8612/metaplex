@@ -4,6 +4,7 @@ yarn bootstrap
 echo "Preparing 'common'..."
 cd packages/common || exit
 yarn prepare
+yarn build-css
 cd ../web || exit
 echo "Prestarting 'web'..."
 yarn prestart
