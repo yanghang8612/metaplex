@@ -9,6 +9,6 @@ cd ../web || exit
 echo "Prestarting 'web'..."
 yarn prestart
 echo "Building 'web'..."
-# TODO: fix linting errors ; )!
+# TODO: fix linting errors!
 CI=false && yarn build
 echo "#done"
