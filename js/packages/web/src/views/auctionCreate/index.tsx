@@ -945,7 +945,6 @@ const PriceAuction = (props: {
                 })
               }
             />
-            {/* <span className="field-info">= ◎ 4.84</span> */}
           </label>
           <label className="action-field">
             <span className="field-title">Tick Size</span>
@@ -966,7 +965,6 @@ const PriceAuction = (props: {
                 })
               }
             />
-            {/* <span className="field-info">= ◎ 4.84</span> */}
           </label>
         </Col>
       </Row>
