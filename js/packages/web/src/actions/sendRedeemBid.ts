@@ -262,6 +262,7 @@ async function setupRedeemLimitedInstructions(
       signers.push(winningPrizeSigner);
       instructions.push(winningPrizeInstructions);
       if (!newTokenAccount)
+        // TODO: switch to ATA
         newTokenAccount = createTokenAccount(
           winningPrizeInstructions,
           wallet.publicKey,

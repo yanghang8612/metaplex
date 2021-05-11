@@ -60,7 +60,7 @@ export async function sendPlaceBid(
     cleanupInstructions,
     tokenAccount,
     wallet.publicKey,
-    lamports,
+    lamports + accountRentExempt * 2,
     signers,
   );
 

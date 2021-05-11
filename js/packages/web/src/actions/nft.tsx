@@ -24,7 +24,6 @@ import crypto from 'crypto';
 import { getAssetCostToStore } from '../utils/assets';
 import { AR_SOL_HOLDER_ID } from '../utils/ids';
 import BN from 'bn.js';
-import { setAuthority } from '@project-serum/serum/lib/token-instructions';
 const RESERVED_TXN_MANIFEST = 'manifest.json';
 
 interface IArweaveResult {
@@ -84,7 +83,7 @@ export const mintNFT = async (
     wallet.publicKey,
     mintRent,
     0,
-    // Some weird bug with phantom where it's public key doesnt mesh with data encode well
+    // Some weird bug with phantom where it's public key doesnt mesh with data encode wellff
     payerPublicKey,
     payerPublicKey,
     signers,
