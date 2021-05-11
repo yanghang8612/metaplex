@@ -7,6 +7,7 @@ import {
   TransactionInstruction,
 } from '@solana/web3.js';
 import {
+  programIds,
   SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
   WRAPPED_SOL_MINT,
@@ -227,6 +228,54 @@ export function createTokenAccount(
   );
 
   return account;
+}
+
+export function ensureWrappedAccount(
+  instructions: TransactionInstruction[],
+  cleanupInstructions: TransactionInstruction[],
+  toCheck: TokenAccount,
+  payer: PublicKey,
+  amount: number,
+  signers: Account[],
+) {
+  if (!toCheck.info.isNative) {
+    return toCheck.pubkey;
+  }
+
+  const TOKEN_PROGRAM_ID = programIds().token;
+  const account = new Account();
+  instructions.push(
+    SystemProgram.createAccount({
+      fromPubkey: payer,
+      newAccountPubkey: account.publicKey,
+      lamports: amount,
+      space: AccountLayout.span,
+      programId: TOKEN_PROGRAM_ID,
+    }),
+  );
+
+  instructions.push(
+    Token.createInitAccountInstruction(
+      TOKEN_PROGRAM_ID,
+      WRAPPED_SOL_MINT,
+      account.publicKey,
+      payer,
+    ),
+  );
+
+  cleanupInstructions.push(
+    Token.createCloseAccountInstruction(
+      TOKEN_PROGRAM_ID,
+      account.publicKey,
+      payer,
+      payer,
+      [],
+    ),
+  );
+
+  signers.push(account);
+
+  return account.publicKey;
 }
 
 // TODO: check if one of to accounts needs to be native sol ... if yes unwrap it ...

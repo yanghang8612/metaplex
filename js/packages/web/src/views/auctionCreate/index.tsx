@@ -13,6 +13,7 @@ import {
   Radio,
 } from 'antd';
 import { ArtCard } from './../../components/ArtCard';
+import { QUOTE_MINT } from './../../constants';
 import { Confetti } from './../../components/Confetti';
 import { ArtSelector } from './artSelector';
 import './../styles.less';
@@ -215,8 +216,7 @@ export const AuctionCreateView = () => {
       attributes.category == AuctionCategory.Open
         ? attributes.items[0]
         : attributes.participationNFT,
-      // TODO: move to config
-      new PublicKey('4XEUcBjLyBHuMDKTARycf4VXqpsAsDcThMbhWgFuDGsC'),
+      QUOTE_MINT,
     );
     setAuctionObj(_auctionObj);
   };
