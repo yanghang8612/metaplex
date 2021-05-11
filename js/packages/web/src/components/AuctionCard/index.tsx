@@ -71,14 +71,8 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
 
   return (
     <div className="presale-card-container">
-      {isUpcoming && <div className="info-header">STARTING BID</div>}
-      {isUpcoming && (
-        <div style={{ fontWeight: 700, fontSize: '1.6rem' }}>◎40.00</div>
-      )}
-      {isStarted && <div className="info-header">HIGHEST BID</div>}
-      {isStarted && (
-        <div style={{ fontWeight: 700, fontSize: '1.6rem' }}>◎40.00</div>
-      )}
+      {isUpcoming && <AmountLabel title="STARTING BID" amount={40}/>}
+      {isStarted && <AmountLabel title="HIGHEST BID" amount={40}/>}
       <br />
       {days === 0 && hours === 0 && minutes === 0 && seconds === 0 ? (
         <div className="info-header">AUCTION HAS ENDED</div>
@@ -127,6 +121,8 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
         value={value}
         style={{ width: '100%', backgroundColor: 'black', marginTop: 20 }}
         onChange={setValue}
+        prefix="$"
+        placeholder="Amount in USD"
       />
 
       <div

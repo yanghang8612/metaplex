@@ -34,6 +34,7 @@ import { MintLayout } from '@solana/spl-token';
 import { useHistory, useParams } from 'react-router-dom';
 import { cleanName } from '../../utils/utils';
 import { useSolPrice } from '../../contexts';
+import { AmountLabel } from '../../components/AmountLabel';
 
 const { Step } = Steps;
 const { Dragger } = Upload;
@@ -709,23 +710,10 @@ const LaunchStep = (props: {
             suffix="%"
           />
           {cost ? (
-            <div style={{ display: 'flex' }}>
-              <Statistic
-                className="create-statistic"
-                title="Cost to Create"
-                value={cost.toPrecision(3)}
-                prefix="◎"
-              />
-              <div
-                style={{
-                  margin: 'auto 0',
-                  color: 'rgba(255, 255, 255, 0.4)',
-                  fontSize: '1.5rem',
-                }}
-              >
-                ${USDcost.toPrecision(2)}
-              </div>
-            </div>
+            <AmountLabel
+              title="Cost to Create"
+              amount={cost}
+            />
           ) : (
             <Spin />
           )}

@@ -43,6 +43,7 @@ import {
 import BN from 'bn.js';
 import { ZERO } from '@oyster/common/dist/lib/constants';
 import { DateTimePicker } from '../../components/DateTimePicker';
+import { AmountLabel } from '../../components/AmountLabel';
 
 const { Step } = Steps;
 const { TextArea } = Input;
@@ -1373,11 +1374,9 @@ const ReviewStep = (props: {
             }
           />
           {cost ? (
-            <Statistic
-              className="create-statistic"
+            <AmountLabel
               title="Cost to Create"
-              value={cost.toPrecision(3)}
-              prefix="◎"
+              amount={cost}
             />
           ) : (
             <Spin />

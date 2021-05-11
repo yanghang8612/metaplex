@@ -8,7 +8,6 @@ import {
   actions,
   sendTransactionWithRetry,
   placeBid,
-  programIds,
   models,
   cache,
   TokenAccount,
@@ -17,7 +16,7 @@ import {
   ParsedAccount,
 } from '@oyster/common';
 
-import { AccountLayout, MintInfo, Token } from '@solana/spl-token';
+import { AccountLayout, MintInfo } from '@solana/spl-token';
 import { AuctionView } from '../hooks';
 import BN from 'bn.js';
 const { createTokenAccount } = actions;
