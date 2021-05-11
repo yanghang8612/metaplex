@@ -1,19 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Divider,
   Steps,
   Row,
   Button,
-  Upload,
   Col,
   Input,
   Statistic,
   Progress,
   Spin,
   InputNumber,
-  Select,
-  TimePicker,
-  DatePicker,
   Radio,
 } from 'antd';
 import { ArtCard } from './../../components/ArtCard';
@@ -24,14 +20,12 @@ import {
   MAX_METADATA_LEN,
   useConnection,
   useWallet,
-  useConnectionConfig,
   WinnerLimit,
   WinnerLimitType,
 } from '@oyster/common';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { MintLayout } from '@solana/spl-token';
 import { useHistory, useParams } from 'react-router-dom';
-import { useUserArts } from '../../hooks';
 import { capitalize } from 'lodash';
 import {
   AuctionManagerSettings,
@@ -47,6 +41,7 @@ import {
 } from '../../actions/createAuctionManager';
 import BN from 'bn.js';
 import { ZERO } from '@oyster/common/dist/lib/constants';
+import { DateTimePicker } from '../../components/DateTimePicker';
 
 const { Step } = Steps;
 const { TextArea } = Input;
@@ -1045,16 +1040,7 @@ const InitialPhaseStep = (props: {
                 <span className="field-title">
                   {capitalize(props.attributes.saleType)} Start Date
                 </span>
-                <DatePicker
-                  className="field-date"
-                  size="large"
-                  onChange={(dt, dtString) => console.log({ dt, dtString })}
-                />
-                <TimePicker
-                  className="field-date"
-                  size="large"
-                  onChange={(dt, dtString) => console.log({ dt, dtString })}
-                />
+                {saleMoment && <DateTimePicker momentObj={saleMoment} setMomentObj={setSaleMoment}/>}
               </label>
 
               <label className="action-field">
@@ -1090,8 +1076,7 @@ const InitialPhaseStep = (props: {
               {!listNow && (
                 <label className="action-field">
                   <span className="field-title">Preview Start Date</span>
-                  <DatePicker className="field-date" size="large" />
-                  <TimePicker className="field-date" size="large" />
+                  {listMoment && <DateTimePicker momentObj={listMoment} setMomentObj={setListMoment}/>}
                 </label>
               )}
             </>
@@ -1274,39 +1259,13 @@ const EndingPhaseSale = (props: {
           {!untilSold && (
             <label className="action-field">
               <span className="field-title">End Date</span>
-              <DatePicker
-                className="field-date"
-                size="large"
-                disabledDate={current =>
-                  current && current < moment().endOf('day')
-                }
-                value={endMoment}
-                onChange={value => {
-                  if (!value) return;
-                  if (!endMoment) return setEndMoment(value);
-
-                  const currentMoment = endMoment.clone();
-                  currentMoment.hour(value.hour());
-                  currentMoment.minute(value.minute());
-                  currentMoment.second(value.second());
-                  setEndMoment(currentMoment);
+              {endMoment && <DateTimePicker
+                momentObj={endMoment}
+                setMomentObj={setEndMoment}
+                datePickerProps={{
+                  disabledDate: (current: moment.Moment) => current && current < moment().endOf('day')
                 }}
-              />
-              <TimePicker
-                className="field-date"
-                size="large"
-                value={endMoment}
-                onChange={value => {
-                  if (!value) return;
-                  if (!endMoment) return setEndMoment(value);
-
-                  const currentMoment = endMoment.clone();
-                  currentMoment.hour(value.hour());
-                  currentMoment.minute(value.minute());
-                  currentMoment.second(value.second());
-                  setEndMoment(currentMoment);
-                }}
-              />
+              />}
             </label>
           )}
         </Col>
@@ -1431,7 +1390,9 @@ const ReviewStep = (props: {
           <Statistic
             className="create-statistic"
             title="Start date"
-            value={props.attributes.startSaleTS}
+            value={moment
+              .unix((props.attributes.startSaleTS as number) / 1000)
+              .format('dddd, MMMM Do YYYY, h:mm a')}
           />
         )}
         <br />
