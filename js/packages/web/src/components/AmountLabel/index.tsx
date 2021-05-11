@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Statistic } from 'antd'
-import { solanaToUSD } from '../../utils/assets'
+import { useSolPrice } from '../../contexts'
 
 interface IAmountLabel {
   amount: number,
@@ -11,11 +11,13 @@ interface IAmountLabel {
 export const AmountLabel = (props: IAmountLabel) => {
   const {amount, displayUSD = true, title = ""} = props
 
-  const [USDamt, setUSDamt] = useState<number>(0)
+  const solPrice = useSolPrice()
+
+  const [USDcost, setUSDcost] = useState<number>(0)
 
   useEffect(() => {
-    solanaToUSD(amount).then(setUSDamt)
-  }, [amount])
+    setUSDcost(solPrice * amount)
+  }, [amount, solPrice])
 
   return <div style={{ display: 'flex' }}>
     <Statistic
@@ -32,7 +34,7 @@ export const AmountLabel = (props: IAmountLabel) => {
           fontSize: '1.5rem',
         }}
       >
-        ${USDamt.toFixed(2)}
+        ${USDcost.toFixed(2)}
       </div>
     }
   </div>
