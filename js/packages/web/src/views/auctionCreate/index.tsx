@@ -122,6 +122,8 @@ export const AuctionCreateView = () => {
     category: AuctionCategory.Open,
     saleType: 'auction',
     winnersCount: 1,
+    startSaleTS: undefined,
+    startListTS: undefined,
   });
 
   useEffect(() => {
@@ -996,11 +998,17 @@ const InitialPhaseStep = (props: {
   }, [listMoment]);
 
   useEffect(() => {
-    if (startNow) setSaleMoment(moment());
+    if (startNow) {
+      setSaleMoment(undefined);
+      setListNow(true);
+    } else {
+      setSaleMoment(moment());
+    }
   }, [startNow]);
 
   useEffect(() => {
-    if (listNow) setListMoment(moment());
+    if (listNow) setListMoment(undefined);
+    else setListMoment(moment());
   }, [listNow]);
 
   return (
@@ -1385,15 +1393,13 @@ const ReviewStep = (props: {
       </Row>
       <Row style={{ display: 'block' }}>
         <Divider />
-        {props.attributes.startSaleTS && (
-          <Statistic
-            className="create-statistic"
-            title="Start date"
-            value={moment
-              .unix((props.attributes.startSaleTS as number) / 1000)
-              .format('dddd, MMMM Do YYYY, h:mm a')}
-          />
-        )}
+        <Statistic
+          className="create-statistic"
+          title="Start date"
+          value={props.attributes.startSaleTS ? (moment
+            .unix((props.attributes.startSaleTS as number) / 1000)
+            .format('dddd, MMMM Do YYYY, h:mm a')) : "Rigth after successfully published"}
+        />
         <br />
         {props.attributes.startListTS && (
           <Statistic
