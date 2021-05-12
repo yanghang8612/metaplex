@@ -43,6 +43,7 @@ struct Accounts<'a, 'b: 'a> {
     bidder_pot: &'a AccountInfo<'b>,
     bidder_pot_token: &'a AccountInfo<'b>,
     bidder: &'a AccountInfo<'b>,
+    bidder_token: &'a AccountInfo<'b>,
     clock_sysvar: &'a AccountInfo<'b>,
     mint: &'a AccountInfo<'b>,
     rent: &'a AccountInfo<'b>,
@@ -57,6 +58,7 @@ fn parse_accounts<'a, 'b: 'a>(
     let account_iter = &mut accounts.iter();
     let accounts = Accounts {
         bidder: next_account_info(account_iter)?,
+        bidder_token: next_account_info(account_iter)?,
         bidder_pot: next_account_info(account_iter)?,
         bidder_pot_token: next_account_info(account_iter)?,
         bidder_meta: next_account_info(account_iter)?,
@@ -176,7 +178,7 @@ pub fn cancel_bid(
     let account: Account = Account::unpack_from_slice(&accounts.bidder_pot_token.data.borrow())?;
     spl_token_transfer(TokenTransferParams {
         source: accounts.bidder_pot_token.clone(),
-        destination: accounts.bidder.clone(),
+        destination: accounts.bidder_token.clone(),
         authority: accounts.auction.clone(),
         authority_signer_seeds: auction_seeds,
         token_program: accounts.token_program.clone(),

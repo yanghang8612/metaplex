@@ -9,15 +9,15 @@ import {
 } from '../../hooks';
 import { ArtContent } from '../../components/ArtContent';
 import {
-  TokenAccount,
   useConnection,
   useUserAccounts,
   contexts,
   BidderMetadata,
   ParsedAccount,
-  Bid,
   cache,
   BidderPot,
+  fromLamports,
+  useMint,
 } from '@oyster/common';
 import { useMeta } from '../../contexts';
 import {
@@ -29,7 +29,7 @@ import './billing.less';
 import { WalletAdapter } from '@solana/wallet-base';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { settle } from '../../actions/settle';
-import { sendRedeemBid } from '../../actions/sendRedeemBid';
+import { MintInfo } from '@solana/spl-token';
 const { useWallet } = contexts.Wallet;
 const { Content } = Layout;
 
@@ -38,12 +38,14 @@ export const BillingView = () => {
   const auctionView: AuctionView | null = useAuction(id);
   const connection = useConnection();
   const { wallet } = useWallet();
+  const mint = useMint(auctionView?.auction.info.tokenMint);
 
-  return auctionView && wallet && connection ? (
+  return auctionView && wallet && connection && mint ? (
     <InnerBillingView
       auctionView={auctionView}
       connection={connection}
       wallet={wallet}
+      mint={mint}
     />
   ) : (
     <Spin />
@@ -54,10 +56,12 @@ export const InnerBillingView = ({
   auctionView,
   wallet,
   connection,
+  mint,
 }: {
   auctionView: AuctionView;
   wallet: WalletAdapter;
   connection: Connection;
+  mint: MintInfo;
 }) => {
   const {
     bidRedemptions,
@@ -71,7 +75,6 @@ export const InnerBillingView = ({
   const auctionKey = auctionView.auction.pubkey.toBase58();
 
   useEffect(() => {
-    console.log('Rerunning...');
     connection
       .getTokenAccountBalance(auctionView.auctionManager.info.acceptPayment)
       .then(resp => {
@@ -169,16 +172,10 @@ export const InnerBillingView = ({
 
   // at this point the only unredeemed are fixed price open edition bids that havent been redeemed by hand yet.
   // specifically from losers.
-  const openEditionUnredeemedTotal = openEditionEligibleUnredeemable.reduce(
-    (acc, el) => {
-      let price =
-        auctionView.auctionManager.info.settings.openEditionFixedPrice?.toNumber() ||
-        0;
-
-      return (acc += price);
-    },
-    0,
-  );
+  const openEditionUnredeemedTotal =
+    openEditionEligibleUnredeemable.length *
+    (auctionView.auctionManager.info.settings.openEditionFixedPrice?.toNumber() ||
+      0);
 
   // Winners always get it for free so pay zero for them - figure out among all
   // eligible open edition winners what is the total possible for display.
@@ -258,24 +255,33 @@ export const InnerBillingView = ({
             <br />
             <div className="info-header">TOTAL AUCTION VALUE</div>
             <div className="escrow">
-              ${totalWinnerPayments + openEditionPossibleTotal}
+              ◎
+              {fromLamports(
+                totalWinnerPayments + openEditionPossibleTotal,
+                mint,
+              )}
             </div>
             <br />
             <div className="info-header">TOTAL AUCTION REDEEMED VALUE</div>
             <div className="escrow">
-              $
-              {totalWinnerPayments +
-                openEditionPossibleTotal -
-                openEditionUnredeemedTotal}
+              ◎
+              {fromLamports(
+                totalWinnerPayments +
+                  openEditionPossibleTotal -
+                  openEditionUnredeemedTotal,
+                mint,
+              )}
             </div>
             <br />
             <div className="info-header">TOTAL COLLECTED BY ARTIST</div>
             <div className="escrow">
               {escrowBalance != undefined ? (
-                `$${
-                  totalMovedToEscrowViaClaims +
-                  totalMovedToEscrowAsFixedPrice -
-                  escrowBalance
+                `◎${
+                  fromLamports(
+                    totalMovedToEscrowViaClaims +
+                      totalMovedToEscrowAsFixedPrice,
+                    mint,
+                  ) - escrowBalance
                 }`
               ) : (
                 <Spin />
@@ -284,16 +290,19 @@ export const InnerBillingView = ({
             <br />
             <div className="info-header">TOTAL UNSETTLED</div>
             <div className="escrow">
-              $
-              {bidsToClaim.reduce(
-                (acc, el) => (acc += el.metadata.info.lastBid.toNumber()),
-                0,
+              ◎
+              {fromLamports(
+                bidsToClaim.reduce(
+                  (acc, el) => (acc += el.metadata.info.lastBid.toNumber()),
+                  0,
+                ),
+                mint,
               )}
             </div>
             <br />
             <div className="info-header">TOTAL IN ESCROW</div>
             <div className="escrow">
-              {escrowBalance != undefined ? `$${escrowBalance}` : <Spin />}
+              {escrowBalance != undefined ? `◎${escrowBalance}` : <Spin />}
             </div>
             <br />
             {hasOpenEdition && (
@@ -302,7 +311,7 @@ export const InnerBillingView = ({
                   TOTAL UNREDEEMED PARTICIPATION FEES OUTSTANDING
                 </div>
                 <div className="outstanding-open-editions">
-                  ${openEditionUnredeemedTotal}
+                  ◎{fromLamports(openEditionUnredeemedTotal, mint)}
                 </div>
                 <br />
               </>

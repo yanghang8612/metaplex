@@ -9,25 +9,26 @@ import {
   sendTransactionWithRetry,
   BidderMetadata,
   BidderPot,
+  ensureWrappedAccount,
 } from '@oyster/common';
 
 import { AuctionView } from '../hooks';
 
 import { claimBid } from '../models/metaplex/claimBid';
 import { emptyPaymentAccount } from '../models/metaplex/emptyPaymentAccount';
+import { AccountLayout } from '@solana/spl-token';
 
 const BATCH_SIZE = 10;
-const TRANSACTION_SIZE = 1;
+const TRANSACTION_SIZE = 7;
 export async function settle(
   connection: Connection,
   wallet: any,
   auctionView: AuctionView,
-  myPayingAccount: TokenAccount,
+  existingWrappedSolAccount: TokenAccount,
   bids: ParsedAccount<BidderPot>[],
 ) {
   let signers: Array<Array<Account[]>> = [];
   let instructions: Array<Array<TransactionInstruction[]>> = [];
-  let myPayingAccountKey = myPayingAccount?.pubkey;
 
   let currSignerBatch: Array<Account[]> = [];
   let currInstrBatch: Array<TransactionInstruction[]> = [];
@@ -105,10 +106,24 @@ export async function settle(
 
   const pullMoneySigners: Account[] = [];
   const pullMoneyInstructions: TransactionInstruction[] = [];
+  const cleanupInstructions: TransactionInstruction[] = [];
+
+  const accountRentExempt = await connection.getMinimumBalanceForRentExemption(
+    AccountLayout.span,
+  );
+
+  const receivingSolAccount = ensureWrappedAccount(
+    pullMoneyInstructions,
+    cleanupInstructions,
+    existingWrappedSolAccount,
+    wallet.publicKey,
+    accountRentExempt,
+    pullMoneySigners,
+  );
 
   await emptyPaymentAccount(
     auctionView.auctionManager.info.acceptPayment,
-    myPayingAccountKey,
+    receivingSolAccount,
     auctionView.auctionManager.pubkey,
     wallet.publicKey,
     pullMoneyInstructions,
@@ -117,7 +132,7 @@ export async function settle(
   await sendTransactionWithRetry(
     connection,
     wallet,
-    pullMoneyInstructions,
+    [...pullMoneyInstructions, ...cleanupInstructions],
     pullMoneySigners,
     'single',
   );
