@@ -34,7 +34,16 @@ pub enum AuctionInstruction {
     ///   3. `[]` System account
     CreateAuction(CreateAuctionArgs),
 
-    /// Claim SPL tokens from winning bids.
+    /// Move SPL tokens from winning bid to the destination account.
+    ///   0. `[writable]` The destination account
+    ///   1. `[writable]` The bidder pot token account
+    ///   2. `[]` The bidder pot pda account [seed of ['auction', program_id, auction key, bidder key]]
+    ///   3. `[signer]` The authority on the auction
+    ///   4. `[]` The auction
+    ///   5. `[]` The bidder wallet
+    ///   6. `[]` Token mint of the auction
+    ///   7. `[]` Clock sysvar
+    ///   8. `[]` Token program
     ClaimBid(ClaimBidArgs),
 
     /// Ends an auction, regardless of end timing conditions
@@ -272,8 +281,8 @@ pub fn end_auction_instruction(
 
 pub fn claim_bid_instruction(
     program_id: Pubkey,
-    authority_pubkey: Pubkey,
     destination_pubkey: Pubkey,
+    authority_pubkey: Pubkey,
     bidder_pubkey: Pubkey,
     bidder_pot_token_pubkey: Pubkey,
     token_mint_pubkey: Pubkey,
@@ -299,13 +308,13 @@ pub fn claim_bid_instruction(
     Instruction {
         program_id,
         accounts: vec![
-            AccountMeta::new(authority_pubkey, true),
             AccountMeta::new(destination_pubkey, false),
-            AccountMeta::new(bidder_pubkey, false),
-            AccountMeta::new(bidder_pot_pubkey, false),
             AccountMeta::new(bidder_pot_token_pubkey, false),
-            AccountMeta::new(auction_pubkey, false),
-            AccountMeta::new(token_mint_pubkey, false),
+            AccountMeta::new(bidder_pot_pubkey, false),
+            AccountMeta::new_readonly(authority_pubkey, true),
+            AccountMeta::new_readonly(auction_pubkey, false),
+            AccountMeta::new_readonly(bidder_pubkey, false),
+            AccountMeta::new_readonly(token_mint_pubkey, false),
             AccountMeta::new_readonly(sysvar::clock::id(), false),
             AccountMeta::new_readonly(spl_token::id(), false),
         ],

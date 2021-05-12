@@ -17,8 +17,6 @@ export const useBidsForAuction = (auctionPubkey: PublicKey | string) => {
     [auctionPubkey],
   );
 
-  const auction = cache.get(auctionPubkey) as ParsedAccount<AuctionData>;
-
   const bids = cache
     .byParser(BidderMetadataParser)
     .filter(key => {

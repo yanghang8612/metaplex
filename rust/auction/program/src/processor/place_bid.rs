@@ -270,23 +270,6 @@ pub fn place_bid<'r, 'b: 'r>(
         .place_bid(Bid(*accounts.bidder_pot.key, args.amount))?;
     auction.serialize(&mut *accounts.auction.data.borrow_mut())?;
 
-    let mut buffer = vec![];
-    msg!(
-        "Data size {:?}",
-        BidderMetadata {
-            bidder_pubkey: *accounts.bidder.key,
-            auction_pubkey: *accounts.auction.key,
-            last_bid: clock.slot,
-            last_bid_timestamp: clock.unix_timestamp,
-            cancelled: false,
-        }
-        .serialize(&mut buffer)?
-    );
-    msg!("Buffer len2 {:?}", buffer.len());
-    msg!(
-        "Bidder meta's data size is {:?}",
-        accounts.bidder_meta.data_len()
-    );
     // Update latest metadata with results from the bid.
     BidderMetadata {
         bidder_pubkey: *accounts.bidder.key,

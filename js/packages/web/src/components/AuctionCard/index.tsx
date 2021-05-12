@@ -26,13 +26,9 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
   const [clock, setClock] = useState<number>(0);
   const connection = useConnection();
   const { wallet } = useWallet();
-  const { userAccounts } = useUserAccounts();
   const [value, setValue] = useState<number>();
   const [showAlert, setShowAlert] = useState<boolean>(false);
-  const accountByMint = userAccounts.reduce((prev, acc) => {
-    prev.set(acc.info.mint.toBase58(), acc);
-    return prev;
-  }, new Map<string, TokenAccount>());
+  const { accountByMint } = useUserAccounts();
 
   const bids = useBidsForAuction(auctionView.auction.pubkey);
 
@@ -59,12 +55,12 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
   }, [clock]);
 
   useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>
+    let timeout: ReturnType<typeof setTimeout>;
     if (showAlert) {
-      timeout = setTimeout(() => setShowAlert(false), 5000)
+      timeout = setTimeout(() => setShowAlert(false), 5000);
     }
-    return () => clearTimeout(timeout)
-  }, [showAlert])
+    return () => clearTimeout(timeout);
+  }, [showAlert]);
 
   const isUpcoming = auctionView.state === AuctionViewState.Upcoming;
   const isStarted = auctionView.state === AuctionViewState.Live;
@@ -166,7 +162,7 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
                 auctionView,
                 value,
               );
-              setShowAlert(true)
+              setShowAlert(true);
             }
           }}
           style={{ marginTop: 20 }}
@@ -175,13 +171,15 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
         </Button>
       )}
       <AuctionBids bids={bids} />
-      {showAlert && <Alert
-        message="Bid placed"
-        description="Congratulations! You've placed a bid successfully"
-        type="success"
-        showIcon
-        closable
-      />}
+      {showAlert && (
+        <Alert
+          message="Bid placed"
+          description="Congratulations! You've placed a bid successfully"
+          type="success"
+          showIcon
+          closable
+        />
+      )}
     </div>
   );
 };

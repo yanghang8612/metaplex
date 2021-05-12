@@ -89,6 +89,12 @@ export class RedeemOpenEditionBidArgs {
 export class StartAuctionArgs {
   instruction = 5;
 }
+export class ClaimBidArgs {
+  instruction = 6;
+}
+export class EmptyPaymentAccountArgs {
+  instruction = 7;
+}
 
 export enum WinningConstraint {
   NoOpenEdition = 0,
@@ -304,6 +310,20 @@ export const SCHEMA = new Map<any, any>([
   ],
   [
     StartAuctionArgs,
+    {
+      kind: 'struct',
+      fields: [['instruction', 'u8']],
+    },
+  ],
+  [
+    ClaimBidArgs,
+    {
+      kind: 'struct',
+      fields: [['instruction', 'u8']],
+    },
+  ],
+  [
+    EmptyPaymentAccountArgs,
     {
       kind: 'struct',
       fields: [['instruction', 'u8']],

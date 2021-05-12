@@ -1,14 +1,22 @@
 import React from 'react';
 import { HashRouter, Route, Switch } from 'react-router-dom';
 import { contexts } from '@oyster/common';
-import {
-  MetaProvider,
-} from './contexts';
+import { MetaProvider } from './contexts';
 import { AppLayout } from './components/Layout';
 
-import { ArtCreateView, ArtistsView, ArtistView, ArtView, AuctionCreateView, AuctionView, HomeView, ArtworksView } from './views';
+import {
+  ArtCreateView,
+  ArtistsView,
+  ArtistView,
+  ArtView,
+  AuctionCreateView,
+  AuctionView,
+  HomeView,
+  ArtworksView,
+} from './views';
 import { UseWalletProvider } from 'use-wallet';
 import { CoingeckoProvider } from './contexts/coingecko';
+import { BillingView } from './views/auction/billing';
 const { WalletProvider } = contexts.Wallet;
 const { ConnectionProvider } = contexts.Connection;
 const { AccountsProvider } = contexts.Accounts;
@@ -61,9 +69,11 @@ export function Routes() {
                           component={() => <AuctionView />}
                         />
                         <Route
-                          path="/"
-                          component={() => <HomeView />}
+                          exact
+                          path="/auction/:id/billing"
+                          component={() => <BillingView />}
                         />
+                        <Route path="/" component={() => <HomeView />} />
                       </Switch>
                     </AppLayout>
                   </MetaProvider>
