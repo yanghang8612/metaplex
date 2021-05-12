@@ -60,6 +60,7 @@ struct Accounts<'a, 'b: 'a> {
     bidder_pot: &'a AccountInfo<'b>,
     bidder_pot_token: &'a AccountInfo<'b>,
     bidder: &'a AccountInfo<'b>,
+    bidder_token: &'a AccountInfo<'b>,
     clock_sysvar: &'a AccountInfo<'b>,
     mint: &'a AccountInfo<'b>,
     payer: &'a AccountInfo<'b>,
@@ -76,6 +77,7 @@ fn parse_accounts<'a, 'b: 'a>(
     let account_iter = &mut accounts.iter();
     let accounts = Accounts {
         bidder: next_account_info(account_iter)?,
+        bidder_token: next_account_info(account_iter)?,
         bidder_pot: next_account_info(account_iter)?,
         bidder_pot_token: next_account_info(account_iter)?,
         bidder_meta: next_account_info(account_iter)?,
@@ -92,15 +94,14 @@ fn parse_accounts<'a, 'b: 'a>(
     assert_owned_by(accounts.auction, program_id)?;
     assert_owned_by(accounts.mint, &spl_token::id())?;
     assert_owned_by(accounts.bidder_pot_token, &spl_token::id())?;
-    let bidder: Account = assert_initialized(accounts.bidder)?;
-    if bidder.owner != *accounts.payer.key {
-        assert_signer(accounts.bidder)?;
-    }
+    assert_signer(accounts.bidder)?;
+    assert_signer(accounts.payer)?;
     assert_signer(accounts.transfer_authority)?;
 
     Ok(accounts)
 }
 
+#[allow(clippy::absurd_extreme_comparisons)]
 pub fn place_bid<'r, 'b: 'r>(
     program_id: &Pubkey,
     accounts: &'r [AccountInfo<'b>],
@@ -248,14 +249,19 @@ pub fn place_bid<'r, 'b: 'r>(
     }
 
     // Confirm payers SPL token balance is enough to pay the bid.
-    let account: Account = Account::unpack_from_slice(&accounts.bidder.data.borrow())?;
-    if account.amount.saturating_sub(args.amount) == 0 {
+    let account: Account = Account::unpack_from_slice(&accounts.bidder_token.data.borrow())?;
+    if account.amount.saturating_sub(args.amount) < 0 {
+        msg!(
+            "Amount is too small: {:?}, compared to account amount of {:?}",
+            args.amount,
+            account.amount
+        );
         return Err(AuctionError::BalanceTooLow.into());
     }
 
     // Transfer amount of SPL token to bid account.
     spl_token_transfer(TokenTransferParams {
-        source: accounts.bidder.clone(),
+        source: accounts.bidder_token.clone(),
         destination: accounts.bidder_pot_token.clone(),
         authority: accounts.transfer_authority.clone(),
         authority_signer_seeds: bump_authority_seeds,
@@ -270,23 +276,6 @@ pub fn place_bid<'r, 'b: 'r>(
         .place_bid(Bid(*accounts.bidder_pot.key, args.amount))?;
     auction.serialize(&mut *accounts.auction.data.borrow_mut())?;
 
-    let mut buffer = vec![];
-    msg!(
-        "Data size {:?}",
-        BidderMetadata {
-            bidder_pubkey: *accounts.bidder.key,
-            auction_pubkey: *accounts.auction.key,
-            last_bid: clock.slot,
-            last_bid_timestamp: clock.unix_timestamp,
-            cancelled: false,
-        }
-        .serialize(&mut buffer)?
-    );
-    msg!("Buffer len2 {:?}", buffer.len());
-    msg!(
-        "Bidder meta's data size is {:?}",
-        accounts.bidder_meta.data_len()
-    );
     // Update latest metadata with results from the bid.
     BidderMetadata {
         bidder_pubkey: *accounts.bidder.key,

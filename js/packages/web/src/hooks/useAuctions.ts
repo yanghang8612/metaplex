@@ -44,11 +44,7 @@ export interface AuctionView {
 }
 
 export const useAuctions = (state: AuctionViewState) => {
-  const { userAccounts } = useUserAccounts();
-  const accountByMint = userAccounts.reduce((prev, acc) => {
-    prev.set(acc.info.mint.toBase58(), acc);
-    return prev;
-  }, new Map<string, TokenAccount>());
+  const { accountByMint } = useUserAccounts();
 
   const [auctionViews, setAuctionViews] = useState<
     Record<string, AuctionView | undefined>
@@ -98,7 +94,6 @@ export const useAuctions = (state: AuctionViewState) => {
     metadataByMint,
     bidderMetadataByAuctionAndBidder,
     bidderPotsByAuctionAndBidder,
-    userAccounts,
     vaults,
     masterEditions,
     bidRedemptions,

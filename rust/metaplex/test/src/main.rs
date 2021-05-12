@@ -20,10 +20,10 @@ use {
     validate_safety_deposits::validate_safety_deposits,
 };
 
-pub const VAULT_PROGRAM_PUBKEY: &str = "GqWxTiYuU8KrJxRhMw6fqiboz2Jah58h49c9Tv8dHFVE";
-pub const AUCTION_PROGRAM_PUBKEY: &str = "8penQkW1ByRHECArWpV5W7htAKkcieY3dXhz4XxFVnu5";
+pub const VAULT_PROGRAM_PUBKEY: &str = "6CniVQvDCWGW6vNhR6G7rPUJSVnocKz1BVb7pRDWUN7b";
+pub const AUCTION_PROGRAM_PUBKEY: &str = "HLGetPpEUaagthEtF4px9S24hwJrwz3qvgRZxkWTw4ei";
 
-pub const PROGRAM_PUBKEY: &str = "5gHbZXERAxYvrgruWGCN8AigLswnN7zfMZ3brVZcRGNu";
+pub const PROGRAM_PUBKEY: &str = "47FzVrretFY2S1waDyBnBK5ockLW3e1B5tA2jxrKemM2";
 
 pub const TOKEN_PROGRAM_PUBKEY: &str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 

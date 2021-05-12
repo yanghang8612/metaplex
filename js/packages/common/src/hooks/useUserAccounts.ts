@@ -3,7 +3,16 @@ import { useAccountsContext } from '../contexts/accounts';
 
 export function useUserAccounts() {
   const context = useAccountsContext();
+
+  const accountByMint = context.userAccounts.reduce(
+    (prev: Map<string, TokenAccount>, acc: TokenAccount) => {
+      prev.set(acc.info.mint.toBase58(), acc);
+      return prev;
+    },
+    new Map<string, TokenAccount>(),
+  );
   return {
     userAccounts: context.userAccounts as TokenAccount[],
+    accountByMint,
   };
 }

@@ -15,7 +15,6 @@ import {
   SafetyDepositBox,
   SequenceType,
   sendTransactions,
-  sendSignedTransaction,
   sendTransactionWithRetry,
 } from '@oyster/common';
 
@@ -23,7 +22,6 @@ import { AccountLayout, MintLayout, Token } from '@solana/spl-token';
 import { AuctionView, AuctionViewItem } from '../hooks';
 import {
   EditionType,
-  getOriginalAuthority,
   NonWinningConstraint,
   redeemBid,
   redeemMasterEditionBid,
@@ -31,6 +29,7 @@ import {
   WinningConfig,
   WinningConstraint,
 } from '../models/metaplex';
+import { claimBid } from '../models/metaplex/claimBid';
 const { createTokenAccount } = actions;
 const { approve } = models;
 
@@ -105,6 +104,22 @@ export async function sendRedeemBid(
         );
         break;
     }
+
+    if (auctionView.myBidderMetadata && auctionView.myBidderPot) {
+      let claimSigners: Account[] = [];
+      let claimInstructions: TransactionInstruction[] = [];
+      instructions.push(claimInstructions);
+      signers.push(claimSigners);
+      console.log('Claimed');
+      await claimBid(
+        auctionView.auctionManager.info.acceptPayment,
+        auctionView.myBidderMetadata.info.bidderPubkey,
+        auctionView.myBidderPot?.info.bidderPot,
+        auctionView.vault.pubkey,
+        auctionView.auction.info.tokenMint,
+        claimInstructions,
+      );
+    }
   }
 
   const eligibleForOpenEdition =
@@ -132,23 +147,14 @@ export async function sendRedeemBid(
     );
   }
 
-  if (signers.length === 1)
-    await sendTransactionWithRetry(
-      connection,
-      wallet,
-      instructions[0],
-      signers[0],
-      'single',
-    );
-  else
-    await sendTransactions(
-      connection,
-      wallet,
-      instructions,
-      signers,
-      SequenceType.StopOnFailure,
-      'single',
-    );
+  await sendTransactions(
+    connection,
+    wallet,
+    instructions,
+    signers,
+    SequenceType.StopOnFailure,
+    'single',
+  );
 }
 
 async function setupRedeemInstructions(

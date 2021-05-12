@@ -170,6 +170,41 @@ pub enum MetaplexInstruction {
     ///   4. `[]` Auction program
     ///   5. `[]` Clock sysvar
     StartAuction,
+
+    /// If the auction manager is in a Disbursing or Finished state, then this means Auction must be in Ended state.
+    /// Then this end point can be used as a signed proxy to use auction manager's authority over the auction to claim bid funds
+    /// into the accept payment account on the auction manager for a given bid. Auction has no opinions on how bids are redeemed,
+    /// only that they exist, have been paid, and have a winning place. It is up to the implementer of the auction to determine redemption,
+    /// and auction manager does this via bid redemption tickets and the vault contract which ensure the user always
+    /// can get their NFT once they have paid. Therefore, once they have paid, and the auction is over, the artist can claim
+    /// funds at any time without any danger to the user of losing out on their NFT, because the AM will honor their bid with an NFT
+    /// at ANY time.
+    ///
+    ///   0. `[writable]` The accept payment account on the auction manager
+    ///   1. `[writable]` The bidder pot token account
+    ///   2. `[writable]` The bidder pot pda account [seed of ['auction', program_id, auction key, bidder key] -
+    ///           relative to the auction program, not auction manager
+    ///   3. `[]` The auction
+    ///   4. `[]` The bidder wallet
+    ///   5. `[]` Token mint of the auction
+    ///   6. `[]` Vault
+    ///   7. `[]` Auction manager
+    ///   8. `[]` Auction program
+    ///   9. `[]` Clock sysvar
+    ///   10. `[]` Token program
+    ClaimBid,
+
+    /// At any time, the auction manager authority may empty whatever funds are in the accept payment account
+    /// on the auction manager. Funds come here from fixed price payments for open editions, and from draining bid payments
+    /// from the auction.
+    ///
+    ///   0. `[writable]` The accept payment account on the auction manager
+    ///   1. `[writable]` The destination account of same mint type as the accept payment account
+    ///   2. `[signer]` Authority OF the auction manager - this is the account that can control the AM
+    ///   3. `[]` Auction manager
+    ///   4. `[]` Token program
+    ///   5. `[]` Rent sysvar
+    EmptyPaymentAccount,
 }
 
 /// Creates an InitAuctionManager instruction
