@@ -12,12 +12,18 @@ import {
   BidderMetadata,
   ParsedAccount,
   Identicon,
+  MetaplexModal,
   formatAmount,
 } from '@oyster/common';
 import { AuctionView, AuctionViewState, useBidsForAuction, useUserBalance } from '../../hooks';
 import { sendPlaceBid } from '../../actions/sendPlaceBid';
 import { sendRedeemBid } from '../../actions/sendRedeemBid';
+import { AmountLabel } from '../AmountLabel';
+import BN from 'bn.js';
+
+
 const { useWallet } = contexts.Wallet;
+
 export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
   const [days, setDays] = useState<number>(99);
   const [hours, setHours] = useState<number>(23);
@@ -27,7 +33,9 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
   const connection = useConnection();
   const { wallet } = useWallet();
   const [value, setValue] = useState<number>();
-  const [showAlert, setShowAlert] = useState<boolean>(false);
+  const [showMModal, setShowMModal] = useState<boolean>(false);
+  const [lastBid, setLastBid] = useState<{amount: BN} | undefined>(undefined);
+
   const { accountByMint } = useUserAccounts();
 
   const bids = useBidsForAuction(auctionView.auction.pubkey);
@@ -54,27 +62,13 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
     return () => clearInterval(interval);
   }, [clock]);
 
-  useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>;
-    if (showAlert) {
-      timeout = setTimeout(() => setShowAlert(false), 5000);
-    }
-    return () => clearTimeout(timeout);
-  }, [showAlert]);
-
   const isUpcoming = auctionView.state === AuctionViewState.Upcoming;
   const isStarted = auctionView.state === AuctionViewState.Live;
 
   return (
     <div className="presale-card-container">
-      {isUpcoming && <div className="info-header">STARTING BID</div>}
-      {isUpcoming && (
-        <div style={{ fontWeight: 700, fontSize: '1.6rem' }}>◎40.00</div>
-      )}
-      {isStarted && <div className="info-header">HIGHEST BID</div>}
-      {isStarted && (
-        <div style={{ fontWeight: 700, fontSize: '1.6rem' }}>◎40.00</div>
-      )}
+      {isUpcoming && <AmountLabel title="STARTING BID" amount={40}/>}
+      {isStarted && <AmountLabel title="HIGHEST BID" amount={40}/>}
       <br />
       {days === 0 && hours === 0 && minutes === 0 && seconds === 0 ? (
         <div className="info-header">AUCTION HAS ENDED</div>
@@ -123,6 +117,8 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
         value={value}
         style={{ width: '100%', backgroundColor: 'black', marginTop: 20 }}
         onChange={setValue}
+        prefix="$"
+        placeholder="Amount in USD"
       />
 
       <div
@@ -161,8 +157,10 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
                 myPayingAccount.pubkey,
                 auctionView,
                 value,
-              );
-              setShowAlert(true);
+              ).then(bid => {
+                setShowMModal(true)
+                setLastBid(bid)
+              })
             }
           }}
           style={{ marginTop: 20 }}
@@ -171,15 +169,23 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
         </Button>
       )}
       <AuctionBids bids={bids} />
-      {showAlert && (
-        <Alert
-          message="Bid placed"
-          description="Congratulations! You've placed a bid successfully"
-          type="success"
-          showIcon
-          closable
-        />
-      )}
+      <MetaplexModal
+        visible={showMModal}
+        onCancel={() => setShowMModal(false)}
+      >
+        <h2>Congratulations!</h2>
+        <p>Your bid has been placed</p>
+        <br/>
+        {lastBid && <AmountLabel amount={lastBid.amount.toNumber()}/>}
+        <br/>
+        <Button
+          className="metaplex-button"
+          onClick={_ => setShowMModal(false)}
+        >
+          <span>Continue</span>
+          <span>&gt;</span>
+        </Button>
+      </MetaplexModal>
     </div>
   );
 };

@@ -662,6 +662,10 @@ export async function placeBid(
       data: data,
     }),
   );
+
+  return {
+    amount,
+  };
 }
 
 export async function getBidderPotKey({

@@ -1,20 +1,15 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Divider,
   Steps,
   Row,
   Button,
-  Upload,
   Col,
   Input,
   Statistic,
-  Modal,
   Progress,
   Spin,
   InputNumber,
-  Select,
-  TimePicker,
-  DatePicker,
   Radio,
 } from 'antd';
 import { ArtCard } from './../../components/ArtCard';
@@ -26,32 +21,20 @@ import {
   MAX_METADATA_LEN,
   useConnection,
   useWallet,
-  useConnectionConfig,
-  Metadata,
-  ParsedAccount,
-  deserializeBorsh,
   WinnerLimit,
   WinnerLimitType,
 } from '@oyster/common';
-import { getAssetCostToStore, LAMPORT_MULTIPLIER } from '../../utils/assets';
-import { Connection, ParsedAccountData, PublicKey } from '@solana/web3.js';
-import { MintLayout, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { Connection, PublicKey } from '@solana/web3.js';
+import { MintLayout } from '@solana/spl-token';
 import { useHistory, useParams } from 'react-router-dom';
-import { useUserArts } from '../../hooks';
-import Masonry from 'react-masonry-css';
 import { capitalize } from 'lodash';
 import {
-  AuctionManager,
   AuctionManagerSettings,
-  AuctionManagerState,
-  AuctionManagerStatus,
   EditionType,
   NonWinningConstraint,
-  SCHEMA,
   WinningConfig,
   WinningConstraint,
 } from '../../models/metaplex';
-import { serialize } from 'borsh';
 import moment from 'moment';
 import {
   createAuctionManager,
@@ -59,10 +42,10 @@ import {
 } from '../../actions/createAuctionManager';
 import BN from 'bn.js';
 import { ZERO } from '@oyster/common/dist/lib/constants';
+import { DateTimePicker } from '../../components/DateTimePicker';
+import { AmountLabel } from '../../components/AmountLabel';
 
 const { Step } = Steps;
-const { Option } = Select;
-const { Dragger } = Upload;
 const { TextArea } = Input;
 
 export enum AuctionCategory {
@@ -103,7 +86,7 @@ export interface AuctionState {
   priceFloor?: number;
   priceTick?: number;
 
-  startSaleTS?: number; // Why do I prefer to work with unix ts?
+  startSaleTS?: number;
   startListTS?: number;
   endTS?: number;
 
@@ -948,7 +931,6 @@ const PriceAuction = (props: {
                 })
               }
             />
-            {/* <span className="field-info">= ◎ 4.84</span> */}
           </label>
           <label className="action-field">
             <span className="field-title">Tick Size</span>
@@ -969,7 +951,6 @@ const PriceAuction = (props: {
                 })
               }
             />
-            {/* <span className="field-info">= ◎ 4.84</span> */}
           </label>
         </Col>
       </Row>
@@ -1066,16 +1047,7 @@ const InitialPhaseStep = (props: {
                 <span className="field-title">
                   {capitalize(props.attributes.saleType)} Start Date
                 </span>
-                <DatePicker
-                  className="field-date"
-                  size="large"
-                  onChange={(dt, dtString) => console.log({ dt, dtString })}
-                />
-                <TimePicker
-                  className="field-date"
-                  size="large"
-                  onChange={(dt, dtString) => console.log({ dt, dtString })}
-                />
+                {saleMoment && <DateTimePicker momentObj={saleMoment} setMomentObj={setSaleMoment}/>}
               </label>
 
               <label className="action-field">
@@ -1111,8 +1083,7 @@ const InitialPhaseStep = (props: {
               {!listNow && (
                 <label className="action-field">
                   <span className="field-title">Preview Start Date</span>
-                  <DatePicker className="field-date" size="large" />
-                  <TimePicker className="field-date" size="large" />
+                  {listMoment && <DateTimePicker momentObj={listMoment} setMomentObj={setListMoment}/>}
                 </label>
               )}
             </>
@@ -1295,39 +1266,13 @@ const EndingPhaseSale = (props: {
           {!untilSold && (
             <label className="action-field">
               <span className="field-title">End Date</span>
-              <DatePicker
-                className="field-date"
-                size="large"
-                disabledDate={current =>
-                  current && current < moment().endOf('day')
-                }
-                value={endMoment}
-                onChange={value => {
-                  if (!value) return;
-                  if (!endMoment) return setEndMoment(value);
-
-                  const currentMoment = endMoment.clone();
-                  currentMoment.hour(value.hour());
-                  currentMoment.minute(value.minute());
-                  currentMoment.second(value.second());
-                  setEndMoment(currentMoment);
+              {endMoment && <DateTimePicker
+                momentObj={endMoment}
+                setMomentObj={setEndMoment}
+                datePickerProps={{
+                  disabledDate: (current: moment.Moment) => current && current < moment().endOf('day')
                 }}
-              />
-              <TimePicker
-                className="field-date"
-                size="large"
-                value={endMoment}
-                onChange={value => {
-                  if (!value) return;
-                  if (!endMoment) return setEndMoment(value);
-
-                  const currentMoment = endMoment.clone();
-                  currentMoment.hour(value.hour());
-                  currentMoment.minute(value.minute());
-                  currentMoment.second(value.second());
-                  setEndMoment(currentMoment);
-                }}
-              />
+              />}
             </label>
           )}
         </Col>
@@ -1437,11 +1382,9 @@ const ReviewStep = (props: {
             }
           />
           {cost ? (
-            <Statistic
-              className="create-statistic"
+            <AmountLabel
               title="Cost to Create"
-              value={cost.toPrecision(3)}
-              prefix="◎"
+              amount={cost}
             />
           ) : (
             <Spin />
@@ -1454,7 +1397,9 @@ const ReviewStep = (props: {
           <Statistic
             className="create-statistic"
             title="Start date"
-            value={props.attributes.startSaleTS}
+            value={moment
+              .unix((props.attributes.startSaleTS as number) / 1000)
+              .format('dddd, MMMM Do YYYY, h:mm a')}
           />
         )}
         <br />
@@ -1548,14 +1493,14 @@ const Congrats = (props: {
         </div>
         <div className="congrats-button-container">
           <Button
-            className="congrats-button"
+            className="metaplex-button"
             onClick={_ => window.open(newTweetURL(), '_blank')}
           >
             <span>Share it on Twitter</span>
             <span>&gt;</span>
           </Button>
           <Button
-            className="congrats-button"
+            className="metaplex-button"
             onClick={_ =>
               history.push(`/auction/${props.auction?.auction.toString()}`)
             }
@@ -1563,10 +1508,6 @@ const Congrats = (props: {
             <span>See it in your auctions</span>
             <span>&gt;</span>
           </Button>
-          {/* <Button className="congrats-button">
-            <span>Sell it via auction</span>
-            <span>&gt;</span>
-          </Button> */}
         </div>
       </div>
       <Confetti />

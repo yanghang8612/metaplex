@@ -11,3 +11,4 @@ export { BackButton } from './BackButton/index';
 export { TokenIcon } from './TokenIcon';
 export { TokenDisplay } from './TokenDisplay';
 export { EtherscanLink } from './EtherscanLink';
+export { MetaplexModal } from './MetaplexModal';
