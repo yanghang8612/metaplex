@@ -226,11 +226,12 @@ pub async fn place_bid(
     let transaction = Transaction::new_signed_with_payer(
         &[instruction::place_bid_instruction(
             *program_id,
-            bidder.pubkey(),             // SPL Token Account (Source)
+            bidder.pubkey(),             // Wallet used to identify bidder
+            bidder.pubkey(), // SPL token account (source) using same account here for ease of testing
             bidder_spl_account.pubkey(), // SPL Token Account (Destination)
-            *mint,                       // Token Mint
+            *mint,           // Token Mint
             transfer_authority.pubkey(), // Approved to Move Tokens
-            payer.pubkey(),              // Pays for Transactions
+            payer.pubkey(),  // Pays for Transactions
             PlaceBidArgs {
                 amount,
                 resource: *resource,
@@ -258,6 +259,7 @@ pub async fn cancel_bid(
     let transaction = Transaction::new_signed_with_payer(
         &[instruction::cancel_bid_instruction(
             *program_id,
+            bidder.pubkey(),
             bidder.pubkey(),
             bidder_spl_account.pubkey(),
             *mint,

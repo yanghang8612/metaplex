@@ -537,6 +537,7 @@ export async function startAuction(
 
 export async function placeBid(
   bidderPubkey: PublicKey,
+  bidderTokenPubkey: PublicKey,
   bidderPotTokenPubkey: PublicKey,
   tokenMintPubkey: PublicKey,
   transferAuthority: PublicKey,
@@ -590,6 +591,11 @@ export async function placeBid(
   const keys = [
     {
       pubkey: bidderPubkey,
+      isSigner: true,
+      isWritable: false,
+    },
+    {
+      pubkey: bidderTokenPubkey,
       isSigner: false,
       isWritable: true,
     },

@@ -18,8 +18,9 @@ export let SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID = new PublicKey(
 export let BPF_UPGRADE_LOADER_ID = new PublicKey(
   'BPFLoaderUpgradeab1e11111111111111111111111',
 );
-export let METADATA_PROGRAM_ID = new PublicKey(
-  '68ohQ98BLVR2DZpZXfszT9iMicdzscdpDPZ3ayut1QCu',
+
+export const METADATA_PROGRAM_ID = new PublicKey(
+  'H88wygGuVdaH1Xpz8Hgj6gxqcFeS4bPnUNP1rfBHPQEF',
 );
 
 export const MEMO_ID = new PublicKey(
@@ -27,15 +28,15 @@ export const MEMO_ID = new PublicKey(
 );
 
 export const VAULT_ID = new PublicKey(
-  'GqWxTiYuU8KrJxRhMw6fqiboz2Jah58h49c9Tv8dHFVE',
+  '6CniVQvDCWGW6vNhR6G7rPUJSVnocKz1BVb7pRDWUN7b',
 );
 
 export const AUCTION_ID = new PublicKey(
-  '8penQkW1ByRHECArWpV5W7htAKkcieY3dXhz4XxFVnu5',
+  'HLGetPpEUaagthEtF4px9S24hwJrwz3qvgRZxkWTw4ei',
 );
 
 export const METAPLEX_ID = new PublicKey(
-  '5gHbZXERAxYvrgruWGCN8AigLswnN7zfMZ3brVZcRGNu',
+  '47FzVrretFY2S1waDyBnBK5ockLW3e1B5tA2jxrKemM2',
 );
 
 export let SYSTEM = new PublicKey('11111111111111111111111111111111');
