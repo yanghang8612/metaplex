@@ -269,6 +269,19 @@ const UploadStep = (props: {
     }
   };
 
+  const acceptableFiles = (category: MetadataCategory) => {
+    switch (category) {
+      case MetadataCategory.Audio:
+        return '.mp3,.flac,.wav';
+      case MetadataCategory.Image:
+        return '.png,.jpg,.gif';
+      case MetadataCategory.Video:
+        return '.mp4';
+      default:
+        return '';
+    }
+  };
+
   return (
     <>
       <Row className="call-to-action">
@@ -284,6 +297,7 @@ const UploadStep = (props: {
       <Row className="content-action">
         <h3>{uploadMsg(props.attributes.category)}</h3>
         <Dragger
+          accept={acceptableFiles(props.attributes.category)}
           style={{ padding: 20 }}
           multiple={false}
           customRequest={info => {
@@ -316,6 +330,7 @@ const UploadStep = (props: {
             MP4)
           </h3>
           <Dragger
+            accept=".png,.jpg,.gif,.mp4"
             style={{ padding: 20 }}
             multiple={false}
             customRequest={info => {
@@ -337,7 +352,7 @@ const UploadStep = (props: {
           >
             <div className="ant-upload-drag-icon">
               <h3 style={{ fontWeight: 700 }}>
-                Upload your cover image or video
+                Upload your cover image or video (PNG, JPG, GIF, MP4)
               </h3>
             </div>
             <p className="ant-upload-text">Drag and drop, or click to browse</p>
