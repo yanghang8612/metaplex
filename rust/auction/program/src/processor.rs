@@ -200,7 +200,7 @@ impl BidState {
             // In a capped auction, track the limited number of winners.
             BidState::EnglishAuction { ref mut bids, max } => match bids.last() {
                 Some(top) => {
-                    if top.1 < bid.1 {
+                    if top.1 < bid.1 || bids.len() < *max {
                         bids.retain(|b| b.0 != bid.0);
                         bids.push(bid);
                         if bids.len() > *max {
@@ -288,4 +288,6 @@ pub struct BidderPot {
     pub bidder_act: Pubkey,
     /// Auction account
     pub auction_act: Pubkey,
+    /// emptied or not
+    pub emptied: bool,
 }

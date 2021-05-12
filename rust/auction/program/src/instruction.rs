@@ -13,13 +13,14 @@ pub use crate::processor::{
 
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
 pub enum AuctionInstruction {
-    /// Place a bid on a running auction.
+    /// Cancel a bid on a running auction.
     ///   0. `[signer]` The bidders primary account, for PDA calculation/transit auth.
-    ///   1. `[writable]` The pot, containing a reference to the stored SPL token account.
-    ///   2. `[writable]` The pot SPL account, where the tokens will be deposited.
-    ///   3. `[writable]` The metadata account, storing information about the bidders actions.
-    ///   4. `[writable]` Auction account, containing data about the auction and item being bid on.
-    ///   5. `[writable]` Token mint, for transfer instructions and verification.
+    ///   1. `[writable]` The bidders token account they'll receive refund with
+    ///   2. `[writable]` The pot, containing a reference to the stored SPL token account.
+    ///   3. `[writable]` The pot SPL account, where the tokens will be deposited.
+    ///   4. `[writable]` The metadata account, storing information about the bidders actions.
+    ///   5. `[writable]` Auction account, containing data about the auction and item being bid on.
+    ///   6. `[writable]` Token mint, for transfer instructions and verification.
     ///   7. `[signer]` Payer
     ///   8. `[]` Clock sysvar
     ///   9. `[]` Rent sysvar
@@ -34,7 +35,16 @@ pub enum AuctionInstruction {
     ///   3. `[]` System account
     CreateAuction(CreateAuctionArgs),
 
-    /// Claim SPL tokens from winning bids.
+    /// Move SPL tokens from winning bid to the destination account.
+    ///   0. `[writable]` The destination account
+    ///   1. `[writable]` The bidder pot token account
+    ///   2. `[]` The bidder pot pda account [seed of ['auction', program_id, auction key, bidder key]]
+    ///   3. `[signer]` The authority on the auction
+    ///   4. `[]` The auction
+    ///   5. `[]` The bidder wallet
+    ///   6. `[]` Token mint of the auction
+    ///   7. `[]` Clock sysvar
+    ///   8. `[]` Token program
     ClaimBid(ClaimBidArgs),
 
     /// Ends an auction, regardless of end timing conditions
@@ -51,17 +61,18 @@ pub enum AuctionInstruction {
 
     /// Place a bid on a running auction.
     ///   0. `[signer]` The bidders primary account, for PDA calculation/transit auth.
-    ///   1. `[writable]` The pot, containing a reference to the stored SPL token account.
-    ///   2. `[writable]` The pot SPL account, where the tokens will be deposited.
-    ///   3. `[writable]` The metadata account, storing information about the bidders actions.
-    ///   4. `[writable]` Auction account, containing data about the auction and item being bid on.
-    ///   5. `[writable]` Token mint, for transfer instructions and verification.
-    ///   6. `[signer]` Transfer authority, for moving tokens into the bid pot.
-    ///   7. `[signer]` Payer
-    ///   8. `[]` Clock sysvar
-    ///   9. `[]` Rent sysvar
-    ///   10. `[]` System program
-    ///   11. `[]` SPL Token Program
+    ///   1. `[writable]` The bidders token account they'll pay with
+    ///   2. `[writable]` The pot, containing a reference to the stored SPL token account.
+    ///   3. `[writable]` The pot SPL account, where the tokens will be deposited.
+    ///   4. `[writable]` The metadata account, storing information about the bidders actions.
+    ///   5. `[writable]` Auction account, containing data about the auction and item being bid on.
+    ///   6. `[writable]` Token mint, for transfer instructions and verification.
+    ///   7. `[signer]` Transfer authority, for moving tokens into the bid pot.
+    ///   8. `[signer]` Payer
+    ///   9. `[]` Clock sysvar
+    ///   10. `[]` Rent sysvar
+    ///   11. `[]` System program
+    ///   12. `[]` SPL Token Program
     PlaceBid(PlaceBidArgs),
 }
 
@@ -140,6 +151,7 @@ pub fn start_auction_instruction(
 pub fn place_bid_instruction(
     program_id: Pubkey,
     bidder_pubkey: Pubkey,
+    bidder_token_pubkey: Pubkey,
     bidder_pot_token_pubkey: Pubkey,
     token_mint_pubkey: Pubkey,
     transfer_authority: Pubkey,
@@ -177,6 +189,7 @@ pub fn place_bid_instruction(
         program_id,
         accounts: vec![
             AccountMeta::new(bidder_pubkey, true),
+            AccountMeta::new(bidder_token_pubkey, false),
             AccountMeta::new(bidder_pot_pubkey, false),
             AccountMeta::new(bidder_pot_token_pubkey, false),
             AccountMeta::new(bidder_meta_pubkey, false),
@@ -197,6 +210,7 @@ pub fn place_bid_instruction(
 pub fn cancel_bid_instruction(
     program_id: Pubkey,
     bidder_pubkey: Pubkey,
+    bidder_token_pubkey: Pubkey,
     bidder_pot_token_pubkey: Pubkey,
     token_mint_pubkey: Pubkey,
     args: CancelBidArgs,
@@ -232,6 +246,7 @@ pub fn cancel_bid_instruction(
         program_id,
         accounts: vec![
             AccountMeta::new(bidder_pubkey, true),
+            AccountMeta::new(bidder_token_pubkey, false),
             AccountMeta::new(bidder_pot_pubkey, false),
             AccountMeta::new(bidder_pot_token_pubkey, false),
             AccountMeta::new(bidder_meta_pubkey, false),
@@ -272,8 +287,8 @@ pub fn end_auction_instruction(
 
 pub fn claim_bid_instruction(
     program_id: Pubkey,
-    authority_pubkey: Pubkey,
     destination_pubkey: Pubkey,
+    authority_pubkey: Pubkey,
     bidder_pubkey: Pubkey,
     bidder_pot_token_pubkey: Pubkey,
     token_mint_pubkey: Pubkey,
@@ -299,13 +314,13 @@ pub fn claim_bid_instruction(
     Instruction {
         program_id,
         accounts: vec![
-            AccountMeta::new(authority_pubkey, true),
             AccountMeta::new(destination_pubkey, false),
-            AccountMeta::new(bidder_pubkey, false),
-            AccountMeta::new(bidder_pot_pubkey, false),
             AccountMeta::new(bidder_pot_token_pubkey, false),
-            AccountMeta::new(auction_pubkey, false),
-            AccountMeta::new(token_mint_pubkey, false),
+            AccountMeta::new(bidder_pot_pubkey, false),
+            AccountMeta::new_readonly(authority_pubkey, true),
+            AccountMeta::new_readonly(auction_pubkey, false),
+            AccountMeta::new_readonly(bidder_pubkey, false),
+            AccountMeta::new_readonly(token_mint_pubkey, false),
             AccountMeta::new_readonly(sysvar::clock::id(), false),
             AccountMeta::new_readonly(spl_token::id(), false),
         ],

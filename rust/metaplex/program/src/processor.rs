@@ -18,6 +18,8 @@ use {
         },
     },
     borsh::{BorshDeserialize, BorshSerialize},
+    claim_bid::process_claim_bid,
+    empty_payment_account::process_empty_payment_account,
     solana_program::{
         account_info::{next_account_info, AccountInfo},
         borsh::try_from_slice_unchecked,
@@ -33,6 +35,9 @@ use {
     },
     spl_token_vault::state::{SafetyDepositBox, Vault, VaultState},
 };
+
+pub mod claim_bid;
+pub mod empty_payment_account;
 
 pub fn process_instruction<'a>(
     program_id: &'a Pubkey,
@@ -64,6 +69,14 @@ pub fn process_instruction<'a>(
         MetaplexInstruction::StartAuction => {
             msg!("Instruction: Start Auction");
             process_start_auction(program_id, accounts)
+        }
+        MetaplexInstruction::ClaimBid => {
+            msg!("Instruction: Claim Bid");
+            process_claim_bid(program_id, accounts)
+        }
+        MetaplexInstruction::EmptyPaymentAccount => {
+            msg!("Instruction: Empty Payment Account");
+            process_empty_payment_account(program_id, accounts)
         }
     }
 }

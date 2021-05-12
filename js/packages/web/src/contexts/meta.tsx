@@ -170,7 +170,6 @@ export function MetaProvider({ children = null as any }) {
               a.account,
               BidderMetadataParser,
             ) as ParsedAccount<BidderMetadata>;
-
             setBidderMetadataByAuctionAndBidder(e => ({
               ...e,
               [account.info.auctionPubkey.toBase58() +

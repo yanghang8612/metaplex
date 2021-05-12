@@ -634,8 +634,8 @@ pub fn common_winning_config_checks(
     );
 
     Ok(CommonWinningConfigCheckReturn {
-        winning_config_state,
         winning_config,
+        winning_config_state,
         transfer_authority,
     })
 }
