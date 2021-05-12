@@ -312,7 +312,8 @@ async function setupRedeemLimitedInstructions(
 
       for (let i = 0; i < winningConfig.amount; i++) {
         let cashInLimitedPrizeAuthorizationTokenSigner: Account[] = [];
-        let cashInLimitedPrizeAuthorizationTokenInstruction: TransactionInstruction[] = [];
+        let cashInLimitedPrizeAuthorizationTokenInstruction: TransactionInstruction[] =
+          [];
         signers.push(cashInLimitedPrizeAuthorizationTokenSigner);
         instructions.push(cashInLimitedPrizeAuthorizationTokenInstruction);
 
@@ -392,6 +393,7 @@ async function setupRedeemOpenInstructions(
     item.masterEdition &&
     updateAuth &&
     auctionView.myBidderMetadata &&
+    tokenAccount &&
     mint
   ) {
     let newTokenAccount: PublicKey | undefined = accountsByMint.get(
@@ -459,7 +461,8 @@ async function setupRedeemOpenInstructions(
 
     if (newTokenAccount) {
       let cashInOpenPrizeAuthorizationTokenSigner: Account[] = [];
-      let cashInOpenPrizeAuthorizationTokenInstruction: TransactionInstruction[] = [];
+      let cashInOpenPrizeAuthorizationTokenInstruction: TransactionInstruction[] =
+        [];
       signers.push(cashInOpenPrizeAuthorizationTokenSigner);
       instructions.push(cashInOpenPrizeAuthorizationTokenInstruction);
 

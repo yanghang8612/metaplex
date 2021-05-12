@@ -17,6 +17,7 @@ use {
 };
 
 #[allow(clippy::unnecessary_cast)]
+#[allow(clippy::absurd_extreme_comparisons)]
 pub fn process_redeem_open_edition_bid<'a>(
     program_id: &'a Pubkey,
     accounts: &'a [AccountInfo<'a>],
