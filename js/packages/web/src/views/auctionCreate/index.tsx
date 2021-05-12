@@ -1049,7 +1049,13 @@ const InitialPhaseStep = (props: {
                 <span className="field-title">
                   {capitalize(props.attributes.saleType)} Start Date
                 </span>
-                {saleMoment && <DateTimePicker momentObj={saleMoment} setMomentObj={setSaleMoment}/>}
+                {saleMoment && <DateTimePicker
+                  momentObj={saleMoment}
+                  setMomentObj={setSaleMoment}
+                  datePickerProps={{
+                    disabledDate: (current: moment.Moment) => current && current < moment().endOf('day')
+                  }}
+                />}
               </label>
 
               <label className="action-field">
@@ -1085,7 +1091,14 @@ const InitialPhaseStep = (props: {
               {!listNow && (
                 <label className="action-field">
                   <span className="field-title">Preview Start Date</span>
-                  {listMoment && <DateTimePicker momentObj={listMoment} setMomentObj={setListMoment}/>}
+                  {listMoment && <DateTimePicker
+                    momentObj={listMoment}
+                    setMomentObj={setListMoment}
+                    datePickerProps={{
+                      disabledDate: (current: moment.Moment) =>
+                        current && saleMoment && (current < moment().endOf('day') || current > saleMoment)
+                    }}
+                  />}
                 </label>
               )}
             </>
