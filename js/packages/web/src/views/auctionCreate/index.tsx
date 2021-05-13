@@ -1230,6 +1230,7 @@ const EndingPhaseSale = (props: {
   setAttributes: (attr: AuctionState) => void;
   confirm: () => void;
 }) => {
+  const startMoment = props.attributes.startSaleTS ? moment.unix(props.attributes.startSaleTS / 1000) : moment()
   const [untilSold, setUntilSold] = useState<boolean>(true);
   const [endMoment, setEndMoment] = useState<moment.Moment | undefined>(
     props.attributes.endTS ? moment.unix(props.attributes.endTS) : undefined,
@@ -1244,6 +1245,7 @@ const EndingPhaseSale = (props: {
 
   useEffect(() => {
     if (untilSold) setEndMoment(undefined);
+    else setEndMoment(startMoment);
   }, [untilSold]);
 
   return (
@@ -1285,7 +1287,7 @@ const EndingPhaseSale = (props: {
                 momentObj={endMoment}
                 setMomentObj={setEndMoment}
                 datePickerProps={{
-                  disabledDate: (current: moment.Moment) => current && current < moment().endOf('day')
+                  disabledDate: (current: moment.Moment) => current && current < startMoment
                 }}
               />}
             </label>
