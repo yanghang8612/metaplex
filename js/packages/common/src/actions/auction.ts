@@ -283,6 +283,15 @@ class PlaceBidArgs {
   }
 }
 
+class CancelBidArgs {
+  instruction: number = 0;
+  resource: PublicKey;
+
+  constructor(args: { resource: PublicKey }) {
+    this.resource = args.resource;
+  }
+}
+
 export const AUCTION_SCHEMA = new Map<any, any>([
   [
     CreateAuctionArgs,
@@ -327,6 +336,16 @@ export const AUCTION_SCHEMA = new Map<any, any>([
       fields: [
         ['instruction', 'u8'],
         ['amount', 'u64'],
+        ['resource', 'pubkey'],
+      ],
+    },
+  ],
+  [
+    CancelBidArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['instruction', 'u8'],
         ['resource', 'pubkey'],
       ],
     },
@@ -688,4 +707,119 @@ export async function getBidderPotKey({
       auctionProgramId,
     )
   )[0];
+}
+
+export async function cancelBid(
+  bidderPubkey: PublicKey,
+  bidderTokenPubkey: PublicKey,
+  bidderPotTokenPubkey: PublicKey,
+  tokenMintPubkey: PublicKey,
+  resource: PublicKey,
+  instructions: TransactionInstruction[],
+) {
+  const auctionProgramId = programIds().auction;
+
+  const data = Buffer.from(
+    serialize(
+      AUCTION_SCHEMA,
+      new CancelBidArgs({
+        resource,
+      }),
+    ),
+  );
+
+  const auctionKey: PublicKey = (
+    await PublicKey.findProgramAddress(
+      [
+        Buffer.from(AUCTION_PREFIX),
+        auctionProgramId.toBuffer(),
+        resource.toBuffer(),
+      ],
+      auctionProgramId,
+    )
+  )[0];
+
+  const bidderPotKey = await getBidderPotKey({
+    auctionProgramId,
+    auctionKey,
+    bidderPubkey,
+  });
+
+  const bidderMetaKey: PublicKey = (
+    await PublicKey.findProgramAddress(
+      [
+        Buffer.from(AUCTION_PREFIX),
+        auctionProgramId.toBuffer(),
+        auctionKey.toBuffer(),
+        bidderPubkey.toBuffer(),
+        Buffer.from('metadata'),
+      ],
+      auctionProgramId,
+    )
+  )[0];
+
+  const keys = [
+    {
+      pubkey: bidderPubkey,
+      isSigner: true,
+      isWritable: false,
+    },
+    {
+      pubkey: bidderTokenPubkey,
+      isSigner: false,
+      isWritable: true,
+    },
+    {
+      pubkey: bidderPotKey,
+      isSigner: false,
+      isWritable: true,
+    },
+    {
+      pubkey: bidderPotTokenPubkey,
+      isSigner: false,
+      isWritable: true,
+    },
+    {
+      pubkey: bidderMetaKey,
+      isSigner: false,
+      isWritable: true,
+    },
+    {
+      pubkey: auctionKey,
+      isSigner: false,
+      isWritable: true,
+    },
+    {
+      pubkey: tokenMintPubkey,
+      isSigner: false,
+      isWritable: true,
+    },
+    {
+      pubkey: SYSVAR_CLOCK_PUBKEY,
+      isSigner: false,
+      isWritable: false,
+    },
+    {
+      pubkey: SYSVAR_RENT_PUBKEY,
+      isSigner: false,
+      isWritable: false,
+    },
+    {
+      pubkey: SystemProgram.programId,
+      isSigner: false,
+      isWritable: false,
+    },
+    {
+      pubkey: programIds().token,
+      isSigner: false,
+      isWritable: false,
+    },
+  ];
+  instructions.push(
+    new TransactionInstruction({
+      keys,
+      programId: auctionProgramId,
+      data: data,
+    }),
+  );
 }

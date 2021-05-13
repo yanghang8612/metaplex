@@ -1,10 +1,15 @@
-import { TokenAccount, useConnection, useUserAccounts } from '@oyster/common';
+import {
+  TokenAccount,
+  useConnection,
+  useUserAccounts,
+  useWallet,
+} from '@oyster/common';
 import { useEffect, useState } from 'react';
 import { AuctionView, processAccountsIntoAuctionView } from '.';
 import { useMeta } from '../contexts';
 
 export const useAuction = (id: string) => {
-  const { accountByMint } = useUserAccounts();
+  const { wallet } = useWallet();
 
   const [existingAuctionView, setAuctionView] = useState<AuctionView | null>(
     null,
@@ -27,8 +32,9 @@ export const useAuction = (id: string) => {
 
   useEffect(() => {
     const auction = auctions[id];
-    if (auction) {
+    if (auction && wallet) {
       const auctionView = processAccountsIntoAuctionView(
+        wallet,
         auction,
         auctionManagersByAuction,
         safetyDepositBoxesByVaultAndIndex,
@@ -40,7 +46,6 @@ export const useAuction = (id: string) => {
         vaults,
         masterEditionsByMasterMint,
         metadataByMasterEdition,
-        accountByMint,
         undefined,
         existingAuctionView || undefined,
       );
@@ -48,6 +53,7 @@ export const useAuction = (id: string) => {
     }
   }, [
     auctions,
+    wallet,
     auctionManagersByAuction,
     safetyDepositBoxesByVaultAndIndex,
     metadataByMint,

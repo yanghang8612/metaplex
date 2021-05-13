@@ -8,8 +8,8 @@ use crate::{
     errors::AuctionError,
     processor::{AuctionData, BidderMetadata, BidderPot},
     utils::{
-        assert_derivation, assert_initialized, assert_owned_by, create_or_allocate_account_raw,
-        spl_token_transfer, TokenTransferParams,
+        assert_derivation, assert_initialized, assert_owned_by, assert_signer,
+        create_or_allocate_account_raw, spl_token_transfer, TokenTransferParams,
     },
     PREFIX,
 };
@@ -74,6 +74,7 @@ fn parse_accounts<'a, 'b: 'a>(
     assert_owned_by(accounts.bidder_meta, program_id)?;
     assert_owned_by(accounts.mint, &spl_token::id())?;
     assert_owned_by(accounts.bidder_pot_token, &spl_token::id())?;
+    assert_signer(accounts.bidder)?;
 
     Ok(accounts)
 }
@@ -140,7 +141,7 @@ pub fn cancel_bid(
         return Err(AuctionError::MetadataInvalid.into());
     }
 
-    // Derive Pot address, this account wraps/holds an SPL account to transfer tokens into.
+    // Derive Pot address, this account wraps/holds an SPL account to transfer tokens out of.
     let pot_seeds = [
         PREFIX.as_bytes(),
         program_id.as_ref(),

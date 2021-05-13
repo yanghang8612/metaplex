@@ -21,11 +21,10 @@ pub enum AuctionInstruction {
     ///   4. `[writable]` The metadata account, storing information about the bidders actions.
     ///   5. `[writable]` Auction account, containing data about the auction and item being bid on.
     ///   6. `[writable]` Token mint, for transfer instructions and verification.
-    ///   7. `[signer]` Payer
-    ///   8. `[]` Clock sysvar
-    ///   9. `[]` Rent sysvar
-    ///   10. `[]` System program
-    ///   11. `[]` SPL Token Program
+    ///   7. `[]` Clock sysvar
+    ///   8. `[]` Rent sysvar
+    ///   9. `[]` System program
+    ///   10. `[]` SPL Token Program
     CancelBid(CancelBidArgs),
 
     /// Create a new auction account bound to a resource, initially in a pending state.

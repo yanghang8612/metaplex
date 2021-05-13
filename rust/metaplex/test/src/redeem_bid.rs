@@ -153,6 +153,7 @@ fn redeem_bid_open_edition_type<'a>(
     transfer_authority: &Keypair,
     client: &RpcClient,
     app_matches: &ArgMatches,
+    bidding_metadata_obj: BidderMetadata,
 ) -> Vec<Instruction> {
     println!("You are redeeming an open edition.");
 
@@ -191,34 +192,39 @@ fn redeem_bid_open_edition_type<'a>(
     let master_edition: MasterEdition =
         try_from_slice_unchecked(&master_edition_account.data).unwrap();
 
-    if let Some(price) = manager.settings.open_edition_fixed_price {
-        if app_matches.is_present("mint_it") {
-            let auction_acct = client.get_account(&auction).unwrap();
-            let auction: AuctionData = try_from_slice_unchecked(&auction_acct.data).unwrap();
-            instructions.push(
-                mint_to(
-                    token_program,
-                    &auction.token_mint,
-                    &base_account_list.bidder,
-                    &payer,
-                    &[&payer],
-                    price + 2,
-                )
-                .unwrap(),
-            );
-        }
+    let mut price = bidding_metadata_obj.last_bid;
+    if let Some(fixed_price) = manager.settings.open_edition_fixed_price {
+        price = fixed_price
+    }
+
+    if app_matches.is_present("mint_it") {
+        let auction_acct = client.get_account(&auction).unwrap();
+        let auction: AuctionData = try_from_slice_unchecked(&auction_acct.data).unwrap();
+
         instructions.push(
-            approve(
+            mint_to(
                 token_program,
+                &auction.token_mint,
                 &base_account_list.bidder,
-                &transfer_authority.pubkey(),
                 &payer,
                 &[&payer],
-                price,
+                price + 2,
             )
             .unwrap(),
         );
     }
+
+    instructions.push(
+        approve(
+            token_program,
+            &base_account_list.bidder,
+            &transfer_authority.pubkey(),
+            &payer,
+            &[&payer],
+            price,
+        )
+        .unwrap(),
+    );
 
     instructions.push(create_account(
         &payer,
@@ -258,6 +264,7 @@ fn redeem_bid_open_edition_type<'a>(
         master_edition_key,
         transfer_authority.pubkey(),
         manager.accept_payment,
+        bidder,
     ));
 
     let mut new_instructions: Vec<Instruction> = vec![];
@@ -532,6 +539,7 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
             &transfer_authority,
             &client,
             &app_matches,
+            bid,
         );
 
         let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));

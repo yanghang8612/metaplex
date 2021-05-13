@@ -10,7 +10,9 @@ import {
   TokenAccount,
   Vault,
   MasterEdition,
+  useWallet,
 } from '@oyster/common';
+import { WalletAdapter } from '@solana/wallet-base';
 import { useEffect, useState } from 'react';
 import { useMeta } from '../contexts';
 import { AuctionManager, BidRedemptionTicket } from '../models/metaplex';
@@ -44,8 +46,7 @@ export interface AuctionView {
 }
 
 export const useAuctions = (state: AuctionViewState) => {
-  const { accountByMint } = useUserAccounts();
-
+  const { wallet } = useWallet();
   const [auctionViews, setAuctionViews] = useState<
     Record<string, AuctionView | undefined>
   >({});
@@ -65,27 +66,28 @@ export const useAuctions = (state: AuctionViewState) => {
   } = useMeta();
 
   useEffect(() => {
-    Object.keys(auctions).forEach(a => {
-      const auction = auctions[a];
-      const existingAuctionView = auctionViews[a];
-      const nextAuctionView = processAccountsIntoAuctionView(
-        auction,
-        auctionManagersByAuction,
-        safetyDepositBoxesByVaultAndIndex,
-        metadataByMint,
-        bidRedemptions,
-        bidderMetadataByAuctionAndBidder,
-        bidderPotsByAuctionAndBidder,
-        masterEditions,
-        vaults,
-        masterEditionsByMasterMint,
-        metadataByMasterEdition,
-        accountByMint,
-        state,
-        existingAuctionView,
-      );
-      setAuctionViews(nA => ({ ...nA, [a]: nextAuctionView }));
-    });
+    if (wallet)
+      Object.keys(auctions).forEach(a => {
+        const auction = auctions[a];
+        const existingAuctionView = auctionViews[a];
+        const nextAuctionView = processAccountsIntoAuctionView(
+          wallet,
+          auction,
+          auctionManagersByAuction,
+          safetyDepositBoxesByVaultAndIndex,
+          metadataByMint,
+          bidRedemptions,
+          bidderMetadataByAuctionAndBidder,
+          bidderPotsByAuctionAndBidder,
+          masterEditions,
+          vaults,
+          masterEditionsByMasterMint,
+          metadataByMasterEdition,
+          state,
+          existingAuctionView,
+        );
+        setAuctionViews(nA => ({ ...nA, [a]: nextAuctionView }));
+      });
   }, [
     state,
     auctions,
@@ -99,12 +101,14 @@ export const useAuctions = (state: AuctionViewState) => {
     bidRedemptions,
     masterEditionsByMasterMint,
     metadataByMasterEdition,
+    wallet,
   ]);
 
   return Object.values(auctionViews).filter(v => v) as AuctionView[];
 };
 
 export function processAccountsIntoAuctionView(
+  wallet: WalletAdapter,
   auction: ParsedAccount<AuctionData>,
   auctionManagersByAuction: Record<string, ParsedAccount<AuctionManager>>,
   safetyDepositBoxesByVaultAndIndex: Record<
@@ -122,7 +126,6 @@ export function processAccountsIntoAuctionView(
   vaults: Record<string, ParsedAccount<Vault>>,
   masterEditionsByMasterMint: Record<string, ParsedAccount<MasterEdition>>,
   metadataByMasterEdition: Record<string, ParsedAccount<Metadata>>,
-  accountByMint: Map<string, TokenAccount>,
   desiredState: AuctionViewState | undefined,
   existingAuctionView?: AuctionView,
 ): AuctionView | undefined {
@@ -139,8 +142,6 @@ export function processAccountsIntoAuctionView(
 
   if (desiredState && desiredState !== state) return undefined;
 
-  const myPayingAccount = accountByMint.get(auction.info.tokenMint.toBase58());
-
   const auctionManager =
     auctionManagersByAuction[auction.pubkey.toBase58() || ''];
   if (auctionManager) {
@@ -155,11 +156,11 @@ export function processAccountsIntoAuctionView(
 
     const bidderMetadata =
       bidderMetadataByAuctionAndBidder[
-        auction.pubkey.toBase58() + '-' + myPayingAccount?.pubkey.toBase58()
+        auction.pubkey.toBase58() + '-' + wallet.publicKey?.toBase58()
       ];
     const bidderPot =
       bidderPotsByAuctionAndBidder[
-        auction.pubkey.toBase58() + '-' + myPayingAccount?.pubkey.toBase58()
+        auction.pubkey.toBase58() + '-' + wallet.publicKey?.toBase58()
       ];
 
     if (existingAuctionView && existingAuctionView.totallyComplete) {

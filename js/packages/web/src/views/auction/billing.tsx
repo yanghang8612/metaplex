@@ -52,6 +52,23 @@ export const BillingView = () => {
   );
 };
 
+function getLosingOpenEditionPrice(
+  el: ParsedAccount<BidderMetadata>,
+  auctionView: AuctionView,
+) {
+  const nonWinnerConstraint =
+    auctionView.auctionManager.info.settings.openEditionNonWinningConstraint;
+
+  if (nonWinnerConstraint == NonWinningConstraint.GivenForFixedPrice)
+    return (
+      auctionView.auctionManager.info.settings.openEditionFixedPrice?.toNumber() ||
+      0
+    );
+  else if (nonWinnerConstraint == NonWinningConstraint.GivenForBidPrice)
+    return el.info.lastBid.toNumber() || 0;
+  else return 0;
+}
+
 export const InnerBillingView = ({
   auctionView,
   wallet,
@@ -143,7 +160,7 @@ export const InnerBillingView = ({
 
   const openEditionEligibleRedeemable: ParsedAccount<BidderMetadata>[] = [];
   const openEditionEligibleUnredeemable: ParsedAccount<BidderMetadata>[] = [];
-  let openEditionEligibleRedeemedAsFixedPrice = 0;
+  const openEditionEligibleRedeemed: ParsedAccount<BidderMetadata>[] = [];
 
   openEditionEligible.forEach(o => {
     const isWinner = winnersByBidderKey[o.info.bidderPubkey.toBase58()];
@@ -153,43 +170,33 @@ export const InnerBillingView = ({
       return;
     }
 
-    // If it's fixed price, we dont collect money from the individual until they redeem,
-    // whereas if it's an open edition we give for their last bid price, we already have their
-    // money and so can consider the bid redeemed as far as pushing money to the escrow goes.
-    if (nonWinnerConstraint == NonWinningConstraint.GivenForBidPrice)
-      openEditionEligibleRedeemable.push(o);
-    else if (nonWinnerConstraint == NonWinningConstraint.GivenForFixedPrice) {
+    if (
+      nonWinnerConstraint == NonWinningConstraint.GivenForFixedPrice ||
+      nonWinnerConstraint == NonWinningConstraint.GivenForBidPrice
+    ) {
       const key = openEditionBidRedemptionKeys[o.pubkey.toBase58()];
       if (key) {
         const redemption = bidRedemptions[key.toBase58()];
         if (!redemption || !redemption.info.openEditionRedeemed)
           openEditionEligibleUnredeemable.push(o);
         else if (redemption && redemption.info.openEditionRedeemed)
-          openEditionEligibleRedeemedAsFixedPrice++;
+          openEditionEligibleRedeemed.push(o);
       } else openEditionEligibleUnredeemable.push(o);
     }
   });
 
-  // at this point the only unredeemed are fixed price open edition bids that havent been redeemed by hand yet.
-  // specifically from losers.
-  const openEditionUnredeemedTotal =
-    openEditionEligibleUnredeemable.length *
-    (auctionView.auctionManager.info.settings.openEditionFixedPrice?.toNumber() ||
-      0);
+  const openEditionUnredeemedTotal = openEditionEligibleUnredeemable.reduce(
+    (acc, el) => (acc += getLosingOpenEditionPrice(el, auctionView)),
+    0,
+  );
 
   // Winners always get it for free so pay zero for them - figure out among all
   // eligible open edition winners what is the total possible for display.
   const openEditionPossibleTotal = openEditionEligible.reduce((acc, el) => {
     const isWinner = winnersByBidderKey[el.info.bidderPubkey.toBase58()];
     let price = 0;
-    if (!isWinner) {
-      if (nonWinnerConstraint == NonWinningConstraint.GivenForBidPrice)
-        price = el.info.lastBid.toNumber();
-      else if (nonWinnerConstraint == NonWinningConstraint.GivenForFixedPrice)
-        price =
-          auctionView.auctionManager.info.settings.openEditionFixedPrice?.toNumber() ||
-          0;
-    }
+    if (!isWinner) price = getLosingOpenEditionPrice(el, auctionView);
+
     return (acc += price);
   }, 0);
 
@@ -214,9 +221,11 @@ export const InnerBillingView = ({
     0,
   );
 
-  const totalMovedToEscrowAsFixedPrice =
-    (auctionView.auctionManager.info.settings.openEditionFixedPrice?.toNumber() ||
-      0) * openEditionEligibleRedeemedAsFixedPrice;
+  const totalMovedToEscrowAsOpenEditionPayments =
+    openEditionEligibleRedeemed.reduce(
+      (acc, el) => (acc += getLosingOpenEditionPrice(el, auctionView)),
+      0,
+    );
 
   const bidsToClaim: {
     metadata: ParsedAccount<BidderMetadata>;
@@ -279,7 +288,7 @@ export const InnerBillingView = ({
                 `◎${
                   fromLamports(
                     totalMovedToEscrowViaClaims +
-                      totalMovedToEscrowAsFixedPrice,
+                      totalMovedToEscrowAsOpenEditionPayments,
                     mint,
                   ) - escrowBalance
                 }`

@@ -233,12 +233,12 @@ export function createTokenAccount(
 export function ensureWrappedAccount(
   instructions: TransactionInstruction[],
   cleanupInstructions: TransactionInstruction[],
-  toCheck: TokenAccount,
+  toCheck: TokenAccount | undefined,
   payer: PublicKey,
   amount: number,
   signers: Account[],
 ) {
-  if (!toCheck.info.isNative) {
+  if (toCheck && !toCheck.info.isNative) {
     return toCheck.pubkey;
   }
 

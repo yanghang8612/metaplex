@@ -160,6 +160,7 @@ pub enum MetaplexInstruction {
     ///   19. `[signer]` Transfer authority to move the payment in the auction's token_mint coin from the bidder account for the open_edition_fixed_price
     ///             on the auction manager to the auction manager account itself.
     ///   20.  `[writable]` The accept payment account for the auction manager
+    ///   21.  `[writable]` The token account you will potentially pay for the open edition bid with if necessary
     RedeemOpenEditionBid,
 
     /// If the auction manager is in Validated state, it can invoke the start command via calling this command here.
@@ -456,6 +457,7 @@ pub fn create_redeem_open_edition_bid_instruction(
     master_edition: Pubkey,
     transfer_authority: Pubkey,
     accept_payment: Pubkey,
+    paying_token_account: Pubkey,
 ) -> Instruction {
     Instruction {
         program_id,
@@ -481,6 +483,7 @@ pub fn create_redeem_open_edition_bid_instruction(
             AccountMeta::new(master_edition, false),
             AccountMeta::new_readonly(transfer_authority, true),
             AccountMeta::new(accept_payment, false),
+            AccountMeta::new(paying_token_account, false),
         ],
         data: MetaplexInstruction::RedeemOpenEditionBid
             .try_to_vec()
