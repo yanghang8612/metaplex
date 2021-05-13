@@ -131,7 +131,7 @@ pub fn process_redeem_open_edition_bid<'a>(
             price = bidder_metadata.last_bid;
         }
 
-        if bidder_token.amount.saturating_sub(price) < 0_u64 {
+        if bidder_token.amount.saturating_sub(price) < 0 as u64 {
             return Err(MetaplexError::NotEnoughBalanceForOpenEdition.into());
         }
 
