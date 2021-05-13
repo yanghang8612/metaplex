@@ -129,6 +129,7 @@ pub fn add_token_to_vault(
                 "no".to_owned(),
                 "name".to_owned(),
                 "www.none.com".to_owned(),
+                Some(vec![]),
                 true,
             ));
             if is_master_edition {

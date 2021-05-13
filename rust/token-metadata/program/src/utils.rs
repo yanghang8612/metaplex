@@ -2,7 +2,10 @@ use {
     crate::{
         error::MetadataError,
         processor::process_create_metadata_accounts,
-        state::{Edition, Key, MasterEdition, Metadata, EDITION, MAX_EDITION_LEN, PREFIX},
+        state::{
+            Data, Edition, Key, MasterEdition, Metadata, EDITION, MAX_CREATOR_LIMIT,
+            MAX_EDITION_LEN, MAX_NAME_LENGTH, MAX_SYMBOL_LENGTH, MAX_URI_LENGTH, PREFIX,
+        },
     },
     borsh::BorshSerialize,
     solana_program::{
@@ -23,6 +26,30 @@ use {
     },
     std::convert::TryInto,
 };
+
+pub fn assert_data_valid(data: &Data) -> ProgramResult {
+    if data.name.len() > MAX_NAME_LENGTH {
+        return Err(MetadataError::NameTooLong.into());
+    }
+
+    if data.symbol.len() > MAX_SYMBOL_LENGTH {
+        return Err(MetadataError::SymbolTooLong.into());
+    }
+
+    if data.uri.len() > MAX_URI_LENGTH {
+        return Err(MetadataError::UriTooLong.into());
+    }
+
+    if data.creators.is_some() {
+        if let Some(creators) = &data.creators {
+            if creators.len() > MAX_CREATOR_LIMIT {
+                return Err(MetadataError::CreatorsTooLong.into());
+            }
+        }
+    }
+
+    Ok(())
+}
 
 /// assert initialized account
 pub fn assert_initialized<T: Pack + IsInitialized>(
@@ -262,9 +289,7 @@ pub fn mint_limited_edition<'a>(
             system_account_info.clone(),
             rent_info.clone(),
         ],
-        master_metadata.data.name,
-        master_metadata.data.symbol,
-        master_metadata.data.uri,
+        master_metadata.data,
     )?;
 
     let edition_authority_seeds = &[

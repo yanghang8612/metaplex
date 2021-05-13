@@ -1,5 +1,5 @@
 use {
-    crate::state::Data,
+    crate::state::{Creator, Data},
     borsh::{BorshDeserialize, BorshSerialize},
     solana_program::{
         instruction::{AccountMeta, Instruction},
@@ -12,7 +12,7 @@ use {
 #[derive(BorshSerialize, BorshDeserialize, PartialEq, Debug, Clone)]
 /// Args for update call
 pub struct UpdateMetadataAccountArgs {
-    pub uri: Option<String>,
+    pub data: Option<Data>,
     pub update_authority: Option<Pubkey>,
 }
 
@@ -100,6 +100,7 @@ pub fn create_metadata_accounts(
     name: String,
     symbol: String,
     uri: String,
+    creators: Option<Vec<Creator>>,
     update_authority_is_signer: bool,
 ) -> Instruction {
     Instruction {
@@ -114,7 +115,12 @@ pub fn create_metadata_accounts(
             AccountMeta::new_readonly(sysvar::rent::id(), false),
         ],
         data: MetadataInstruction::CreateMetadataAccount(CreateMetadataAccountArgs {
-            data: Data { name, symbol, uri },
+            data: Data {
+                name,
+                symbol,
+                uri,
+                creators,
+            },
         })
         .try_to_vec()
         .unwrap(),
@@ -127,7 +133,7 @@ pub fn update_metadata_accounts(
     metadata_account: Pubkey,
     update_authority: Pubkey,
     new_update_authority: Option<Pubkey>,
-    uri: Option<String>,
+    data: Option<Data>,
 ) -> Instruction {
     Instruction {
         program_id,
@@ -136,7 +142,7 @@ pub fn update_metadata_accounts(
             AccountMeta::new_readonly(update_authority, true),
         ],
         data: MetadataInstruction::UpdateMetadataAccount(UpdateMetadataAccountArgs {
-            uri,
+            data,
             update_authority: new_update_authority,
         })
         .try_to_vec()
