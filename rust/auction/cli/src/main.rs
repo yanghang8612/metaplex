@@ -21,7 +21,7 @@ use {
     std::str::FromStr,
 };
 
-const PROGRAM_PUBKEY: &str = "8penQkW1ByRHECArWpV5W7htAKkcieY3dXhz4XxFVnu5";
+const PROGRAM_PUBKEY: &str = "HLGetPpEUaagthEtF4px9S24hwJrwz3qvgRZxkWTw4ei";
 const TOKEN_PROGRAM_PUBKEY: &str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 
 fn create_auction(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
@@ -302,11 +302,12 @@ fn place_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
         // Destination was created above, as an auction owned pot to contain the bid.
         instruction::place_bid_instruction(
             program_key,
-            bidder.pubkey(),             // SPL Token Account (Source)
-            bid_pot.pubkey(),            // SPL Token Account (Destination)
-            mint.pubkey(),               // Token Mint
+            bidder.pubkey(), // Bidder identifier (can be any valid account, we just use spl token acct)
+            bidder.pubkey(), // SPL Token Account (Source)
+            bid_pot.pubkey(), // SPL Token Account (Destination)
+            mint.pubkey(),   // Token Mint
             transfer_authority.pubkey(), // Account Approved to Move Tokens
-            payer.pubkey(),              // Pays for Transactions
+            payer.pubkey(),  // Pays for Transactions
             PlaceBidArgs { amount, resource },
         ),
     ];
@@ -449,9 +450,10 @@ fn cancel_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
 
     let instructions = [instruction::cancel_bid_instruction(
         program_key,
-        bidder.pubkey(),   // SPL Token Account (Source)
+        bidder.pubkey(), // Bidder identifier (can be any valid account, we just use spl token acct)
+        bidder.pubkey(), // SPL Token Account (Source)
         bidpot.bidder_pot, // SPL Token Account (Destination)
-        mint.pubkey(),     // Token Mint
+        mint.pubkey(),   // Token Mint
         CancelBidArgs { resource },
     )];
 

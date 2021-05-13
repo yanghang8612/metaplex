@@ -35,14 +35,14 @@ pub struct ClaimBidArgs {
 }
 
 struct Accounts<'a, 'b: 'a> {
+    destination: &'a AccountInfo<'b>,
+    bidder_pot_token: &'a AccountInfo<'b>,
+    bidder_pot: &'a AccountInfo<'b>,
     authority: &'a AccountInfo<'b>,
     auction: &'a AccountInfo<'b>,
-    bidder_pot: &'a AccountInfo<'b>,
-    bidder_pot_token: &'a AccountInfo<'b>,
     bidder: &'a AccountInfo<'b>,
-    clock_sysvar: &'a AccountInfo<'b>,
     mint: &'a AccountInfo<'b>,
-    destination: &'a AccountInfo<'b>,
+    clock_sysvar: &'a AccountInfo<'b>,
     token_program: &'a AccountInfo<'b>,
 }
 
@@ -52,12 +52,12 @@ fn parse_accounts<'a, 'b: 'a>(
 ) -> Result<Accounts<'a, 'b>, ProgramError> {
     let account_iter = &mut accounts.iter();
     let accounts = Accounts {
-        authority: next_account_info(account_iter)?,
         destination: next_account_info(account_iter)?,
-        bidder: next_account_info(account_iter)?,
-        bidder_pot: next_account_info(account_iter)?,
         bidder_pot_token: next_account_info(account_iter)?,
+        bidder_pot: next_account_info(account_iter)?,
+        authority: next_account_info(account_iter)?,
         auction: next_account_info(account_iter)?,
+        bidder: next_account_info(account_iter)?,
         mint: next_account_info(account_iter)?,
         clock_sysvar: next_account_info(account_iter)?,
         token_program: next_account_info(account_iter)?,
@@ -106,7 +106,7 @@ pub fn claim_bid(
     ];
 
     // Load the auction and verify this bid is valid.
-    let mut auction: AuctionData = try_from_slice_unchecked(&accounts.auction.data.borrow())?;
+    let auction: AuctionData = try_from_slice_unchecked(&accounts.auction.data.borrow())?;
 
     // User must have won the auction in order to claim their funds. Check early as the rest of the
     // checks will be for nothing otherwise.
@@ -120,8 +120,7 @@ pub fn claim_bid(
     }
 
     // Pot must contain tokens.
-    let account: Account = Account::unpack_from_slice(&accounts.bidder_pot_token.data.borrow())?;
-    if account.amount == 0 {
+    if actual_account.amount == 0 {
         return Err(AuctionError::BidderPotEmpty.into());
     }
 
@@ -154,7 +153,8 @@ pub fn claim_bid(
     }
 
     // Confirm we're looking at the real SPL account for this bidder.
-    let bidder_pot: BidderPot = try_from_slice_unchecked(&accounts.bidder_pot.data.borrow_mut())?;
+    let mut bidder_pot: BidderPot =
+        try_from_slice_unchecked(&accounts.bidder_pot.data.borrow_mut())?;
     if bidder_pot.bidder_pot != *accounts.bidder_pot_token.key {
         return Err(AuctionError::BidderPotTokenAccountOwnerMismatch.into());
     }
@@ -166,8 +166,11 @@ pub fn claim_bid(
         authority: accounts.auction.clone(),
         authority_signer_seeds: auction_seeds,
         token_program: accounts.token_program.clone(),
-        amount: account.amount,
+        amount: actual_account.amount,
     })?;
+
+    bidder_pot.emptied = true;
+    bidder_pot.serialize(&mut *accounts.bidder_pot.data.borrow_mut())?;
 
     Ok(())
 }

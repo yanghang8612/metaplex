@@ -32,15 +32,11 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
   const [clock, setClock] = useState<number>(0);
   const connection = useConnection();
   const { wallet } = useWallet();
-  const { userAccounts } = useUserAccounts();
   const [value, setValue] = useState<number>();
   const [showMModal, setShowMModal] = useState<boolean>(false);
   const [lastBid, setLastBid] = useState<{amount: BN} | undefined>(undefined);
 
-  const accountByMint = userAccounts.reduce((prev, acc) => {
-    prev.set(acc.info.mint.toBase58(), acc);
-    return prev;
-  }, new Map<string, TokenAccount>());
+  const { accountByMint } = useUserAccounts();
 
   const bids = useBidsForAuction(auctionView.auction.pubkey);
 

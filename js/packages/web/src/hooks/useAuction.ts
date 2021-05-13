@@ -4,11 +4,8 @@ import { AuctionView, processAccountsIntoAuctionView } from '.';
 import { useMeta } from '../contexts';
 
 export const useAuction = (id: string) => {
-  const { userAccounts } = useUserAccounts();
-  const accountByMint = userAccounts.reduce((prev, acc) => {
-    prev.set(acc.info.mint.toBase58(), acc);
-    return prev;
-  }, new Map<string, TokenAccount>());
+  const { accountByMint } = useUserAccounts();
+
   const [existingAuctionView, setAuctionView] = useState<AuctionView | null>(
     null,
   );
@@ -59,8 +56,6 @@ export const useAuction = (id: string) => {
     vaults,
     masterEditions,
     bidRedemptions,
-    userAccounts,
-
     masterEditionsByMasterMint,
     metadataByMasterEdition,
   ]);

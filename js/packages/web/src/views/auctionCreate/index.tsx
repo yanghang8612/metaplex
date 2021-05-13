@@ -108,14 +108,15 @@ export const AuctionCreateView = () => {
 
   const [step, setStep] = useState<number>(0);
   const [saving, setSaving] = useState<boolean>(false);
-  const [auctionObj, setAuctionObj] = useState<
-    | {
-        vault: PublicKey;
-        auction: PublicKey;
-        auctionManager: PublicKey;
-      }
-    | undefined
-  >(undefined);
+  const [auctionObj, setAuctionObj] =
+    useState<
+      | {
+          vault: PublicKey;
+          auction: PublicKey;
+          auctionManager: PublicKey;
+        }
+      | undefined
+    >(undefined);
   const [attributes, setAttributes] = useState<AuctionState>({
     reservationPrice: 0,
     items: [],
@@ -146,7 +147,7 @@ export const AuctionCreateView = () => {
           NonWinningConstraint.GivenForFixedPrice,
         winningConfigs: [],
         openEditionConfig: 0,
-        openEditionFixedPrice: new BN(attributes.reservationPrice),
+        openEditionFixedPrice: new BN(attributes.priceFloor || 0),
       });
 
       winnerLimit = new WinnerLimit({
@@ -194,14 +195,17 @@ export const AuctionCreateView = () => {
           ? attributes.items.length
           : null,
         openEditionFixedPrice: attributes.participationNFT
-          ? new BN(attributes.reservationPrice)
+          ? new BN(attributes.priceFloor || 0)
           : null,
       });
       winnerLimit = new WinnerLimit({
         type: WinnerLimitType.Capped,
-        usize: new BN(attributes.winnersCount),
+        usize:
+          attributes.category === AuctionCategory.Single
+            ? new BN(1)
+            : new BN(attributes.editions || 1),
       });
-      console.log('Settings', settings);
+      console.log('Settings', settings, attributes.editions);
     } else {
       throw new Error('Not supported');
     }
@@ -379,14 +383,16 @@ export const AuctionCreateView = () => {
               {stepsByCategory[attributes.category]
                 .filter(_ => !!_[0])
                 .map((step, idx) => (
-                  <Step title={step[0]} key={idx}/>
+                  <Step title={step[0]} key={idx} />
                 ))}
             </Steps>
           </Col>
         )}
         <Col {...(saving ? { xl: 24 } : { xl: 16, md: 17 })}>
           {stepsByCategory[attributes.category][step][1]}
-          {0 < step && !saving && <Button onClick={() => gotoNextStep(step - 1)}>Back</Button>}
+          {0 < step && !saving && (
+            <Button onClick={() => gotoNextStep(step - 1)}>Back</Button>
+          )}
         </Col>
       </Row>
     </>
@@ -1325,7 +1331,9 @@ const ParticipationStep = (props: {
       <Row className="content-action">
         <Col className="section" xl={24}>
           <ArtSelector
-            filter={(i: SafetyDepositDraft) => !!i.masterEdition}
+            filter={(i: SafetyDepositDraft) =>
+              !!i.masterEdition && i.masterEdition.info.maxSupply === undefined
+            }
             selected={
               props.attributes.participationNFT
                 ? [props.attributes.participationNFT]

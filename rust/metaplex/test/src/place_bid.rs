@@ -146,6 +146,9 @@ pub fn make_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
 
     instructions.push(place_bid_instruction(
         auction_program_key,
+        // Can use any account as bidder key, so we just reuse spl token account as bidder. Traditionally
+        // this would be your sol wallet.
+        wallet.pubkey(),
         wallet.pubkey(),
         bidder_pot_token,
         auction.token_mint,

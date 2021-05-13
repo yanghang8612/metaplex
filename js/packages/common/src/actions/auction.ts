@@ -42,11 +42,7 @@ export class BidState {
 
   public getWinnerIndex(bidder: PublicKey): number | null {
     if (!this.bids) return null;
-    console.log(
-      'bids',
-      this.bids.map(b => b.key.toBase58()),
-      bidder.toBase58(),
-    );
+
     const index = this.bids.findIndex(
       b => b.key.toBase58() === bidder.toBase58(),
     );
@@ -197,20 +193,23 @@ export class BidderMetadata {
   }
 }
 
-export const BIDDER_POT_LEN = 32 + 32 + 32;
+export const BIDDER_POT_LEN = 32 + 32 + 32 + 1;
 export class BidderPot {
   /// Points at actual pot that is a token account
   bidderPot: PublicKey;
   bidderAct: PublicKey;
   auctionAct: PublicKey;
+  emptied: boolean;
   constructor(args: {
     bidderPot: PublicKey;
     bidderAct: PublicKey;
     auctionAct: PublicKey;
+    emptied: boolean;
   }) {
     this.bidderPot = args.bidderPot;
     this.bidderAct = args.bidderAct;
     this.auctionAct = args.auctionAct;
+    this.emptied = args.emptied;
   }
 }
 
@@ -401,6 +400,7 @@ export const AUCTION_SCHEMA = new Map<any, any>([
         ['bidderPot', 'pubkey'],
         ['bidderAct', 'pubkey'],
         ['auctionAct', 'pubkey'],
+        ['emptied', 'u8'],
       ],
     },
   ],
@@ -537,6 +537,7 @@ export async function startAuction(
 
 export async function placeBid(
   bidderPubkey: PublicKey,
+  bidderTokenPubkey: PublicKey,
   bidderPotTokenPubkey: PublicKey,
   tokenMintPubkey: PublicKey,
   transferAuthority: PublicKey,
@@ -568,17 +569,12 @@ export async function placeBid(
     )
   )[0];
 
-  const bidderPotKey: PublicKey = (
-    await PublicKey.findProgramAddress(
-      [
-        Buffer.from(AUCTION_PREFIX),
-        auctionProgramId.toBuffer(),
-        auctionKey.toBuffer(),
-        bidderPubkey.toBuffer(),
-      ],
-      auctionProgramId,
-    )
-  )[0];
+  const bidderPotKey = await getBidderPotKey({
+    auctionProgramId,
+    auctionKey,
+    bidderPubkey,
+  });
+
   const bidderMetaKey: PublicKey = (
     await PublicKey.findProgramAddress(
       [
@@ -595,6 +591,11 @@ export async function placeBid(
   const keys = [
     {
       pubkey: bidderPubkey,
+      isSigner: true,
+      isWritable: false,
+    },
+    {
+      pubkey: bidderTokenPubkey,
       isSigner: false,
       isWritable: true,
     },
@@ -665,4 +666,26 @@ export async function placeBid(
   return {
     amount,
   };
+}
+
+export async function getBidderPotKey({
+  auctionProgramId,
+  auctionKey,
+  bidderPubkey,
+}: {
+  auctionProgramId: PublicKey;
+  auctionKey: PublicKey;
+  bidderPubkey: PublicKey;
+}): Promise<PublicKey> {
+  return (
+    await PublicKey.findProgramAddress(
+      [
+        Buffer.from(AUCTION_PREFIX),
+        auctionProgramId.toBuffer(),
+        auctionKey.toBuffer(),
+        bidderPubkey.toBuffer(),
+      ],
+      auctionProgramId,
+    )
+  )[0];
 }
