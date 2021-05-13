@@ -393,7 +393,6 @@ async function setupRedeemOpenInstructions(
     item.masterEdition &&
     updateAuth &&
     auctionView.myBidderMetadata &&
-    tokenAccount &&
     mint
   ) {
     let newTokenAccount: PublicKey | undefined = accountsByMint.get(
