@@ -48,7 +48,7 @@ pub fn process_empty_payment_account(
     }
 
     if destination.mint != accept_payment.mint {
-        return Err(MetaplexError::AcceptPaymentDestinationMintMismatch.into());
+        return Err(MetaplexError::AcceptPaymentMintMismatch.into());
     }
 
     let seeds = &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()];

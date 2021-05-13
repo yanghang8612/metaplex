@@ -23,6 +23,8 @@ import {
   useWallet,
   WinnerLimit,
   WinnerLimitType,
+  toLamports,
+  useMint,
 } from '@oyster/common';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { MintLayout } from '@solana/spl-token';
@@ -105,6 +107,7 @@ export const AuctionCreateView = () => {
   const { wallet } = useWallet();
   const { step_param }: { step_param: string } = useParams();
   const history = useHistory();
+  const mint = useMint(QUOTE_MINT);
 
   const [step, setStep] = useState<number>(0);
   const [saving, setSaving] = useState<boolean>(false);
@@ -147,7 +150,9 @@ export const AuctionCreateView = () => {
           NonWinningConstraint.GivenForFixedPrice,
         winningConfigs: [],
         openEditionConfig: 0,
-        openEditionFixedPrice: new BN(attributes.priceFloor || 0),
+        openEditionFixedPrice: new BN(
+          toLamports(attributes.priceFloor, mint) || 0,
+        ),
       });
 
       winnerLimit = new WinnerLimit({
@@ -195,7 +200,7 @@ export const AuctionCreateView = () => {
           ? attributes.items.length
           : null,
         openEditionFixedPrice: attributes.participationNFT
-          ? new BN(attributes.priceFloor || 0)
+          ? new BN(toLamports(attributes.priceFloor, mint) || 0)
           : null,
       });
       winnerLimit = new WinnerLimit({

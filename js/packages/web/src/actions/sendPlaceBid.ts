@@ -60,7 +60,7 @@ export async function sendPlaceBid(
     cleanupInstructions,
     tokenAccount,
     wallet.publicKey,
-    lamports,
+    lamports + accountRentExempt * 2,
     signers,
   );
 
@@ -74,6 +74,7 @@ export async function sendPlaceBid(
 
   signers.push(transferAuthority);
 
+  const bid = new BN(lamports - accountRentExempt);
   await placeBid(
     wallet.publicKey,
     payingSolAccount,
@@ -82,7 +83,7 @@ export async function sendPlaceBid(
     transferAuthority.publicKey,
     wallet.publicKey,
     auctionView.auctionManager.info.vault,
-    new BN(lamports - accountRentExempt),
+    bid,
     instructions,
   );
 
@@ -94,5 +95,7 @@ export async function sendPlaceBid(
     'single',
   );
 
-  return bid;
+  return {
+    amount: bid,
+  };
 }

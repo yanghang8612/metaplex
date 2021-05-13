@@ -27,6 +27,7 @@ export async function redeemOpenEditionBid(
   masterMint: PublicKey,
   transferAuthority: PublicKey,
   acceptPaymentAccount: PublicKey,
+  tokenPaymentAccount: PublicKey,
 ) {
   const PROGRAM_IDS = programIds();
 
@@ -145,6 +146,11 @@ export async function redeemOpenEditionBid(
     },
     {
       pubkey: acceptPaymentAccount,
+      isSigner: false,
+      isWritable: true,
+    },
+    {
+      pubkey: tokenPaymentAccount,
       isSigner: false,
       isWritable: true,
     },

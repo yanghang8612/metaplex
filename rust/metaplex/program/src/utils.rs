@@ -375,7 +375,6 @@ pub struct CommonRedeemCheckArgs<'a> {
     pub auction_info: &'a AccountInfo<'a>,
     pub bidder_metadata_info: &'a AccountInfo<'a>,
     pub bidder_info: &'a AccountInfo<'a>,
-    pub payer_info: &'a AccountInfo<'a>,
     pub token_program_info: &'a AccountInfo<'a>,
     pub token_vault_program_info: &'a AccountInfo<'a>,
     pub token_metadata_program_info: &'a AccountInfo<'a>,
@@ -398,7 +397,6 @@ pub fn common_redeem_checks(
         auction_info,
         bidder_metadata_info,
         bidder_info,
-        payer_info,
         token_program_info,
         token_vault_program_info,
         token_metadata_program_info,
@@ -493,10 +491,7 @@ pub fn common_redeem_checks(
     }
 
     if !bidder_info.is_signer {
-        let bidder: Account = assert_initialized(&bidder_info)?;
-        if bidder.owner != *payer_info.key {
-            return Err(MetaplexError::BidderIsNotSigner.into());
-        }
+        return Err(MetaplexError::BidderIsNotSigner.into());
     }
 
     let bidder_pot_seeds = &[

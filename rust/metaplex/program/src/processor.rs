@@ -4,15 +4,14 @@ use {
         instruction::MetaplexInstruction,
         state::{
             AuctionManager, AuctionManagerSettings, AuctionManagerStatus, EditionType, Key,
-            NonWinningConstraint, OriginalAuthorityLookup, WinningConfig, WinningConfigState,
-            WinningConstraint, MAX_AUCTION_MANAGER_SIZE, PREFIX,
+            OriginalAuthorityLookup, WinningConfig, WinningConfigState, MAX_AUCTION_MANAGER_SIZE,
+            PREFIX,
         },
         utils::{
             assert_authority_correct, assert_initialized, assert_owned_by,
             assert_store_safety_vault_manager_match, check_and_transfer_edition_master_mint,
-            common_metadata_checks, common_redeem_checks, common_redeem_finish,
-            common_winning_config_checks, create_or_allocate_account_raw, issue_start_auction,
-            spl_token_mint_to, spl_token_transfer, transfer_metadata_ownership,
+            common_redeem_checks, common_redeem_finish, common_winning_config_checks,
+            create_or_allocate_account_raw, issue_start_auction, transfer_metadata_ownership,
             transfer_safety_deposit_box_items, CommonRedeemCheckArgs, CommonRedeemFinishArgs,
             CommonRedeemReturn, CommonWinningConfigCheckReturn,
         },
@@ -20,6 +19,7 @@ use {
     borsh::{BorshDeserialize, BorshSerialize},
     claim_bid::process_claim_bid,
     empty_payment_account::process_empty_payment_account,
+    redeem_open_edition_bid::process_redeem_open_edition_bid,
     solana_program::{
         account_info::{next_account_info, AccountInfo},
         borsh::try_from_slice_unchecked,
@@ -38,6 +38,7 @@ use {
 
 pub mod claim_bid;
 pub mod empty_payment_account;
+pub mod redeem_open_edition_bid;
 
 pub fn process_instruction<'a>(
     program_id: &'a Pubkey,
@@ -79,135 +80,6 @@ pub fn process_instruction<'a>(
             process_empty_payment_account(program_id, accounts)
         }
     }
-}
-
-pub fn process_redeem_open_edition_bid<'a>(
-    program_id: &'a Pubkey,
-    accounts: &'a [AccountInfo<'a>],
-) -> ProgramResult {
-    let account_info_iter = &mut accounts.iter();
-    let auction_manager_info = next_account_info(account_info_iter)?;
-    let store_info = next_account_info(account_info_iter)?;
-    let destination_info = next_account_info(account_info_iter)?;
-    let bid_redemption_info = next_account_info(account_info_iter)?;
-    let safety_deposit_info = next_account_info(account_info_iter)?;
-    let vault_info = next_account_info(account_info_iter)?;
-    // We keep it here to keep API base identical to the other redeem calls for ease of use by callers
-    let _fraction_mint_info = next_account_info(account_info_iter)?;
-    let auction_info = next_account_info(account_info_iter)?;
-    let bidder_metadata_info = next_account_info(account_info_iter)?;
-    let bidder_info = next_account_info(account_info_iter)?;
-    let payer_info = next_account_info(account_info_iter)?;
-    let token_program_info = next_account_info(account_info_iter)?;
-    let token_vault_program_info = next_account_info(account_info_iter)?;
-    let token_metadata_program_info = next_account_info(account_info_iter)?;
-    let system_info = next_account_info(account_info_iter)?;
-    let rent_info = next_account_info(account_info_iter)?;
-    let master_metadata_info = next_account_info(account_info_iter)?;
-    let master_mint_info = next_account_info(account_info_iter)?;
-    let master_edition_info = next_account_info(account_info_iter)?;
-    let transfer_authority_info = next_account_info(account_info_iter)?;
-    let accept_payment_info = next_account_info(account_info_iter)?;
-
-    let CommonRedeemReturn {
-        auction_manager,
-        redemption_bump_seed,
-        bidder_metadata,
-        safety_deposit,
-        auction,
-        rent: _rent,
-        destination,
-        bidder_pot_pubkey,
-    } = common_redeem_checks(CommonRedeemCheckArgs {
-        program_id,
-        auction_manager_info,
-        store_info,
-        destination_info,
-        bid_redemption_info,
-        safety_deposit_info,
-        vault_info,
-        auction_info,
-        bidder_metadata_info,
-        bidder_info,
-        payer_info,
-        token_program_info,
-        token_vault_program_info,
-        token_metadata_program_info,
-        rent_info,
-        is_open_edition: true,
-    })?;
-    common_metadata_checks(
-        master_metadata_info,
-        master_edition_info,
-        token_metadata_program_info,
-        master_mint_info,
-        &safety_deposit,
-        &destination,
-    )?;
-
-    if *accept_payment_info.key != auction_manager.accept_payment {
-        return Err(MetaplexError::AcceptPaymentMismatch.into());
-    }
-
-    let mut gets_open_edition = auction_manager.settings.open_edition_config != None
-        && auction_manager.settings.open_edition_non_winning_constraint
-            != NonWinningConstraint::NoOpenEdition;
-
-    if !bidder_metadata.cancelled {
-        if let Some(winning_index) = auction.is_winner(&bidder_pot_pubkey) {
-            if winning_index < auction_manager.settings.winning_configs.len() {
-                // Okay, so they placed in the auction winning prizes section!
-                gets_open_edition = auction_manager.settings.open_edition_winner_constraint
-                    == WinningConstraint::OpenEditionGiven;
-            }
-        }
-    }
-
-    if gets_open_edition {
-        let seeds = &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()];
-        let (_, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
-        let mint_seeds = &[
-            PREFIX.as_bytes(),
-            &auction_manager.auction.as_ref(),
-            &[bump_seed],
-        ];
-        spl_token_mint_to(
-            master_mint_info.clone(),
-            destination_info.clone(),
-            1,
-            auction_manager_info.clone(),
-            mint_seeds,
-            token_program_info.clone(),
-        )?;
-        if let Some(open_edition_fixed_price) = auction_manager.settings.open_edition_fixed_price {
-            spl_token_transfer(
-                bidder_info.clone(),
-                accept_payment_info.clone(),
-                open_edition_fixed_price,
-                transfer_authority_info.clone(),
-                mint_seeds,
-                token_program_info.clone(),
-            )?;
-        }
-    } else {
-        return Err(MetaplexError::NotEligibleForOpenEdition.into());
-    }
-
-    msg!("Got here4");
-    common_redeem_finish(CommonRedeemFinishArgs {
-        program_id,
-        auction_manager,
-        auction_manager_info,
-        bidder_metadata_info,
-        rent_info,
-        system_info,
-        payer_info,
-        bid_redemption_info,
-        redemption_bump_seed,
-        bid_redeemed: false,
-        open_edition_redeemed: true,
-    })?;
-    Ok(())
 }
 
 pub fn process_redeem_master_edition_bid<'a>(
@@ -257,7 +129,6 @@ pub fn process_redeem_master_edition_bid<'a>(
         auction_info,
         bidder_metadata_info,
         bidder_info,
-        payer_info,
         token_program_info,
         token_vault_program_info,
         token_metadata_program_info,
@@ -393,7 +264,6 @@ pub fn process_redeem_bid<'a>(
         auction_info,
         bidder_metadata_info,
         bidder_info,
-        payer_info,
         token_program_info,
         token_vault_program_info,
         token_metadata_program_info,

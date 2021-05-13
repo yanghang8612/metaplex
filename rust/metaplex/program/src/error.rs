@@ -267,9 +267,13 @@ pub enum MetaplexError {
     #[error("The safety deposit mint type must be the master mint of the limited edition!")]
     SafetyDepositBoxMasterMintMismatch,
 
-    /// The mints between the accept payment and destination do not match
-    #[error("The mints between the accept payment and destination do not match")]
-    AcceptPaymentDestinationMintMismatch,
+    /// The mints between the accept payment and account provided do not match
+    #[error("The mints between the accept payment and account provided do not match")]
+    AcceptPaymentMintMismatch,
+
+    /// You do not have enough to buy this open edition!
+    #[error("You do not have enough to buy this open edition!")]
+    NotEnoughBalanceForOpenEdition,
 }
 
 impl PrintProgramError for MetaplexError {

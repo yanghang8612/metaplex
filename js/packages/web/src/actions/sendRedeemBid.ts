@@ -15,7 +15,8 @@ import {
   SafetyDepositBox,
   SequenceType,
   sendTransactions,
-  sendTransactionWithRetry,
+  cache,
+  ensureWrappedAccount,
 } from '@oyster/common';
 
 import { AccountLayout, MintLayout, Token } from '@solana/spl-token';
@@ -30,8 +31,24 @@ import {
   WinningConstraint,
 } from '../models/metaplex';
 import { claimBid } from '../models/metaplex/claimBid';
+import { setupCancelBid } from './cancelBid';
 const { createTokenAccount } = actions;
 const { approve } = models;
+
+export function eligibleForOpenEditionGivenWinningIndex(
+  winnerIndex: number | null,
+  auctionView: AuctionView,
+) {
+  return (
+    (winnerIndex === null &&
+      auctionView.auctionManager.info.settings
+        .openEditionNonWinningConstraint !=
+        NonWinningConstraint.NoOpenEdition) ||
+    (winnerIndex !== null &&
+      auctionView.auctionManager.info.settings.openEditionWinnerConstraint !=
+        WinningConstraint.NoOpenEdition)
+  );
+}
 
 export async function sendRedeemBid(
   connection: Connection,
@@ -120,18 +137,22 @@ export async function sendRedeemBid(
         claimInstructions,
       );
     }
+  } else {
+    // If you didnt win, you must have a bid we can refund before we check for open editions.
+    await setupCancelBid(
+      auctionView,
+      accountsByMint,
+      accountRentExempt,
+      wallet,
+      signers,
+      instructions,
+    );
   }
 
-  const eligibleForOpenEdition =
-    (winnerIndex === null &&
-      auctionView.auctionManager.info.settings
-        .openEditionNonWinningConstraint !=
-        NonWinningConstraint.NoOpenEdition) ||
-    (winnerIndex !== null &&
-      auctionView.auctionManager.info.settings.openEditionWinnerConstraint !=
-        WinningConstraint.NoOpenEdition);
-
-  if (auctionView.openEditionItem && eligibleForOpenEdition) {
+  if (
+    auctionView.openEditionItem &&
+    eligibleForOpenEditionGivenWinningIndex(winnerIndex, auctionView)
+  ) {
     const item = auctionView.openEditionItem;
     const safetyDeposit = item.safetyDeposit;
     await setupRedeemOpenInstructions(
@@ -268,6 +289,7 @@ async function setupRedeemLimitedInstructions(
       signers.push(winningPrizeSigner);
       instructions.push(winningPrizeInstructions);
       if (!newTokenAccount)
+        // TODO: switch to ATA
         newTokenAccount = createTokenAccount(
           winningPrizeInstructions,
           wallet.publicKey,
@@ -361,7 +383,17 @@ async function setupRedeemOpenInstructions(
   instructions: Array<TransactionInstruction[]>,
 ) {
   const updateAuth = item.metadata.info.updateAuthority;
-  if (item.masterEdition && updateAuth && auctionView.myBidderMetadata) {
+  let tokenAccount = accountsByMint.get(
+    auctionView.auction.info.tokenMint.toBase58(),
+  );
+  const mint = cache.get(auctionView.auction.info.tokenMint);
+
+  if (
+    item.masterEdition &&
+    updateAuth &&
+    auctionView.myBidderMetadata &&
+    mint
+  ) {
     let newTokenAccount: PublicKey | undefined = accountsByMint.get(
       item.masterEdition.info.masterMint.toBase58(),
     )?.pubkey;
@@ -369,9 +401,9 @@ async function setupRedeemOpenInstructions(
     if (!auctionView.myBidRedemption?.info.bidRedeemed) {
       let winningPrizeSigner: Account[] = [];
       let winningPrizeInstructions: TransactionInstruction[] = [];
+      let cleanupInstructions: TransactionInstruction[] = [];
 
       signers.push(winningPrizeSigner);
-      instructions.push(winningPrizeInstructions);
       if (!newTokenAccount)
         newTokenAccount = createTokenAccount(
           winningPrizeInstructions,
@@ -382,13 +414,26 @@ async function setupRedeemOpenInstructions(
           winningPrizeSigner,
         );
 
+      let price: number = auctionView.auctionManager.info.settings
+        .openEditionFixedPrice
+        ? auctionView.auctionManager.info.settings.openEditionFixedPrice.toNumber()
+        : auctionView.myBidderMetadata.info.lastBid.toNumber() || 0;
+
+      const payingSolAccount = ensureWrappedAccount(
+        winningPrizeInstructions,
+        cleanupInstructions,
+        tokenAccount,
+        wallet.publicKey,
+        price + accountRentExempt,
+        winningPrizeSigner,
+      );
+
       const transferAuthority = approve(
         winningPrizeInstructions,
-        [],
-        auctionView.myBidderMetadata.info.bidderPubkey,
+        cleanupInstructions,
+        payingSolAccount,
         wallet.publicKey,
-        auctionView.auctionManager.info.settings.openEditionFixedPrice?.toNumber() ||
-          0,
+        price,
       );
 
       winningPrizeSigner.push(transferAuthority);
@@ -406,7 +451,10 @@ async function setupRedeemOpenInstructions(
         item.masterEdition.info.masterMint,
         transferAuthority.publicKey,
         auctionView.auctionManager.info.acceptPayment,
+        payingSolAccount,
       );
+
+      instructions.push([...winningPrizeInstructions, ...cleanupInstructions]);
     }
 
     if (newTokenAccount) {
