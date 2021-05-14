@@ -7,8 +7,12 @@ pub const PREFIX: &str = "metaplex";
 
 pub const MAX_WINNERS: usize = 200;
 pub const MAX_WINNER_SIZE: usize = 7 * MAX_WINNERS;
+// Add 150 padding for future keys and booleans
 pub const MAX_AUCTION_MANAGER_SIZE: usize =
-    1 + 32 + 32 + 32 + 32 + 32 + 32 + 32 + 1 + 1 + 1 + 1 + MAX_WINNER_SIZE + 2 + 9;
+    1 + 32 + 32 + 32 + 32 + 32 + 32 + 32 + 32 + 1 + 1 + 1 + 1 + MAX_WINNER_SIZE + 2 + 9 + 150;
+// Add padding for future booleans/enums
+pub const MAX_STORE_SIZE: usize = 2 + 10;
+pub const MAX_WHITELISTED_CREATOR_SIZE: usize = 2 + 10;
 
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq, Debug, Copy)]
@@ -16,6 +20,8 @@ pub enum Key {
     AuctionManagerV1,
     OriginalAuthorityLookupV1,
     BidRedemptionTicketV1,
+    StoreV1,
+    WhitelistedCreatorV1,
 }
 
 /// An Auction Manager can support an auction that is an English auction and limited edition and open edition
@@ -26,6 +32,8 @@ pub enum Key {
 #[derive(Clone, BorshSerialize, BorshDeserialize, Debug)]
 pub struct AuctionManager {
     pub key: Key,
+
+    pub store: Pubkey,
 
     pub authority: Pubkey,
 
@@ -160,4 +168,18 @@ pub struct BidRedemptionTicket {
     pub key: Key,
     pub open_edition_redeemed: bool,
     pub bid_redeemed: bool,
+}
+
+#[repr(C)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, Copy)]
+pub struct Store {
+    pub key: Key,
+    pub public: bool,
+}
+
+#[repr(C)]
+#[derive(Clone, BorshSerialize, BorshDeserialize, Copy)]
+pub struct WhitelistedCreator {
+    pub key: Key,
+    pub activated: bool,
 }

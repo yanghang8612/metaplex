@@ -61,16 +61,6 @@ pub enum MetaplexError {
     )]
     AuctionManagerAuthorityMismatch,
 
-    /// Auction Manager does not have the appropriate pda key with seed ['metaplex', auction_key]
-    #[error(
-        "Auction Manager does not have the appropriate pda key with seed ['metaplex', auction_key]"
-    )]
-    AuctionManagerKeyMismatch,
-
-    /// Auction is not auctioning off the vault given!
-    #[error("Auction is not auctioning off the vault given!")]
-    AuctionVaultMismatch,
-
     /// Vault given does not match that on given auction manager!
     #[error("Vault given does not match that on given auction manager!")]
     AuctionManagerVaultMismatch,
@@ -139,10 +129,6 @@ pub enum MetaplexError {
     #[error("This safety deposit box is not listed as a prize in this auction manager!")]
     SafetyDepositBoxNotUsedInAuction,
 
-    /// Auction Manager Authority needs to be signer for this action!
-    #[error("Auction Manager Authority needs to be signer for this action!")]
-    AuctionManagerAuthorityIsNotSigner,
-
     /// Either you have given a non-existent edition address or you have given the address to a different token-metadata program than was used to make this edition!
     #[error("Either you have given a non-existent edition address or you have given the address to a different token-metadata program than was used to make this edition!")]
     InvalidEditionAddress,
@@ -207,10 +193,6 @@ pub enum MetaplexError {
     #[error("The bidder given is not the bidder on the bidder metadata!")]
     BidderMetadataBidderMismatch,
 
-    /// The bidder is not the signer on this transaction!
-    #[error("The bidder is not the signer on this transaction!")]
-    BidderIsNotSigner,
-
     /// Master mint given does not match the mint on master edition!
     #[error("Master mint given does not match the mint on master edition!")]
     MasterEditionMintMismatch,
@@ -226,12 +208,6 @@ pub enum MetaplexError {
     /// Token mint to failed
     #[error("Token mint to failed")]
     TokenMintToFailed,
-
-    /// Master mint authority must be signer to transfer minting authority to auction manager
-    #[error(
-        "Master mint authority must be signer to transfer minting authority to auction manager"
-    )]
-    MasterMintAuthorityMustBeSigner,
 
     /// The master mint authority provided does not match that on the mint
     #[error("The master mint authority provided does not match that on the mint")]
@@ -274,6 +250,18 @@ pub enum MetaplexError {
     /// You do not have enough to buy this open edition!
     #[error("You do not have enough to buy this open edition!")]
     NotEnoughBalanceForOpenEdition,
+
+    /// Derived key invalid
+    #[error("Derived key invalid")]
+    DerivedKeyInvalid,
+
+    /// Creator is not active on this store!
+    #[error("Creator is not active on this store!")]
+    WhitelistedCreatorInactive,
+
+    /// This creator is not whitelisted
+    #[error("This creator is not whitelisted")]
+    InvalidWhitelistedCreator,
 }
 
 impl PrintProgramError for MetaplexError {

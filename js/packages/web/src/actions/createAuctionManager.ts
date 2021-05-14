@@ -10,12 +10,12 @@ import {
   ParsedAccount,
   WinnerLimit,
   MasterEdition,
-  getMetadata,
   SequenceType,
   sendTransactions,
   getSafetyDepositBox,
   Edition,
   getEdition,
+  programIds,
 } from '@oyster/common';
 
 import { AccountLayout } from '@solana/spl-token';
@@ -168,6 +168,7 @@ export async function createAuctionManager(
       signers: auctionManagerSigners,
     },
     startAuction: await setupStartAuction(wallet, vault),
+    validateOpenEdition: await validateOpen(wallet),
     validateBoxes: await validateBoxes(
       wallet,
       vault,
@@ -322,6 +323,7 @@ async function setupAuctionManagerInstructions(
     wallet.publicKey,
     wallet.publicKey,
     acceptPayment,
+    programIds().store,
     settings,
     instructions,
   );
@@ -343,6 +345,14 @@ async function setupStartAuction(
 
   return { instructions, signers };
 }
+
+async function validateOpen(
+  wallet: any,
+  openEditionSafetyDepositDraft: SafetyDepositDraft,
+): Promise<{
+  instructions: TransactionInstruction[][];
+  signers: Account[][];
+}> {}
 
 async function validateBoxes(
   wallet: any,

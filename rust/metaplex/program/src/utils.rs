@@ -3,7 +3,8 @@ use {
         error::MetaplexError,
         state::{
             AuctionManager, AuctionManagerStatus, BidRedemptionTicket, Key,
-            OriginalAuthorityLookup, WinningConfig, WinningConfigState, PREFIX,
+            OriginalAuthorityLookup, Store, WhitelistedCreator, WinningConfig, WinningConfigState,
+            PREFIX,
         },
     },
     borsh::BorshSerialize,
@@ -64,6 +65,14 @@ pub fn assert_owned_by(account: &AccountInfo, owner: &Pubkey) -> ProgramResult {
     }
 }
 
+pub fn assert_signer(account_info: &AccountInfo) -> ProgramResult {
+    if !account_info.is_signer {
+        Err(ProgramError::MissingRequiredSignature)
+    } else {
+        Ok(())
+    }
+}
+
 pub fn assert_store_safety_vault_manager_match(
     auction_manager: &AuctionManager,
     safety_deposit: &SafetyDepositBox,
@@ -84,6 +93,48 @@ pub fn assert_store_safety_vault_manager_match(
     Ok(())
 }
 
+pub fn assert_at_least_one_creator_matches_or_store_public(
+    program_id: &Pubkey,
+    auction_manager: &AuctionManager,
+    metadata: &Metadata,
+    whitelisted_creator_info: &AccountInfo,
+    store_info: &AccountInfo,
+) -> ProgramResult {
+    if let Some(creators) = &metadata.data.creators {
+        let store: Store = try_from_slice_unchecked(&store_info.data.borrow_mut())?;
+        if store.public {
+            return Ok(());
+        }
+
+        // does it exist? It better!
+        let existing_whitelist_creator: WhitelistedCreator =
+            try_from_slice_unchecked(&whitelisted_creator_info.data.borrow_mut())?;
+
+        if !existing_whitelist_creator.activated {
+            return Err(MetaplexError::WhitelistedCreatorInactive.into());
+        }
+
+        for creator in creators {
+            // Now find at least one creator that can make this pda in the list
+            let (key, _) = Pubkey::find_program_address(
+                &[
+                    PREFIX.as_bytes(),
+                    program_id.as_ref(),
+                    auction_manager.store.as_ref(),
+                    creator.address.as_ref(),
+                ],
+                program_id,
+            );
+            if key == *whitelisted_creator_info.key {
+                return Ok(());
+            }
+        }
+        return Err(MetaplexError::InvalidWhitelistedCreator.into());
+    }
+
+    Ok(())
+}
+
 pub fn assert_authority_correct(
     auction_manager: &AuctionManager,
     authority_info: &AccountInfo,
@@ -92,9 +143,7 @@ pub fn assert_authority_correct(
         return Err(MetaplexError::AuctionManagerAuthorityMismatch.into());
     }
 
-    if !authority_info.is_signer {
-        return Err(MetaplexError::AuctionManagerAuthorityIsNotSigner.into());
-    }
+    assert_signer(authority_info)?;
 
     Ok(())
 }
@@ -275,9 +324,7 @@ pub fn check_and_transfer_edition_master_mint<'a>(
         return Err(MetaplexError::MasterEditionMasterMintMismatch.into());
     }
 
-    if !master_edition_master_mint_authority_info.is_signer {
-        return Err(MetaplexError::MasterMintAuthorityMustBeSigner.into());
-    }
+    assert_signer(master_edition_master_mint_authority_info)?;
 
     if let COption::Some(authority) = master_mint.mint_authority {
         if authority != *master_edition_master_mint_authority_info.key {
@@ -426,6 +473,7 @@ pub fn common_redeem_checks(
     // Is it initialized and an actual Account?
     let destination: Account = assert_initialized(&destination_info)?;
 
+    assert_signer(bidder_info)?;
     assert_owned_by(&destination_info, token_program_info.key)?;
     assert_owned_by(&auction_manager_info, &program_id)?;
     assert_store_safety_vault_manager_match(
@@ -488,10 +536,6 @@ pub fn common_redeem_checks(
 
     if bidder_metadata.bidder_pubkey != *bidder_info.key {
         return Err(MetaplexError::BidderMetadataBidderMismatch.into());
-    }
-
-    if !bidder_info.is_signer {
-        return Err(MetaplexError::BidderIsNotSigner.into());
     }
 
     let bidder_pot_seeds = &[
@@ -784,4 +828,16 @@ pub fn spl_token_mint_to<'a: 'b, 'b>(
         &[authority_signer_seeds],
     );
     result.map_err(|_| MetaplexError::TokenMintToFailed.into())
+}
+
+pub fn assert_derivation(
+    program_id: &Pubkey,
+    account: &AccountInfo,
+    path: &[&[u8]],
+) -> Result<u8, ProgramError> {
+    let (key, bump) = Pubkey::find_program_address(&path, program_id);
+    if key != *account.key {
+        return Err(MetaplexError::DerivedKeyInvalid.into());
+    }
+    Ok(bump)
 }

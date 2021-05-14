@@ -2,7 +2,7 @@ use {
     crate::{
         error::MetaplexError,
         state::{AuctionManager, AuctionManagerStatus, PREFIX},
-        utils::assert_owned_by,
+        utils::{assert_derivation, assert_owned_by},
     },
     borsh::BorshSerialize,
     solana_program::{
@@ -108,17 +108,16 @@ pub fn process_claim_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Progr
         auction_manager.serialize(&mut *auction_manager_info.data.borrow_mut())?;
     }
 
-    let seeds = &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()];
-    let (key, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
+    let bump_seed = assert_derivation(
+        program_id,
+        auction_manager_info,
+        &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()],
+    )?;
     let authority_seeds = &[
         PREFIX.as_bytes(),
         &auction_manager.auction.as_ref(),
         &[bump_seed],
     ];
-
-    if key != *auction_manager_info.key {
-        return Err(MetaplexError::AuctionManagerKeyMismatch.into());
-    }
 
     issue_claim_bid(
         auction_program_info.clone(),

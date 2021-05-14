@@ -21,9 +21,12 @@ export enum MetaplexKey {
   AuctionManagerV1 = 0,
   OriginalAuthorityLookupV1 = 1,
   BidRedemptionTicketV1 = 2,
+  StoreV1 = 3,
+  WhitelistedCreatorV1 = 4,
 }
 export class AuctionManager {
   key: MetaplexKey;
+  store: PublicKey;
   authority: PublicKey;
   auction: PublicKey;
   vault: PublicKey;
@@ -36,6 +39,7 @@ export class AuctionManager {
   settings: AuctionManagerSettings;
 
   constructor(args: {
+    store: PublicKey;
     authority: PublicKey;
     auction: PublicKey;
     vault: PublicKey;
@@ -48,6 +52,7 @@ export class AuctionManager {
     settings: AuctionManagerSettings;
   }) {
     this.key = MetaplexKey.AuctionManagerV1;
+    this.store = args.store;
     this.authority = args.authority;
     this.auction = args.auction;
     this.vault = args.vault;
@@ -94,6 +99,10 @@ export class ClaimBidArgs {
 }
 export class EmptyPaymentAccountArgs {
   instruction = 7;
+}
+
+export class ValidateOpenEditionArgs {
+  instruction = 10;
 }
 
 export enum WinningConstraint {
@@ -163,6 +172,22 @@ export class WinningConfigState {
   }
 }
 
+export class WhitelistedCreator {
+  key: MetaplexKey = MetaplexKey.WhitelistedCreatorV1;
+  activated: boolean = true;
+  constructor(args?: WhitelistedCreator) {
+    Object.assign(this, args);
+  }
+}
+
+export class Store {
+  key: MetaplexKey = MetaplexKey.StoreV1;
+  public: boolean = true;
+  constructor(args?: Store) {
+    Object.assign(this, args);
+  }
+}
+
 export class AuctionManagerState {
   status: AuctionManagerStatus = AuctionManagerStatus.Initialized;
   winningConfigsValidated: number = 0;
@@ -200,6 +225,7 @@ export const SCHEMA = new Map<any, any>([
       kind: 'struct',
       fields: [
         ['key', 'u8'],
+        ['store', 'pubkey'],
         ['authority', 'pubkey'],
         ['auction', 'pubkey'],
         ['vault', 'pubkey'],
@@ -245,6 +271,26 @@ export const SCHEMA = new Map<any, any>([
         ['amountMinted', 'u8'],
         ['validated', 'u8'], // bool
         ['claimed', 'u8'], // bool
+      ],
+    },
+  ],
+  [
+    WhitelistedCreator,
+    {
+      kind: 'struct',
+      fields: [
+        ['key', 'u8'],
+        ['activated', 'u8'],
+      ],
+    },
+  ],
+  [
+    Store,
+    {
+      kind: 'struct',
+      fields: [
+        ['key', 'u8'],
+        ['public', 'u8'],
       ],
     },
   ],
