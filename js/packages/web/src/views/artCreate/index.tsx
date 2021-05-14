@@ -47,7 +47,7 @@ export const ArtCreateView = () => {
   const history = useHistory();
 
   const [step, setStep] = useState<number>(0);
-  const [saving, setSaving] = useState<boolean>(false);
+  const [stepsVisible, setStepsVisible] = useState<boolean>(true);
   const [progress, setProgress] = useState<number>(0);
   const [nft, setNft] = useState<{ metadataAccount: PublicKey } | undefined>(
     undefined,
@@ -80,7 +80,7 @@ export const ArtCreateView = () => {
         attributes.files && attributes.files?.[0] && attributes.files[0].name,
       files: (attributes?.files || []).map(f => f.name),
     };
-    setSaving(true);
+    setStepsVisible(false);
     const inte = setInterval(() => setProgress(prog => prog + 1), 600);
     // Update progress inside mintNFT
     const _nft = await mintNFT(
@@ -98,13 +98,13 @@ export const ArtCreateView = () => {
   return (
     <>
       <Row style={{ paddingTop: 50 }}>
-        {!saving && (
-          <Col xl={5}>
+        {stepsVisible && (
+          <Col span={24} md={4}>
             <Steps
               progressDot
               direction="vertical"
               current={step}
-              style={{ width: 200, marginLeft: 20, marginRight: 30 }}
+              style={{ width: "fit-content", margin: "auto" }}
             >
               <Step title="Category" />
               <Step title="Upload" />
@@ -114,7 +114,7 @@ export const ArtCreateView = () => {
             </Steps>
           </Col>
         )}
-        <Col {...(saving ? { xl: 24 } : { xl: 16 })}>
+        <Col span={24} {...(stepsVisible ? { md: 20 } : { md: 24 })}>
           {step === 0 && (
             <CategoryStep
               confirm={(category: MetadataCategory) => {
@@ -164,7 +164,9 @@ export const ArtCreateView = () => {
           )}
           {step === 6 && <Congrats nft={nft} />}
           {0 < step && step < 5 && (
-            <Button onClick={() => gotoStep(step - 1)}>Back</Button>
+            <div style={{ margin: "auto", width: "fit-content" }}>
+              <Button onClick={() => gotoStep(step - 1)}>Back</Button>
+            </div>
           )}
         </Col>
       </Row>
@@ -413,8 +415,8 @@ const InfoStep = (props: {
           your audience.
         </p>
       </Row>
-      <Row className="content-action">
-        <Col xl={12}>
+      <Row className="content-action" justify="space-around">
+        <Col>
           {props.attributes.image && (
             <ArtCard
               image={props.attributes.image}
@@ -425,7 +427,7 @@ const InfoStep = (props: {
             />
           )}
         </Col>
-        <Col className="section" xl={12}>
+        <Col className="section" style={{ minWidth: 300 }}>
           <label className="action-field">
             <span className="field-title">Title</span>
             <Input
@@ -478,7 +480,7 @@ const InfoStep = (props: {
           </label>
         </Col>
       </Row>
-      <Row>
+      {creators.length > 0 && <Row>
         <label className="action-field" style={{ width: '100%' }}>
           <span className="field-title">Royalties Split</span>
           <RoyaltiesSplitter
@@ -487,7 +489,7 @@ const InfoStep = (props: {
             setRoyalties={setRoyalties}
           />
         </label>
-      </Row>
+      </Row>}
       <Row>
         <Button
           type="primary"
@@ -599,8 +601,8 @@ const RoyaltiesStep = (props: {
           on a per-auction basis how many prints you wish to make.
         </p>
       </Row>
-      <Row className="content-action">
-        <Col xl={12}>
+      <Row className="content-action" justify="space-around">
+        <Col>
           {file && (
             <ArtCard
               image={props.attributes.image}
@@ -611,7 +613,7 @@ const RoyaltiesStep = (props: {
             />
           )}
         </Col>
-        <Col className="section" xl={12}>
+        <Col className="section" style={{ minWidth: 300 }}>
           <label className="action-field">
             <span className="field-title">Royalty Percentage</span>
             <InputNumber
@@ -705,8 +707,8 @@ const LaunchStep = (props: {
           your audience.
         </p>
       </Row>
-      <Row className="content-action">
-        <Col xl={12}>
+      <Row className="content-action" justify="space-around">
+        <Col>
           {props.attributes.image && (
             <ArtCard
               image={props.attributes.image}
@@ -717,7 +719,7 @@ const LaunchStep = (props: {
             />
           )}
         </Col>
-        <Col className="section" xl={12}>
+        <Col className="section" style={{ minWidth: 300 }}>
           <Statistic
             className="create-statistic"
             title="Royalty Percentage"
@@ -770,7 +772,12 @@ const WaitingStep = (props: {
   }, []);
 
   return (
-    <div style={{ marginTop: 70 }}>
+    <div style={{
+      marginTop: 70,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+    }}>
       <Progress type="circle" percent={props.progress} />
       <div className="waiting-title">
         Your creation is being uploaded to the decentralized web...
@@ -790,9 +797,8 @@ const Congrats = (props: {
   const newTweetURL = () => {
     const params = {
       text: "I've created a new NFT artwork on Metaplex, check it out!",
-      url: `${
-        window.location.origin
-      }/#/art/${props.nft?.metadataAccount.toString()}`,
+      url: `${window.location.origin
+        }/#/art/${props.nft?.metadataAccount.toString()}`,
       hashtags: 'NFT,Crypto,Metaplex',
       // via: "Metaplex",
       related: 'Metaplex,Solana',
@@ -803,7 +809,12 @@ const Congrats = (props: {
 
   return (
     <>
-      <div style={{ marginTop: 70 }}>
+      <div style={{
+        marginTop: 70,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+      }}>
         <div className="waiting-title">
           Congratulations, you created an NFT!
         </div>

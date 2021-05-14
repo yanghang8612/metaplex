@@ -1478,7 +1478,12 @@ const WaitingStep = (props: {
   }, []);
 
   return (
-    <div style={{ marginTop: 70 }}>
+    <div style={{
+      marginTop: 70,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+    }}>
       <Progress type="circle" percent={progress} />
       <div className="waiting-title">
         Your creation is being listed with Metaplex...
@@ -1513,7 +1518,12 @@ const Congrats = (props: {
 
   return (
     <>
-      <div style={{ marginTop: 70 }}>
+      <div style={{
+        marginTop: 70,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+      }}>
         <div className="waiting-title">
           Congratulations! Your auction is now live.
         </div>
