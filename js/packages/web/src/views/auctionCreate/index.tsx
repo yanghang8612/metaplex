@@ -222,8 +222,8 @@ export const AuctionCreateView = () => {
       winnerLimit,
       new BN(endAuctionAt),
       new BN((attributes.gapTime || 0) * 60),
-      attributes.category == AuctionCategory.Open ? [] : attributes.items,
-      attributes.category == AuctionCategory.Open
+      attributes.category === AuctionCategory.Open ? [] : attributes.items,
+      attributes.category === AuctionCategory.Open
         ? attributes.items[0]
         : attributes.participationNFT,
       QUOTE_MINT,

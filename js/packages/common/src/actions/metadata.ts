@@ -5,8 +5,7 @@ import {
   TransactionInstruction,
 } from '@solana/web3.js';
 import { programIds } from '../utils/ids';
-import { deserializeBorsh } from './../utils/borsh';
-import { serialize } from 'borsh';
+import { deserializeUnchecked, serialize } from 'borsh';
 import BN from 'bn.js';
 export const METADATA_PREFIX = 'metadata';
 export const EDITION = 'edition';
@@ -220,7 +219,8 @@ export const METADATA_SCHEMA = new Map<any, any>([
 ]);
 
 export const decodeMetadata = async (buffer: Buffer): Promise<Metadata> => {
-  const metadata = deserializeBorsh(
+  debugger;
+  const metadata = deserializeUnchecked(
     METADATA_SCHEMA,
     Metadata,
     buffer,
@@ -231,11 +231,11 @@ export const decodeMetadata = async (buffer: Buffer): Promise<Metadata> => {
 };
 
 export const decodeEdition = (buffer: Buffer) => {
-  return deserializeBorsh(METADATA_SCHEMA, Edition, buffer) as Edition;
+  return deserializeUnchecked(METADATA_SCHEMA, Edition, buffer) as Edition;
 };
 
 export const decodeMasterEdition = (buffer: Buffer) => {
-  return deserializeBorsh(
+  return deserializeUnchecked(
     METADATA_SCHEMA,
     MasterEdition,
     buffer,

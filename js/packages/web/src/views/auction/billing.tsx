@@ -59,12 +59,12 @@ function getLosingOpenEditionPrice(
   const nonWinnerConstraint =
     auctionView.auctionManager.info.settings.openEditionNonWinningConstraint;
 
-  if (nonWinnerConstraint == NonWinningConstraint.GivenForFixedPrice)
+  if (nonWinnerConstraint === NonWinningConstraint.GivenForFixedPrice)
     return (
       auctionView.auctionManager.info.settings.openEditionFixedPrice?.toNumber() ||
       0
     );
-  else if (nonWinnerConstraint == NonWinningConstraint.GivenForBidPrice)
+  else if (nonWinnerConstraint === NonWinningConstraint.GivenForBidPrice)
     return el.info.lastBid.toNumber() || 0;
   else return 0;
 }
@@ -95,7 +95,7 @@ export const InnerBillingView = ({
     connection
       .getTokenAccountBalance(auctionView.auctionManager.info.acceptPayment)
       .then(resp => {
-        if (resp.value.uiAmount != undefined && resp.value.uiAmount != null)
+        if (resp.value.uiAmount !== undefined && resp.value.uiAmount !== null)
           setEscrowBalance(resp.value.uiAmount);
       });
   }, [escrowBalanceRefreshCounter]);
@@ -123,8 +123,8 @@ export const InnerBillingView = ({
     {},
   );
   let hasOpenEdition =
-    auctionView.auctionManager.info.settings.openEditionConfig != undefined &&
-    auctionView.auctionManager.info.settings.openEditionConfig != null;
+    auctionView.auctionManager.info.settings.openEditionConfig !== undefined &&
+    auctionView.auctionManager.info.settings.openEditionConfig !== null;
   let openEditionEligible = hasOpenEdition ? uncancelledBids : [];
 
   useMemo(async () => {
@@ -171,8 +171,8 @@ export const InnerBillingView = ({
     }
 
     if (
-      nonWinnerConstraint == NonWinningConstraint.GivenForFixedPrice ||
-      nonWinnerConstraint == NonWinningConstraint.GivenForBidPrice
+      nonWinnerConstraint === NonWinningConstraint.GivenForFixedPrice ||
+      nonWinnerConstraint === NonWinningConstraint.GivenForBidPrice
     ) {
       const key = openEditionBidRedemptionKeys[o.pubkey.toBase58()];
       if (key) {
@@ -284,7 +284,7 @@ export const InnerBillingView = ({
             <br />
             <div className="info-header">TOTAL COLLECTED BY ARTIST</div>
             <div className="escrow">
-              {escrowBalance != undefined ? (
+              {escrowBalance !== undefined ? (
                 `◎${
                   fromLamports(
                     totalMovedToEscrowViaClaims +
@@ -311,7 +311,7 @@ export const InnerBillingView = ({
             <br />
             <div className="info-header">TOTAL IN ESCROW</div>
             <div className="escrow">
-              {escrowBalance != undefined ? `◎${escrowBalance}` : <Spin />}
+              {escrowBalance !== undefined ? `◎${escrowBalance}` : <Spin />}
             </div>
             <br />
             {hasOpenEdition && (

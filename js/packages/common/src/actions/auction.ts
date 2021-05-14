@@ -7,8 +7,7 @@ import {
   TransactionInstruction,
 } from '@solana/web3.js';
 import { programIds } from '../utils/ids';
-import { deserializeBorsh } from './../utils/borsh';
-import { serialize } from 'borsh';
+import { deserializeUnchecked, serialize } from 'borsh';
 import BN from 'bn.js';
 import { AccountParser, cache } from '../contexts';
 
@@ -67,7 +66,11 @@ export const AuctionParser: AccountParser = (
 });
 
 export const decodeAuction = (buffer: Buffer) => {
-  return deserializeBorsh(AUCTION_SCHEMA, AuctionData, buffer) as AuctionData;
+  return deserializeUnchecked(
+    AUCTION_SCHEMA,
+    AuctionData,
+    buffer,
+  ) as AuctionData;
 };
 
 export const BidderPotParser: AccountParser = (
@@ -80,7 +83,7 @@ export const BidderPotParser: AccountParser = (
 });
 
 export const decodeBidderPot = (buffer: Buffer) => {
-  return deserializeBorsh(AUCTION_SCHEMA, BidderPot, buffer) as BidderPot;
+  return deserializeUnchecked(AUCTION_SCHEMA, BidderPot, buffer) as BidderPot;
 };
 
 export const BidderMetadataParser: AccountParser = (
@@ -93,7 +96,7 @@ export const BidderMetadataParser: AccountParser = (
 });
 
 export const decodeBidderMetadata = (buffer: Buffer) => {
-  return deserializeBorsh(
+  return deserializeUnchecked(
     AUCTION_SCHEMA,
     BidderMetadata,
     buffer,
@@ -426,7 +429,11 @@ export const AUCTION_SCHEMA = new Map<any, any>([
 ]);
 
 export const decodeAuctionData = (buffer: Buffer) => {
-  return deserializeBorsh(AUCTION_SCHEMA, AuctionData, buffer) as AuctionData;
+  return deserializeUnchecked(
+    AUCTION_SCHEMA,
+    AuctionData,
+    buffer,
+  ) as AuctionData;
 };
 
 export async function createAuction(

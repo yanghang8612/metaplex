@@ -75,10 +75,17 @@ export const ArtCreateView = () => {
   // store files
   const mint = async () => {
     const metadata = {
-      ...(attributes as any),
-      image:
-        attributes.files && attributes.files?.[0] && attributes.files[0].name,
-      files: (attributes?.files || []).map(f => f.name),
+      name: attributes.name,
+      symbol: attributes.symbol,
+
+      description: attributes.description,
+      image: attributes.image,
+      external_url: attributes.externalUrl,
+      properties: {
+        files: (attributes?.files || []).map(f => f.name),
+        category: attributes.category,
+        royalty: attributes.royalty,
+      },
     };
     setSaving(true);
     const inte = setInterval(() => setProgress(prog => prog + 1), 600);

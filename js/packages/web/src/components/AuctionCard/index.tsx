@@ -62,7 +62,7 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
     auctionView,
   );
 
-  const eligibleForAnything = winnerIndex != null || eligibleForOpenEdition;
+  const eligibleForAnything = winnerIndex !== null || eligibleForOpenEdition;
 
   useEffect(() => {
     connection.getSlot().then(setClock);
