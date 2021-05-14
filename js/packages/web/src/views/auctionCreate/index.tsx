@@ -110,7 +110,7 @@ export const AuctionCreateView = () => {
   const mint = useMint(QUOTE_MINT);
 
   const [step, setStep] = useState<number>(0);
-  const [saving, setSaving] = useState<boolean>(false);
+  const [stepsVisible, setStepsVisible] = useState<boolean>(true);
   const [auctionObj, setAuctionObj] =
     useState<
       | {
@@ -313,7 +313,7 @@ export const AuctionCreateView = () => {
     <ReviewStep
       attributes={attributes}
       confirm={() => {
-        setSaving(true);
+        setStepsVisible(false);
         gotoNextStep();
       }}
       connection={connection}
@@ -377,13 +377,13 @@ export const AuctionCreateView = () => {
   return (
     <>
       <Row style={{ paddingTop: 50 }}>
-        {!saving && (
-          <Col xl={5}>
+        {stepsVisible && (
+          <Col span={24} md={4}>
             <Steps
               progressDot
               direction="vertical"
               current={step}
-              style={{ width: 200, marginLeft: 20, marginRight: 30 }}
+              style={{ width: "fit-content", margin: "auto" }}
             >
               {stepsByCategory[attributes.category]
                 .filter(_ => !!_[0])
@@ -393,10 +393,12 @@ export const AuctionCreateView = () => {
             </Steps>
           </Col>
         )}
-        <Col {...(saving ? { xl: 24 } : { xl: 16, md: 17 })}>
+        <Col span={24} {...(stepsVisible ? { md: 20 } : { md: 24 })}>
           {stepsByCategory[attributes.category][step][1]}
-          {0 < step && !saving && (
-            <Button onClick={() => gotoNextStep(step - 1)}>Back</Button>
+          {0 < step && stepsVisible && (
+            <div style={{ margin: "auto", width: "fit-content" }}>
+              <Button onClick={() => gotoNextStep(step - 1)}>Back</Button>
+            </div>
           )}
         </Col>
       </Row>
@@ -415,7 +417,7 @@ const CategoryStep = (props: {
           First time listing on Metaplex? <a>Read our sellers' guide.</a>
         </p>
       </Row>
-      <Row>
+      <Row justify="center">
         <Col>
           <Row>
             <Button
@@ -1439,13 +1441,13 @@ const ReviewStep = (props: {
           />
         )}
         <Divider />
-        {props.attributes.endTS && (
-          <Statistic
-            className="create-statistic"
-            title="Sale ends"
-            value={props.attributes.endTS}
-          />
-        )}
+        <Statistic
+          className="create-statistic"
+          title="Sale ends"
+          value={props.attributes.endTS ? (moment
+            .unix((props.attributes.endTS as number) / 1000)
+            .format('dddd, MMMM Do YYYY, h:mm a')) : "Until sold"}
+        />
       </Row>
       <Row>
         <Button
