@@ -45,6 +45,10 @@ pub fn assert_data_valid(data: &Data) -> ProgramResult {
             if creators.len() > MAX_CREATOR_LIMIT {
                 return Err(MetadataError::CreatorsTooLong.into());
             }
+
+            if creators.len() < 1 {
+                return Err(MetadataError::CreatorsMustBeAtleastOne.into());
+            }
         }
     }
 
@@ -148,7 +152,6 @@ pub fn assert_mint_authority_matches_mint(
 }
 
 pub fn transfer_mint_authority<'a>(
-    edition_seeds: &[&[u8]],
     edition_key: &Pubkey,
     edition_account_info: &AccountInfo<'a>,
     mint_info: &AccountInfo<'a>,
@@ -172,7 +175,7 @@ pub fn transfer_mint_authority<'a>(
             token_program_info.clone(),
             edition_account_info.clone(),
         ],
-        &[edition_seeds],
+        &[],
     )?;
     msg!("Setting freeze authority");
     invoke_signed(
@@ -191,9 +194,8 @@ pub fn transfer_mint_authority<'a>(
             token_program_info.clone(),
             edition_account_info.clone(),
         ],
-        &[edition_seeds],
+        &[],
     )?;
-
     Ok(())
 }
 
@@ -319,7 +321,6 @@ pub fn mint_limited_edition<'a>(
 
     // Now make sure this mint can never be used by anybody else.
     transfer_mint_authority(
-        edition_authority_seeds,
         &edition_key,
         new_edition_account_info,
         mint_info,
@@ -343,7 +344,6 @@ pub fn spl_token_burn(params: TokenBurnParams<'_, '_>) -> ProgramResult {
     if let Some(seed) = authority_signer_seeds {
         seeds.push(seed);
     }
-
     let result = invoke_signed(
         &spl_token::instruction::burn(
             token_program.key,
@@ -384,6 +384,10 @@ pub fn spl_token_mint_to(params: TokenMintToParams<'_, '_>) -> ProgramResult {
         amount,
         authority_signer_seeds,
     } = params;
+    let mut seeds: Vec<&[&[u8]]> = vec![];
+    if let Some(seed) = authority_signer_seeds {
+        seeds.push(seed);
+    }
     let result = invoke_signed(
         &spl_token::instruction::mint_to(
             token_program.key,
@@ -394,7 +398,7 @@ pub fn spl_token_mint_to(params: TokenMintToParams<'_, '_>) -> ProgramResult {
             amount,
         )?,
         &[mint, destination, authority, token_program],
-        &[authority_signer_seeds],
+        seeds.as_slice(),
     );
     result.map_err(|_| MetadataError::TokenMintToFailed.into())
 }
@@ -410,7 +414,7 @@ pub struct TokenMintToParams<'a: 'b, 'b> {
     /// authority
     pub authority: AccountInfo<'a>,
     /// authority_signer_seeds
-    pub authority_signer_seeds: &'b [&'b [u8]],
+    pub authority_signer_seeds: Option<&'b [&'b [u8]]>,
     /// token_program
     pub token_program: AccountInfo<'a>,
 }

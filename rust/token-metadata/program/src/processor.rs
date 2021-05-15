@@ -225,7 +225,6 @@ pub fn process_create_master_edition(
     // mint as many limited editions as you like, and coins to permission others
     // to mint one of them in the future.
     transfer_mint_authority(
-        edition_authority_seeds,
         &edition_key,
         edition_account_info,
         mint_info,
@@ -252,12 +251,11 @@ pub fn process_create_master_edition(
             destination: auth_token_acct_info.clone(),
             amount: supply,
             authority: master_mint_authority_info.clone(),
-            authority_signer_seeds: &[],
+            authority_signer_seeds: None,
             token_program: token_program_info.clone(),
         })?;
 
         transfer_mint_authority(
-            edition_authority_seeds,
             &edition_key,
             edition_account_info,
             master_mint_info,
@@ -265,6 +263,7 @@ pub fn process_create_master_edition(
             token_program_info,
         )?;
     }
+    msg!("Did we get all the way here?");
     Ok(())
 }
 

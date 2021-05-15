@@ -78,7 +78,7 @@ pub fn process_claim_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Progr
 
     let mut auction_manager: AuctionManager =
         try_from_slice_unchecked(&auction_manager_info.data.borrow_mut())?;
-    let store: Store = try_from_slice_unchecked(&auction_manager_info.data.borrow_mut())?;
+    let store: Store = try_from_slice_unchecked(&store_info.data.borrow_mut())?;
     let auction: AuctionData = try_from_slice_unchecked(&auction_info.data.borrow_mut())?;
 
     assert_owned_by(auction_info, &store.auction_program)?;

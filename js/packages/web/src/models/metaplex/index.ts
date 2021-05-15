@@ -315,6 +315,7 @@ export const SCHEMA = new Map<any, any>([
     {
       kind: 'struct',
       fields: [
+        ['key', 'u8'],
         ['openEditionRedeemed', 'u8'], // bool
         ['bidRedeemed', 'u8'], // bool
       ],

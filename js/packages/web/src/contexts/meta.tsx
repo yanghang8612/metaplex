@@ -25,8 +25,6 @@ import {
   BIDDER_POT_LEN,
   decodeVault,
   Vault,
-  TokenAccount,
-  useUserAccounts,
 } from '@oyster/common';
 import { MintInfo } from '@solana/spl-token';
 import { Connection, PublicKey, PublicKeyAndAccount } from '@solana/web3.js';
@@ -37,8 +35,6 @@ import {
   BidRedemptionTicket,
   decodeAuctionManager,
   decodeBidRedemptionTicket,
-  getAuctionManagerKey,
-  getBidderKeys,
   MetaplexKey,
 } from '../models/metaplex';
 
@@ -83,11 +79,6 @@ const MetaContext = React.createContext<MetaContextState>({
 
 export function MetaProvider({ children = null as any }) {
   const connection = useConnection();
-  const { userAccounts } = useUserAccounts();
-  const accountByMint = userAccounts.reduce((prev, acc) => {
-    prev.set(acc.info.mint.toBase58(), acc);
-    return prev;
-  }, new Map<string, TokenAccount>());
 
   const [metadata, setMetadata] = useState<ParsedAccount<Metadata>[]>([]);
   const [metadataByMint, setMetadataByMint] = useState<
@@ -145,13 +136,7 @@ export function MetaProvider({ children = null as any }) {
             a.account,
             AuctionParser,
           ) as ParsedAccount<AuctionData>;
-          const payerAcct = accountByMint.get(
-            account.info.tokenMint.toBase58(),
-          );
-          if (payerAcct)
-            account.info.bidRedemptionKey = (
-              await getBidderKeys(a.pubkey, payerAcct.pubkey)
-            ).bidRedemption;
+
           setAuctions(e => ({
             ...e,
             [a.pubkey.toBase58()]: account,
@@ -228,7 +213,7 @@ export function MetaProvider({ children = null as any }) {
     return () => {
       dispose();
     };
-  }, [connection, setAuctions, userAccounts]);
+  }, [connection, setAuctions]);
 
   useEffect(() => {
     let dispose = () => {};

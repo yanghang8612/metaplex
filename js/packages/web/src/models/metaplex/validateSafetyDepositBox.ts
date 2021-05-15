@@ -25,7 +25,7 @@ export async function validateSafetyDepositBox(
   payer: PublicKey,
   instructions: TransactionInstruction[],
   edition: PublicKey,
-  whitelistedCreator: PublicKey,
+  whitelistedCreator: PublicKey | undefined,
   store: PublicKey,
   masterMint?: PublicKey,
   masterMintAuthority?: PublicKey,
@@ -59,7 +59,7 @@ export async function validateSafetyDepositBox(
       isWritable: true,
     },
     {
-      pubkey: whitelistedCreator,
+      pubkey: whitelistedCreator || SystemProgram.programId,
       isSigner: false,
       isWritable: false,
     },

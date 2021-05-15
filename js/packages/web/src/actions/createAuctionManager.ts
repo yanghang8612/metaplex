@@ -419,6 +419,14 @@ async function validateBoxes(
       const edition: PublicKey = await getEdition(
         safetyDeposits[i].draft.metadata.info.mint,
       );
+      const whitelistedCreator = safetyDeposits[i].draft.metadata.info.data
+        .creators
+        ? await getWhitelistedCreator(
+            // Ts weirdly blowing up on this when ternary checks it just fine
+            //@ts-ignore
+            safetyDeposits[i].draft.metadata.info.data.creators[0].address,
+          )
+        : undefined;
 
       await validateSafetyDepositBox(
         vault,
@@ -434,6 +442,8 @@ async function validateBoxes(
         wallet.publicKey,
         tokenInstructions,
         edition,
+        whitelistedCreator,
+        programIds().store,
         safetyDeposits[i].draft.masterEdition?.info.masterMint,
         safetyDeposits[i].draft.masterEdition ? wallet.publicKey : undefined,
       );
