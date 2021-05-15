@@ -16,7 +16,7 @@ import {
 
 export async function redeemOpenEditionBid(
   vault: PublicKey,
-  store: PublicKey,
+  safetyDepositTokenStore: PublicKey,
   destination: PublicKey,
   safetyDeposit: PublicKey,
   fractionMint: PublicKey,
@@ -50,7 +50,7 @@ export async function redeemOpenEditionBid(
       isWritable: true,
     },
     {
-      pubkey: store,
+      pubkey: safetyDepositTokenStore,
       isSigner: false,
       isWritable: true,
     },
@@ -111,6 +111,11 @@ export async function redeemOpenEditionBid(
     },
     {
       pubkey: PROGRAM_IDS.metadata,
+      isSigner: false,
+      isWritable: false,
+    },
+    {
+      pubkey: PROGRAM_IDS.store,
       isSigner: false,
       isWritable: false,
     },

@@ -29,12 +29,8 @@ pub enum MetaplexInstruction {
     ///   4. `[signer]` Payer
     ///   5. `[]` Accept payment account of same token mint as the auction for taking payment for open editions, owner should be auction manager key
     ///   6. `[]` Store that this auction manager will belong to
-    ///   7. `[]` Token program
-    ///   8. `[]` Token vault program
-    ///   9. `[]` Token metadata program
-    ///   10. `[]` Auction program
-    ///   11. `[]` System sysvar    
-    ///   12. `[]` Rent sysvar
+    ///   7. `[]` System sysvar    
+    ///   8. `[]` Rent sysvar
     InitAuctionManager(AuctionManagerSettings),
 
     /// Validates that a given safety deposit box has in it contents that match the expected WinningConfig in the auction manager.
@@ -74,7 +70,7 @@ pub enum MetaplexInstruction {
     /// that comes as a 'token of appreciation' for bidding. They are not mutually exclusive unless explicitly set to be that way.
     ///
     ///   0. `[writable]` Auction manager
-    ///   1. `[writable]` Store of safety deposit box account
+    ///   1. `[writable]` Safety deposit token storage account
     ///   2. `[writable]` Destination account.
     ///   3. `[writable]` Bid redemption key -
     ///        Just a PDA with seed ['metaplex', auction_key, bidder_metadata_key] that we will allocate to mark that you redeemed your bid
@@ -88,9 +84,10 @@ pub enum MetaplexInstruction {
     ///   11. `[]` Token program
     ///   12. `[]` Token Vault program
     ///   13. `[]` Token metadata program
-    ///   14. `[]` System
-    ///   15. `[]` Rent sysvar
-    ///   16. `[]` PDA-based Transfer authority to move the tokens from the store to the destination seed ['vault', program_id]
+    ///   14. `[]` Store
+    ///   15. `[]` System
+    ///   16. `[]` Rent sysvar
+    ///   17. `[]` PDA-based Transfer authority to move the tokens from the store to the destination seed ['vault', program_id]
     ///        but please note that this is a PDA relative to the Token Vault program, with the 'vault' prefix
     RedeemBid,
 
@@ -104,7 +101,7 @@ pub enum MetaplexInstruction {
     /// that comes as a 'token of appreciation' for bidding. They are not mutually exclusive unless explicitly set to be that way.
     ///
     ///   0. `[writable]` Auction manager
-    ///   1. `[writable]` Store of safety deposit box account
+    ///   1. `[writable]` Safety deposit token storage account
     ///   2. `[writable]` Destination account.
     ///   3. `[writable]` Bid redemption key -
     ///        Just a PDA with seed ['metaplex', auction_key, bidder_metadata_key] that we will allocate to mark that you redeemed your bid
@@ -118,14 +115,15 @@ pub enum MetaplexInstruction {
     ///   11. `[]` Token program
     ///   12. `[]` Token Vault program
     ///   13. `[]` Token metadata program
-    ///   14. `[]` System
-    ///   15. `[]` Rent sysvar
-    ///   16. `[writable]` Master Metadata account (pda of ['metadata', program id, master mint id]) - remember PDA is relative to token metadata program
+    ///   14. `[]` Store
+    ///   15. `[]` System
+    ///   16. `[]` Rent sysvar
+    ///   17. `[writable]` Master Metadata account (pda of ['metadata', program id, master mint id]) - remember PDA is relative to token metadata program
     ///           (This account is optional, and will only be used if metadata is unique, otherwise this account key will be ignored no matter it's value)
-    ///   17. `[]` New authority for Master Metadata - If you are taking ownership of a Master Edition in and of itself, or a Limited Edition that isn't newly minted for you during this auction
+    ///   18. `[]` New authority for Master Metadata - If you are taking ownership of a Master Edition in and of itself, or a Limited Edition that isn't newly minted for you during this auction
     ///             ie someone else had it minted for themselves in a prior auction or through some other means, this is the account the metadata for these tokens will be delegated to
     ///             after this transaction. Otherwise this account will be ignored.
-    ///   18. `[]` PDA-based Transfer authority to move the tokens from the store to the destination seed ['vault', program_id]
+    ///   19. `[]` PDA-based Transfer authority to move the tokens from the store to the destination seed ['vault', program_id]
     ///        but please note that this is a PDA relative to the Token Vault program, with the 'vault' prefix
     RedeemMasterEditionBid,
 
@@ -142,7 +140,7 @@ pub enum MetaplexInstruction {
     /// mint. We do not provide the token to you. Our job with this action is to christen this mint + token combo as an official Open Edition.
     ///
     ///   0. `[writable]` Auction manager
-    ///   1. `[writable]` Store of safety deposit box account
+    ///   1. `[writable]` Safety deposit token storage account
     ///   2. `[writable]` Destination account for limited edition authority token. Must be same mint as master edition master mint.
     ///   3. `[writable]` Bid redemption key -
     ///        Just a PDA with seed ['metaplex', auction_key, bidder_metadata_key] that we will allocate to mark that you redeemed your bid
@@ -156,15 +154,16 @@ pub enum MetaplexInstruction {
     ///   11. `[]` Token program
     ///   12. `[]` Token Vault program
     ///   13. `[]` Token metadata program
-    ///   14. `[]` System
-    ///   15. `[]` Rent sysvar
-    ///   16. `[]` Master Metadata (pda of ['metadata', program id, metadata mint id]) - remember PDA is relative to token metadata program
-    ///   17. `[writable]` Master mint on the master edition - this is the mint used to produce one-time use tokens to give permission to make one limited edition.
-    ///   18. `[writable]` Master Edition (pda of ['metadata', program id, metadata mint id, 'edition']) - remember PDA is relative to token metadata program
-    ///   19. `[signer]` Transfer authority to move the payment in the auction's token_mint coin from the bidder account for the open_edition_fixed_price
+    ///   14. `[]` Store
+    ///   15. `[]` System
+    ///   16. `[]` Rent sysvar
+    ///   17. `[]` Master Metadata (pda of ['metadata', program id, metadata mint id]) - remember PDA is relative to token metadata program
+    ///   18. `[writable]` Master mint on the master edition - this is the mint used to produce one-time use tokens to give permission to make one limited edition.
+    ///   19. `[writable]` Master Edition (pda of ['metadata', program id, metadata mint id, 'edition']) - remember PDA is relative to token metadata program
+    ///   20. `[signer]` Transfer authority to move the payment in the auction's token_mint coin from the bidder account for the open_edition_fixed_price
     ///             on the auction manager to the auction manager account itself.
-    ///   20.  `[writable]` The accept payment account for the auction manager
-    ///   21.  `[writable]` The token account you will potentially pay for the open edition bid with if necessary
+    ///   21.  `[writable]` The accept payment account for the auction manager
+    ///   22.  `[writable]` The token account you will potentially pay for the open edition bid with if necessary
     RedeemOpenEditionBid,
 
     /// If the auction manager is in Validated state, it can invoke the start command via calling this command here.
@@ -172,8 +171,9 @@ pub enum MetaplexInstruction {
     ///   0. `[writable]` Auction manager
     ///   1. `[writable]` Auction
     ///   3. `[signer]` Auction manager authority
-    ///   4. `[]` Auction program
-    ///   5. `[]` Clock sysvar
+    ///   4. `[]` Store key
+    ///   5. `[]` Auction program
+    ///   6. `[]` Clock sysvar
     StartAuction,
 
     /// If the auction manager is in a Disbursing or Finished state, then this means Auction must be in Ended state.
@@ -194,9 +194,10 @@ pub enum MetaplexInstruction {
     ///   5. `[]` Token mint of the auction
     ///   6. `[]` Vault
     ///   7. `[]` Auction manager
-    ///   8. `[]` Auction program
-    ///   9. `[]` Clock sysvar
-    ///   10. `[]` Token program
+    ///   8. `[]` Store
+    ///   9. `[]` Auction program
+    ///   10. `[]` Clock sysvar
+    ///   11. `[]` Token program
     ClaimBid,
 
     /// At any time, the auction manager authority may empty whatever funds are in the accept payment account
@@ -217,8 +218,12 @@ pub enum MetaplexInstruction {
     ///   0. `[writable]` The store key, seed of ['metaplex', admin wallet]
     ///   1. `[signer]`  The admin wallet
     ///   2. `[signer]`  Payer
-    ///   3. `[]` System
-    ///   4. `[]` Rent sysvar
+    ///   3. `[]` Token program
+    ///   4. `[]` Token vault program
+    ///   5. `[]` Token metadata program
+    ///   6. `[]` Auction program
+    ///   7. `[]` System
+    ///   8. `[]` Rent sysvar
     SetStore(SetStoreArgs),
 
     /// Given an existing store, add or update an existing whitelisted creator for the store. This creates
@@ -263,8 +268,6 @@ pub fn create_init_auction_manager_instruction(
     payer: Pubkey,
     accept_payment_account_key: Pubkey,
     store: Pubkey,
-    token_vault_program: Pubkey,
-    auction_program: Pubkey,
     settings: AuctionManagerSettings,
 ) -> Instruction {
     Instruction {
@@ -277,10 +280,6 @@ pub fn create_init_auction_manager_instruction(
             AccountMeta::new_readonly(payer, true),
             AccountMeta::new_readonly(accept_payment_account_key, false),
             AccountMeta::new_readonly(store, false),
-            AccountMeta::new_readonly(spl_token::id(), false),
-            AccountMeta::new_readonly(token_vault_program, false),
-            AccountMeta::new_readonly(spl_token_metadata::id(), false),
-            AccountMeta::new_readonly(auction_program, false),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
         ],
@@ -390,7 +389,7 @@ pub fn create_validate_safety_deposit_box_instruction(
 pub fn create_redeem_bid_instruction(
     program_id: Pubkey,
     auction_manager: Pubkey,
-    store: Pubkey,
+    safety_deposit_token_store: Pubkey,
     destination: Pubkey,
     bid_redemption: Pubkey,
     safety_deposit_box: Pubkey,
@@ -400,14 +399,14 @@ pub fn create_redeem_bid_instruction(
     bidder_metadata: Pubkey,
     bidder: Pubkey,
     payer: Pubkey,
-    token_vault_program: Pubkey,
+    store: Pubkey,
     transfer_authority: Pubkey,
 ) -> Instruction {
     Instruction {
         program_id,
         accounts: vec![
             AccountMeta::new(auction_manager, false),
-            AccountMeta::new(store, false),
+            AccountMeta::new(safety_deposit_token_store, false),
             AccountMeta::new(destination, false),
             AccountMeta::new(bid_redemption, false),
             AccountMeta::new(safety_deposit_box, false),
@@ -418,8 +417,9 @@ pub fn create_redeem_bid_instruction(
             AccountMeta::new_readonly(bidder, true),
             AccountMeta::new_readonly(payer, true),
             AccountMeta::new_readonly(spl_token::id(), false),
-            AccountMeta::new_readonly(token_vault_program, false),
+            AccountMeta::new_readonly(spl_token_vault::id(), false),
             AccountMeta::new_readonly(spl_token_metadata::id(), false),
+            AccountMeta::new_readonly(store, false),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
             AccountMeta::new_readonly(transfer_authority, false),
@@ -433,7 +433,7 @@ pub fn create_redeem_bid_instruction(
 pub fn create_redeem_master_edition_bid_instruction(
     program_id: Pubkey,
     auction_manager: Pubkey,
-    store: Pubkey,
+    safety_deposit_token_store: Pubkey,
     destination: Pubkey,
     bid_redemption: Pubkey,
     safety_deposit_box: Pubkey,
@@ -443,7 +443,7 @@ pub fn create_redeem_master_edition_bid_instruction(
     bidder_metadata: Pubkey,
     bidder: Pubkey,
     payer: Pubkey,
-    token_vault_program: Pubkey,
+    store: Pubkey,
     master_metadata: Pubkey,
     new_metadata_authority: Pubkey,
     transfer_authority: Pubkey,
@@ -452,7 +452,7 @@ pub fn create_redeem_master_edition_bid_instruction(
         program_id,
         accounts: vec![
             AccountMeta::new(auction_manager, false),
-            AccountMeta::new(store, false),
+            AccountMeta::new(safety_deposit_token_store, false),
             AccountMeta::new(destination, false),
             AccountMeta::new(bid_redemption, false),
             AccountMeta::new(safety_deposit_box, false),
@@ -463,8 +463,9 @@ pub fn create_redeem_master_edition_bid_instruction(
             AccountMeta::new_readonly(bidder, true),
             AccountMeta::new_readonly(payer, true),
             AccountMeta::new_readonly(spl_token::id(), false),
-            AccountMeta::new_readonly(token_vault_program, false),
+            AccountMeta::new_readonly(spl_token_vault::id(), false),
             AccountMeta::new_readonly(spl_token_metadata::id(), false),
+            AccountMeta::new_readonly(store, false),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
             AccountMeta::new(master_metadata, false),
@@ -482,7 +483,7 @@ pub fn create_redeem_master_edition_bid_instruction(
 pub fn create_redeem_open_edition_bid_instruction(
     program_id: Pubkey,
     auction_manager: Pubkey,
-    store: Pubkey,
+    safety_deposit_token_store: Pubkey,
     destination: Pubkey,
     bid_redemption: Pubkey,
     safety_deposit_box: Pubkey,
@@ -492,7 +493,7 @@ pub fn create_redeem_open_edition_bid_instruction(
     bidder_metadata: Pubkey,
     bidder: Pubkey,
     payer: Pubkey,
-    token_vault_program: Pubkey,
+    store: Pubkey,
     master_metadata: Pubkey,
     master_mint: Pubkey,
     master_edition: Pubkey,
@@ -504,7 +505,7 @@ pub fn create_redeem_open_edition_bid_instruction(
         program_id,
         accounts: vec![
             AccountMeta::new(auction_manager, false),
-            AccountMeta::new(store, false),
+            AccountMeta::new(safety_deposit_token_store, false),
             AccountMeta::new(destination, false),
             AccountMeta::new(bid_redemption, false),
             AccountMeta::new_readonly(safety_deposit_box, false),
@@ -515,8 +516,9 @@ pub fn create_redeem_open_edition_bid_instruction(
             AccountMeta::new_readonly(bidder, true),
             AccountMeta::new(payer, true),
             AccountMeta::new_readonly(spl_token::id(), false),
-            AccountMeta::new_readonly(token_vault_program, false),
+            AccountMeta::new_readonly(spl_token_vault::id(), false),
             AccountMeta::new_readonly(spl_token_metadata::id(), false),
+            AccountMeta::new_readonly(store, false),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
             AccountMeta::new_readonly(master_metadata, false),
@@ -539,7 +541,7 @@ pub fn create_start_auction_instruction(
     auction_manager: Pubkey,
     auction: Pubkey,
     auction_manager_authority: Pubkey,
-    auction_program: Pubkey,
+    store: Pubkey,
 ) -> Instruction {
     Instruction {
         program_id,
@@ -547,7 +549,8 @@ pub fn create_start_auction_instruction(
             AccountMeta::new(auction_manager, false),
             AccountMeta::new(auction, false),
             AccountMeta::new_readonly(auction_manager_authority, true),
-            AccountMeta::new_readonly(auction_program, false),
+            AccountMeta::new_readonly(store, false),
+            AccountMeta::new_readonly(spl_auction::id(), false),
             AccountMeta::new_readonly(sysvar::clock::id(), false),
         ],
         data: MetaplexInstruction::StartAuction.try_to_vec().unwrap(),
@@ -566,6 +569,10 @@ pub fn create_set_store_instruction(
         AccountMeta::new(store, false),
         AccountMeta::new_readonly(admin, true),
         AccountMeta::new_readonly(payer, true),
+        AccountMeta::new_readonly(spl_token::id(), false),
+        AccountMeta::new_readonly(spl_token_vault::id(), false),
+        AccountMeta::new_readonly(spl_token_metadata::id(), false),
+        AccountMeta::new_readonly(spl_auction::id(), false),
         AccountMeta::new_readonly(solana_program::system_program::id(), false),
         AccountMeta::new_readonly(sysvar::rent::id(), false),
     ];

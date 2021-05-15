@@ -80,7 +80,7 @@ pub enum MetadataInstruction {
     ///   6. `[writable]` Token account containing master mint token to be transferred
     ///   7. `[signer]` Burn authority for this token
     ///   8. `[signer]` payer
-    ///   9. `[]` update authority info of master metadata account
+    ///   9. `[signer]` update authority info of master metadata account
     ///   10. `[]` Master record metadata account
     ///   11. `[]` Token program
     ///   12. `[]` System program

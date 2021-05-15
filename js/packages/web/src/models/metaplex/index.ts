@@ -30,10 +30,6 @@ export class AuctionManager {
   authority: PublicKey;
   auction: PublicKey;
   vault: PublicKey;
-  auctionProgram: PublicKey;
-  tokenVaultProgram: PublicKey;
-  tokenMetadataProgram: PublicKey;
-  tokenProgram: PublicKey;
   acceptPayment: PublicKey;
   state: AuctionManagerState;
   settings: AuctionManagerSettings;
@@ -43,10 +39,6 @@ export class AuctionManager {
     authority: PublicKey;
     auction: PublicKey;
     vault: PublicKey;
-    auctionProgram: PublicKey;
-    tokenVaultProgram: PublicKey;
-    tokenMetadataProgram: PublicKey;
-    tokenProgram: PublicKey;
     acceptPayment: PublicKey;
     state: AuctionManagerState;
     settings: AuctionManagerSettings;
@@ -56,10 +48,6 @@ export class AuctionManager {
     this.authority = args.authority;
     this.auction = args.auction;
     this.vault = args.vault;
-    this.auctionProgram = args.auctionProgram;
-    this.tokenVaultProgram = args.tokenVaultProgram;
-    this.tokenMetadataProgram = args.tokenMetadataProgram;
-    this.tokenProgram = args.tokenProgram;
     this.acceptPayment = args.acceptPayment;
     this.state = args.state;
     this.settings = args.settings;
@@ -183,8 +171,24 @@ export class WhitelistedCreator {
 export class Store {
   key: MetaplexKey = MetaplexKey.StoreV1;
   public: boolean = true;
-  constructor(args?: Store) {
-    Object.assign(this, args);
+  auctionProgram: PublicKey;
+  tokenVaultProgram: PublicKey;
+  tokenMetadataProgram: PublicKey;
+  tokenProgram: PublicKey;
+
+  constructor(args: {
+    public: boolean;
+    auctionProgram: PublicKey;
+    tokenVaultProgram: PublicKey;
+    tokenMetadataProgram: PublicKey;
+    tokenProgram: PublicKey;
+  }) {
+    this.key = MetaplexKey.StoreV1;
+    this.public = args.public;
+    this.auctionProgram = args.auctionProgram;
+    this.tokenVaultProgram = args.tokenVaultProgram;
+    this.tokenMetadataProgram = args.tokenMetadataProgram;
+    this.tokenProgram = args.tokenProgram;
   }
 }
 
@@ -229,10 +233,6 @@ export const SCHEMA = new Map<any, any>([
         ['authority', 'pubkey'],
         ['auction', 'pubkey'],
         ['vault', 'pubkey'],
-        ['auctionProgram', 'pubkey'],
-        ['tokenVaultProgram', 'pubkey'],
-        ['tokenMetadataProgram', 'pubkey'],
-        ['tokenProgram', 'pubkey'],
         ['acceptPayment', 'pubkey'],
         ['state', AuctionManagerState],
         ['settings', AuctionManagerSettings],
@@ -291,6 +291,10 @@ export const SCHEMA = new Map<any, any>([
       fields: [
         ['key', 'u8'],
         ['public', 'u8'],
+        ['auctionProgram', 'pubkey'],
+        ['tokenVaultProgram', 'pubkey'],
+        ['tokenMetadataProgram', 'pubkey'],
+        ['tokenProgram', 'pubkey'],
       ],
     },
   ],
@@ -370,6 +374,13 @@ export const SCHEMA = new Map<any, any>([
   ],
   [
     EmptyPaymentAccountArgs,
+    {
+      kind: 'struct',
+      fields: [['instruction', 'u8']],
+    },
+  ],
+  [
+    ValidateOpenEditionArgs,
     {
       kind: 'struct',
       fields: [['instruction', 'u8']],
@@ -457,6 +468,20 @@ export async function getOriginalAuthority(
         Buffer.from(METAPLEX_PREFIX),
         auctionKey.toBuffer(),
         metadata.toBuffer(),
+      ],
+      PROGRAM_IDS.metaplex,
+    )
+  )[0];
+}
+
+export async function getWhitelistedCreator(creator: PublicKey) {
+  const PROGRAM_IDS = programIds();
+  return (
+    await PublicKey.findProgramAddress(
+      [
+        Buffer.from(METAPLEX_PREFIX),
+        PROGRAM_IDS.store.toBuffer(),
+        creator.toBuffer(),
       ],
       PROGRAM_IDS.metaplex,
     )

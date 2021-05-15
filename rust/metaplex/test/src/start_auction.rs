@@ -28,13 +28,12 @@ pub fn send_start_auction(app_matches: &ArgMatches, payer: Keypair, client: RpcC
 
     let account = client.get_account(&auction_manager_key).unwrap();
     let manager: AuctionManager = try_from_slice_unchecked(&account.data).unwrap();
-
     let instructions = [create_start_auction_instruction(
         program_key,
         auction_manager_key,
         manager.auction,
         authority.pubkey(),
-        manager.auction_program,
+        manager.store,
     )];
 
     let signers = [&payer];

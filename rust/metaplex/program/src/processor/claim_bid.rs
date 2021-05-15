@@ -1,7 +1,7 @@
 use {
     crate::{
         error::MetaplexError,
-        state::{AuctionManager, AuctionManagerStatus, PREFIX},
+        state::{AuctionManager, AuctionManagerStatus, Store, PREFIX},
         utils::{assert_derivation, assert_owned_by},
     },
     borsh::BorshSerialize,
@@ -71,22 +71,28 @@ pub fn process_claim_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Progr
     let token_mint_info = next_account_info(account_info_iter)?;
     let vault_info = next_account_info(account_info_iter)?;
     let auction_manager_info = next_account_info(account_info_iter)?;
+    let store_info = next_account_info(account_info_iter)?;
     let auction_program_info = next_account_info(account_info_iter)?;
     let clock_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
 
     let mut auction_manager: AuctionManager =
         try_from_slice_unchecked(&auction_manager_info.data.borrow_mut())?;
+    let store: Store = try_from_slice_unchecked(&auction_manager_info.data.borrow_mut())?;
     let auction: AuctionData = try_from_slice_unchecked(&auction_info.data.borrow_mut())?;
 
-    assert_owned_by(auction_info, &auction_manager.auction_program)?;
+    assert_owned_by(auction_info, &store.auction_program)?;
     assert_owned_by(auction_manager_info, program_id)?;
+
+    if auction_manager.store != *store_info.key {
+        return Err(MetaplexError::AuctionManagerStoreMismatch.into());
+    }
 
     if auction_manager.auction != *auction_info.key {
         return Err(MetaplexError::AuctionManagerAuctionMismatch.into());
     }
 
-    if auction_manager.auction_program != *auction_program_info.key {
+    if store.auction_program != *auction_program_info.key {
         return Err(MetaplexError::AuctionManagerAuctionProgramMismatch.into());
     }
 

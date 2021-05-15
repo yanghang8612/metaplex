@@ -339,6 +339,11 @@ pub fn spl_token_burn(params: TokenBurnParams<'_, '_>) -> ProgramResult {
         amount,
         authority_signer_seeds,
     } = params;
+    let mut seeds: Vec<&[&[u8]]> = vec![];
+    if let Some(seed) = authority_signer_seeds {
+        seeds.push(seed);
+    }
+
     let result = invoke_signed(
         &spl_token::instruction::burn(
             token_program.key,
@@ -349,7 +354,7 @@ pub fn spl_token_burn(params: TokenBurnParams<'_, '_>) -> ProgramResult {
             amount,
         )?,
         &[source, mint, authority, token_program],
-        &[authority_signer_seeds],
+        seeds.as_slice(),
     );
     result.map_err(|_| MetadataError::TokenBurnFailed.into())
 }
@@ -365,7 +370,7 @@ pub struct TokenBurnParams<'a: 'b, 'b> {
     /// authority
     pub authority: AccountInfo<'a>,
     /// authority_signer_seeds
-    pub authority_signer_seeds: &'b [&'b [u8]],
+    pub authority_signer_seeds: Option<&'b [&'b [u8]]>,
     /// token_program
     pub token_program: AccountInfo<'a>,
 }

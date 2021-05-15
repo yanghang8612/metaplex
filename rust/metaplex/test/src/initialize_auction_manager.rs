@@ -387,8 +387,6 @@ pub fn initialize_auction_manager(
         payer.pubkey(),
         accept_payment_account_key.pubkey(),
         store_key,
-        vault_program_key,
-        auction_program_key,
         settings,
     ));
 

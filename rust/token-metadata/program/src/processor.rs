@@ -310,7 +310,7 @@ pub fn process_mint_new_edition_from_master_edition_via_token(
         source: master_token_account_info.clone(),
         amount: 1,
         authority: burn_authority.clone(),
-        authority_signer_seeds: &[],
+        authority_signer_seeds: None,
         token_program: token_program_account_info.clone(),
     })?;
 

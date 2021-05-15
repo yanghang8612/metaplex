@@ -2,15 +2,14 @@ use {
     crate::{
         error::MetaplexError,
         instruction::MetaplexInstruction,
-        state::{AuctionManager, AuctionManagerStatus, EditionType, PREFIX},
+        state::{EditionType, PREFIX},
         utils::{
-            assert_authority_correct, assert_owned_by, common_redeem_checks, common_redeem_finish,
-            common_winning_config_checks, issue_start_auction, transfer_metadata_ownership,
-            transfer_safety_deposit_box_items, CommonRedeemCheckArgs, CommonRedeemFinishArgs,
-            CommonRedeemReturn, CommonWinningConfigCheckReturn,
+            common_redeem_checks, common_redeem_finish, common_winning_config_checks,
+            transfer_metadata_ownership, transfer_safety_deposit_box_items, CommonRedeemCheckArgs,
+            CommonRedeemFinishArgs, CommonRedeemReturn, CommonWinningConfigCheckReturn,
         },
     },
-    borsh::{BorshDeserialize, BorshSerialize},
+    borsh::BorshDeserialize,
     claim_bid::process_claim_bid,
     empty_payment_account::process_empty_payment_account,
     init_auction_manager::process_init_auction_manager,
@@ -19,11 +18,11 @@ use {
     set_whitelisted_creator::process_set_whitelisted_creator,
     solana_program::{
         account_info::{next_account_info, AccountInfo},
-        borsh::try_from_slice_unchecked,
         entrypoint::ProgramResult,
         msg,
         pubkey::Pubkey,
     },
+    start_auction::process_start_auction,
     validate_open_edition::process_validate_open_edition,
     validate_safety_deposit_box::process_validate_safety_deposit_box,
 };
@@ -34,6 +33,7 @@ pub mod init_auction_manager;
 pub mod redeem_open_edition_bid;
 pub mod set_store;
 pub mod set_whitelisted_creator;
+pub mod start_auction;
 pub mod validate_open_edition;
 pub mod validate_safety_deposit_box;
 
@@ -98,7 +98,7 @@ pub fn process_redeem_master_edition_bid<'a>(
     let account_info_iter = &mut accounts.iter();
 
     let auction_manager_info = next_account_info(account_info_iter)?;
-    let store_info = next_account_info(account_info_iter)?;
+    let safety_deposit_token_store_info = next_account_info(account_info_iter)?;
     let destination_info = next_account_info(account_info_iter)?;
     let bid_redemption_info = next_account_info(account_info_iter)?;
     let safety_deposit_info = next_account_info(account_info_iter)?;
@@ -111,6 +111,7 @@ pub fn process_redeem_master_edition_bid<'a>(
     let token_program_info = next_account_info(account_info_iter)?;
     let token_vault_program_info = next_account_info(account_info_iter)?;
     let token_metadata_program_info = next_account_info(account_info_iter)?;
+    let store_info = next_account_info(account_info_iter)?;
     let system_info = next_account_info(account_info_iter)?;
     let rent_info = next_account_info(account_info_iter)?;
 
@@ -127,10 +128,11 @@ pub fn process_redeem_master_edition_bid<'a>(
         rent: _rent,
         destination: _destination,
         bidder_pot_pubkey,
+        store,
     } = common_redeem_checks(CommonRedeemCheckArgs {
         program_id,
         auction_manager_info,
-        store_info,
+        safety_deposit_token_store_info,
         destination_info,
         bid_redemption_info,
         safety_deposit_info,
@@ -141,6 +143,7 @@ pub fn process_redeem_master_edition_bid<'a>(
         token_program_info,
         token_vault_program_info,
         token_metadata_program_info,
+        store_info,
         rent_info,
         is_open_edition: false,
     })?;
@@ -152,7 +155,12 @@ pub fn process_redeem_master_edition_bid<'a>(
                     winning_config,
                     mut winning_config_state,
                     transfer_authority,
-                } = common_winning_config_checks(&auction_manager, &safety_deposit, winning_index)?;
+                } = common_winning_config_checks(
+                    &auction_manager,
+                    &store,
+                    &safety_deposit,
+                    winning_index,
+                )?;
 
                 if winning_config.edition_type != EditionType::MasterEdition {
                     return Err(MetaplexError::WrongBidEndpointForPrize.into());
@@ -185,7 +193,7 @@ pub fn process_redeem_master_edition_bid<'a>(
                     token_vault_program_info.clone(),
                     destination_info.clone(),
                     safety_deposit_info.clone(),
-                    store_info.clone(),
+                    safety_deposit_token_store_info.clone(),
                     vault_info.clone(),
                     fraction_mint_info.clone(),
                     auction_manager_info.clone(),
@@ -235,7 +243,7 @@ pub fn process_redeem_bid<'a>(
     let account_info_iter = &mut accounts.iter();
 
     let auction_manager_info = next_account_info(account_info_iter)?;
-    let store_info = next_account_info(account_info_iter)?;
+    let safety_deposit_token_store_info = next_account_info(account_info_iter)?;
     let destination_info = next_account_info(account_info_iter)?;
     let bid_redemption_info = next_account_info(account_info_iter)?;
     let safety_deposit_info = next_account_info(account_info_iter)?;
@@ -248,6 +256,7 @@ pub fn process_redeem_bid<'a>(
     let token_program_info = next_account_info(account_info_iter)?;
     let token_vault_program_info = next_account_info(account_info_iter)?;
     let token_metadata_program_info = next_account_info(account_info_iter)?;
+    let store_info = next_account_info(account_info_iter)?;
     let system_info = next_account_info(account_info_iter)?;
     let rent_info = next_account_info(account_info_iter)?;
 
@@ -262,10 +271,11 @@ pub fn process_redeem_bid<'a>(
         rent: _rent,
         destination: _destination,
         bidder_pot_pubkey,
+        store,
     } = common_redeem_checks(CommonRedeemCheckArgs {
         program_id,
         auction_manager_info,
-        store_info,
+        safety_deposit_token_store_info,
         destination_info,
         bid_redemption_info,
         safety_deposit_info,
@@ -277,6 +287,7 @@ pub fn process_redeem_bid<'a>(
         token_vault_program_info,
         token_metadata_program_info,
         rent_info,
+        store_info,
         is_open_edition: false,
     })?;
 
@@ -288,7 +299,12 @@ pub fn process_redeem_bid<'a>(
                     winning_config,
                     mut winning_config_state,
                     transfer_authority,
-                } = common_winning_config_checks(&auction_manager, &safety_deposit, winning_index)?;
+                } = common_winning_config_checks(
+                    &auction_manager,
+                    &store,
+                    &safety_deposit,
+                    winning_index,
+                )?;
 
                 if winning_config.edition_type != EditionType::Na
                     && winning_config.edition_type != EditionType::LimitedEdition
@@ -315,7 +331,7 @@ pub fn process_redeem_bid<'a>(
                     token_vault_program_info.clone(),
                     destination_info.clone(),
                     safety_deposit_info.clone(),
-                    store_info.clone(),
+                    safety_deposit_token_store_info.clone(),
                     vault_info.clone(),
                     fraction_mint_info.clone(),
                     auction_manager_info.clone(),
@@ -342,56 +358,5 @@ pub fn process_redeem_bid<'a>(
         bid_redeemed: true,
         open_edition_redeemed: false,
     })?;
-    Ok(())
-}
-
-pub fn process_start_auction(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
-    let account_info_iter = &mut accounts.iter();
-    let auction_manager_info = next_account_info(account_info_iter)?;
-    let auction_info = next_account_info(account_info_iter)?;
-    let authority_info = next_account_info(account_info_iter)?;
-    let auction_program_info = next_account_info(account_info_iter)?;
-    let clock_info = next_account_info(account_info_iter)?;
-
-    let mut auction_manager: AuctionManager =
-        try_from_slice_unchecked(&auction_manager_info.data.borrow_mut())?;
-    assert_authority_correct(&auction_manager, authority_info)?;
-
-    assert_owned_by(auction_info, &auction_manager.auction_program)?;
-    assert_owned_by(auction_manager_info, program_id)?;
-
-    if auction_manager.auction != *auction_info.key {
-        return Err(MetaplexError::AuctionManagerAuctionMismatch.into());
-    }
-
-    if auction_manager.auction_program != *auction_program_info.key {
-        return Err(MetaplexError::AuctionManagerAuctionProgramMismatch.into());
-    }
-
-    if auction_manager.state.status != AuctionManagerStatus::Validated {
-        return Err(MetaplexError::AuctionManagerMustBeValidated.into());
-    }
-
-    let seeds = &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()];
-    let (_, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
-    let authority_seeds = &[
-        PREFIX.as_bytes(),
-        &auction_manager.auction.as_ref(),
-        &[bump_seed],
-    ];
-
-    issue_start_auction(
-        auction_program_info.clone(),
-        auction_manager_info.clone(),
-        auction_info.clone(),
-        clock_info.clone(),
-        auction_manager.vault,
-        authority_seeds,
-    )?;
-
-    auction_manager.state.status = AuctionManagerStatus::Running;
-
-    auction_manager.serialize(&mut *auction_manager_info.data.borrow_mut())?;
-
     Ok(())
 }

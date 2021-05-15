@@ -262,6 +262,10 @@ pub enum MetaplexError {
     /// This creator is not whitelisted
     #[error("This creator is not whitelisted")]
     InvalidWhitelistedCreator,
+
+    /// Store given does not match store on auction manager!
+    #[error("Store given does not match store on auction manager!")]
+    AuctionManagerStoreMismatch,
 }
 
 impl PrintProgramError for MetaplexError {

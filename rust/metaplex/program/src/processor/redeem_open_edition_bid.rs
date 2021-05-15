@@ -24,7 +24,7 @@ pub fn process_redeem_open_edition_bid<'a>(
 ) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
     let auction_manager_info = next_account_info(account_info_iter)?;
-    let store_info = next_account_info(account_info_iter)?;
+    let safety_deposit_token_store_info = next_account_info(account_info_iter)?;
     let destination_info = next_account_info(account_info_iter)?;
     let bid_redemption_info = next_account_info(account_info_iter)?;
     let safety_deposit_info = next_account_info(account_info_iter)?;
@@ -38,6 +38,7 @@ pub fn process_redeem_open_edition_bid<'a>(
     let token_program_info = next_account_info(account_info_iter)?;
     let token_vault_program_info = next_account_info(account_info_iter)?;
     let token_metadata_program_info = next_account_info(account_info_iter)?;
+    let store_info = next_account_info(account_info_iter)?;
     let system_info = next_account_info(account_info_iter)?;
     let rent_info = next_account_info(account_info_iter)?;
     let master_metadata_info = next_account_info(account_info_iter)?;
@@ -56,10 +57,11 @@ pub fn process_redeem_open_edition_bid<'a>(
         rent: _rent,
         destination,
         bidder_pot_pubkey,
+        store: _store,
     } = common_redeem_checks(CommonRedeemCheckArgs {
         program_id,
         auction_manager_info,
-        store_info,
+        safety_deposit_token_store_info,
         destination_info,
         bid_redemption_info,
         safety_deposit_info,
@@ -71,6 +73,7 @@ pub fn process_redeem_open_edition_bid<'a>(
         token_vault_program_info,
         token_metadata_program_info,
         rent_info,
+        store_info,
         is_open_edition: true,
     })?;
     common_metadata_checks(

@@ -9,9 +9,9 @@ pub const MAX_WINNERS: usize = 200;
 pub const MAX_WINNER_SIZE: usize = 7 * MAX_WINNERS;
 // Add 150 padding for future keys and booleans
 pub const MAX_AUCTION_MANAGER_SIZE: usize =
-    1 + 32 + 32 + 32 + 32 + 32 + 32 + 32 + 32 + 1 + 1 + 1 + 1 + MAX_WINNER_SIZE + 2 + 9 + 150;
+    1 + 32 + 32 + 32 + 32 + 1 + 1 + 1 + 1 + MAX_WINNER_SIZE + 2 + 9 + 150;
 // Add padding for future booleans/enums
-pub const MAX_STORE_SIZE: usize = 2 + 10;
+pub const MAX_STORE_SIZE: usize = 2 + 32 + 32 + 32 + 32 + 100;
 pub const MAX_WHITELISTED_CREATOR_SIZE: usize = 2 + 10;
 
 #[repr(C)]
@@ -40,14 +40,6 @@ pub struct AuctionManager {
     pub auction: Pubkey,
 
     pub vault: Pubkey,
-
-    pub auction_program: Pubkey,
-
-    pub token_vault_program: Pubkey,
-
-    pub token_metadata_program: Pubkey,
-
-    pub token_program: Pubkey,
 
     pub accept_payment: Pubkey,
 
@@ -175,6 +167,10 @@ pub struct BidRedemptionTicket {
 pub struct Store {
     pub key: Key,
     pub public: bool,
+    pub auction_program: Pubkey,
+    pub token_vault_program: Pubkey,
+    pub token_metadata_program: Pubkey,
+    pub token_program: Pubkey,
 }
 
 #[repr(C)]

@@ -70,26 +70,6 @@ export async function initAuctionManager(
       isWritable: false,
     },
     {
-      pubkey: PROGRAM_IDS.token,
-      isSigner: false,
-      isWritable: false,
-    },
-    {
-      pubkey: PROGRAM_IDS.vault,
-      isSigner: false,
-      isWritable: false,
-    },
-    {
-      pubkey: PROGRAM_IDS.metadata,
-      isSigner: false,
-      isWritable: false,
-    },
-    {
-      pubkey: PROGRAM_IDS.auction,
-      isSigner: false,
-      isWritable: false,
-    },
-    {
       pubkey: SystemProgram.programId,
       isSigner: false,
       isWritable: false,

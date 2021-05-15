@@ -404,16 +404,22 @@ async function setupRedeemOpenInstructions(
       let winningPrizeInstructions: TransactionInstruction[] = [];
       let cleanupInstructions: TransactionInstruction[] = [];
 
-      signers.push(winningPrizeSigner);
-      if (!newTokenAccount)
+      if (!newTokenAccount) {
+        // made a separate txn because we're over the txn limit by like 10 bytes.
+        let newTokenAccountSigner: Account[] = [];
+        let newTokenAccountInstructions: TransactionInstruction[] = [];
+        signers.push(newTokenAccountSigner);
+        instructions.push(newTokenAccountInstructions);
         newTokenAccount = createTokenAccount(
-          winningPrizeInstructions,
+          newTokenAccountInstructions,
           wallet.publicKey,
           accountRentExempt,
           item.masterEdition.info.masterMint,
           wallet.publicKey,
-          winningPrizeSigner,
+          newTokenAccountSigner,
         );
+      }
+      signers.push(winningPrizeSigner);
 
       let price: number = auctionView.auctionManager.info.settings
         .openEditionFixedPrice
