@@ -58,9 +58,11 @@ export const ArtCreateView = () => {
     description: '',
     externalUrl: '',
     image: '',
-    royalty: 0,
-    files: [],
-    category: MetadataCategory.Image,
+    properties: {
+      royalty: 0,
+      files: [],
+      category: MetadataCategory.Image,
+    }
   });
 
   const gotoStep = useCallback((_step: number) => {
@@ -77,14 +79,13 @@ export const ArtCreateView = () => {
     const metadata = {
       name: attributes.name,
       symbol: attributes.symbol,
-
       description: attributes.description,
-      image: attributes.image,
+      image: attributes.properties.files && attributes.properties.files?.[0] && attributes.properties.files[0].name,
       external_url: attributes.externalUrl,
       properties: {
-        files: (attributes?.files || []).map(f => f.name),
-        category: attributes.category,
-        royalty: attributes.royalty,
+        files: (attributes?.properties.files || []).map(f => f.name),
+        category: attributes.properties.category,
+        royalty: attributes.properties.royalty,
       },
     };
     setSaving(true);
@@ -94,9 +95,9 @@ export const ArtCreateView = () => {
       connection,
       wallet,
       env,
-      attributes?.files || [],
+      attributes?.properties.files || [],
       metadata,
-      attributes.maxSupply,
+      attributes.properties.maxSupply,
     );
     if (_nft) setNft(_nft);
     clearInterval(inte);
@@ -127,7 +128,10 @@ export const ArtCreateView = () => {
               confirm={(category: MetadataCategory) => {
                 setAttributes({
                   ...attributes,
-                  category,
+                  properties: {
+                    ...attributes.properties,
+                    category
+                  },
                 });
                 gotoStep(1);
               }}
@@ -259,7 +263,10 @@ const UploadStep = (props: {
   useEffect(() => {
     props.setAttributes({
       ...props.attributes,
-      files: [],
+      properties: {
+        ...props.attributes.properties,
+        files: [],
+      },
     });
   }, []);
 
@@ -289,7 +296,7 @@ const UploadStep = (props: {
         </p>
       </Row>
       <Row className="content-action">
-        <h3>{uploadMsg(props.attributes.category)}</h3>
+        <h3>{uploadMsg(props.attributes.properties.category)}</h3>
         <Dragger
           style={{ padding: 20 }}
           multiple={false}
@@ -301,7 +308,7 @@ const UploadStep = (props: {
           onChange={async info => {
             const file = info.file.originFileObj;
             if (file) setMainFile(file);
-            if (props.attributes.category !== MetadataCategory.Audio) {
+            if (props.attributes.properties.category !== MetadataCategory.Audio) {
               const reader = new FileReader();
               reader.onload = function (event) {
                 setImage((event.target?.result as string) || '');
@@ -316,7 +323,7 @@ const UploadStep = (props: {
           <p className="ant-upload-text">Drag and drop, or click to browse</p>
         </Dragger>
       </Row>
-      {props.attributes.category === MetadataCategory.Audio && (
+      {props.attributes.properties.category === MetadataCategory.Audio && (
         <Row className="content-action">
           <h3>
             Optionally, you can upload a cover image or video (PNG, JPG, GIF,
@@ -333,7 +340,7 @@ const UploadStep = (props: {
             onChange={async info => {
               const file = info.file.originFileObj;
               if (file) setCoverFile(file);
-              if (props.attributes.category === MetadataCategory.Audio) {
+              if (props.attributes.properties.category === MetadataCategory.Audio) {
                 const reader = new FileReader();
                 reader.onload = function (event) {
                   setImage((event.target?.result as string) || '');
@@ -358,9 +365,12 @@ const UploadStep = (props: {
           onClick={() => {
             props.setAttributes({
               ...props.attributes,
-              files: [mainFile, coverFile]
+              properties: {
+                ...props.attributes.properties,
+                files: [mainFile, coverFile]
                 .filter(f => f)
                 .map(f => new File([f], cleanName(f.name), { type: f.type })),
+              },
               image,
             });
             props.confirm();
@@ -410,7 +420,7 @@ const InfoStep = (props: {
           {props.attributes.image && (
             <ArtCard
               image={props.attributes.image}
-              category={props.attributes.category}
+              category={props.attributes.properties.category}
               name={props.attributes.name}
               symbol={props.attributes.symbol}
               small={true}
@@ -596,7 +606,7 @@ const RoyaltiesStep = (props: {
           {file && (
             <ArtCard
               image={props.attributes.image}
-              category={props.attributes.category}
+              category={props.attributes.properties.category}
               name={props.attributes.name}
               symbol={props.attributes.symbol}
               small={true}
@@ -612,7 +622,11 @@ const RoyaltiesStep = (props: {
               max={100}
               placeholder="Between 0 and 100"
               onChange={(val: number) => {
-                props.setAttributes({ ...props.attributes, royalty: val });
+                props.setAttributes({ ...props.attributes,
+                  properties: {
+                    ...props.attributes.properties,
+                    royalty: val,
+                  }, });
               }}
               className="royalties-input"
             />
@@ -622,7 +636,13 @@ const RoyaltiesStep = (props: {
             <InputNumber
               placeholder="Quantity"
               onChange={(val: number) => {
-                props.setAttributes({ ...props.attributes, maxSupply: val });
+                props.setAttributes({
+                  ...props.attributes,
+                  properties: {
+                    ...props.attributes.properties,
+                    maxSupply: val
+                  },
+                });
               }}
               className="royalties-input"
             />
@@ -648,7 +668,7 @@ const LaunchStep = (props: {
   attributes: IMetadataExtension;
   connection: Connection;
 }) => {
-  const files = props.attributes.files || [];
+  const files = props.attributes.properties.files || [];
   const metadata = {
     ...(props.attributes as any),
     files: files.map(f => f?.name),
@@ -702,7 +722,7 @@ const LaunchStep = (props: {
           {props.attributes.image && (
             <ArtCard
               image={props.attributes.image}
-              category={props.attributes.category}
+              category={props.attributes.properties.category}
               name={props.attributes.name}
               symbol={props.attributes.symbol}
               small={true}
@@ -713,7 +733,7 @@ const LaunchStep = (props: {
           <Statistic
             className="create-statistic"
             title="Royalty Percentage"
-            value={props.attributes.royalty}
+            value={props.attributes.properties.royalty}
             suffix="%"
           />
           {cost ? (

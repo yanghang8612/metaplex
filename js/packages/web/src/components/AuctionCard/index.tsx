@@ -14,6 +14,8 @@ import {
   Identicon,
   MetaplexModal,
   formatAmount,
+  cache,
+  formatTokenAmount,
 } from '@oyster/common';
 import {
   AuctionView,
@@ -29,6 +31,7 @@ import {
 import { AmountLabel } from '../AmountLabel';
 import { sendCancelBid } from '../../actions/cancelBid';
 import BN from 'bn.js';
+import { MintInfo } from '@solana/spl-token';
 
 const { useWallet } = contexts.Wallet;
 
@@ -48,7 +51,9 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
 
   const bids = useBidsForAuction(auctionView.auction.pubkey);
 
-  const balance = useUserBalance(auctionView.auction.info.tokenMint);
+  const mint = auctionView.auction.info.tokenMint;
+  const mintAccount = cache.get(auctionView.auction.info.tokenMint) as ParsedAccount<MintInfo>;
+  const balance = useUserBalance(mint);
 
   const myPayingAccount = balance.accounts[0];
   let winnerIndex = null;
@@ -191,7 +196,7 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
           PLACE BID
         </Button>
       )}
-      <AuctionBids bids={bids} />
+      <AuctionBids bids={bids} mint={mintAccount.info} />
       <MetaplexModal visible={showMModal} onCancel={() => setShowMModal(false)}>
         <h2>Congratulations!</h2>
         <p>Your bid has been placed</p>
@@ -208,8 +213,10 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
 };
 
 export const AuctionBids = ({
+  mint,
   bids,
 }: {
+  mint: MintInfo
   bids: ParsedAccount<BidderMetadata>[];
 }) => {
   return (
@@ -234,7 +241,7 @@ export const AuctionBids = ({
               </Row>
             </Col>
             <Col span={5} style={{ textAlign: 'right' }}>
-              {bid.info.lastBid.toString()}
+              {formatTokenAmount(bid.info.lastBid, mint)}
             </Col>
           </Row>
         );

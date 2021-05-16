@@ -20,7 +20,7 @@ export let BPF_UPGRADE_LOADER_ID = new PublicKey(
 );
 
 export const METADATA_PROGRAM_ID = new PublicKey(
-  'H88wygGuVdaH1Xpz8Hgj6gxqcFeS4bPnUNP1rfBHPQEF',
+  'FEUE7ZEwqez6sHjJUCCoMHTuTFVHJTwTqJRc6AAwgcge',
 );
 
 export const MEMO_ID = new PublicKey(

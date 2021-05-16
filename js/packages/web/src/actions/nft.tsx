@@ -171,6 +171,8 @@ export const mintNFT = async (
   data.append('transaction', txid);
   realFiles.map(f => data.append('file[]', f));
 
+  // TODO: convert to absolute file name for image
+
   const result: IArweaveResult = await (
     await fetch(
       // TODO: add CNAME

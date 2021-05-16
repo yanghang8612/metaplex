@@ -41,10 +41,13 @@ export interface IMetadataExtension {
   image: string;
   // stores link to item on meta
   externalUrl: string;
-  royalty: number;
-  files?: File[];
-  category: MetadataCategory;
-  maxSupply?: number;
+
+  properties: {
+    royalty: number;
+    files?: File[];
+    category: MetadataCategory;
+    maxSupply?: number;
+  };
 }
 
 export class MasterEdition {
