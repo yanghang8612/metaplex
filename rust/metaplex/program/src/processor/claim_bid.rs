@@ -1,8 +1,8 @@
 use {
     crate::{
         error::MetaplexError,
-        state::{AuctionManager, AuctionManagerStatus, PREFIX},
-        utils::assert_owned_by,
+        state::{AuctionManager, AuctionManagerStatus, Store, PREFIX},
+        utils::{assert_derivation, assert_owned_by},
     },
     borsh::BorshSerialize,
     solana_program::{
@@ -71,22 +71,28 @@ pub fn process_claim_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Progr
     let token_mint_info = next_account_info(account_info_iter)?;
     let vault_info = next_account_info(account_info_iter)?;
     let auction_manager_info = next_account_info(account_info_iter)?;
+    let store_info = next_account_info(account_info_iter)?;
     let auction_program_info = next_account_info(account_info_iter)?;
     let clock_info = next_account_info(account_info_iter)?;
     let token_program_info = next_account_info(account_info_iter)?;
 
     let mut auction_manager: AuctionManager =
         try_from_slice_unchecked(&auction_manager_info.data.borrow_mut())?;
+    let store: Store = try_from_slice_unchecked(&store_info.data.borrow_mut())?;
     let auction: AuctionData = try_from_slice_unchecked(&auction_info.data.borrow_mut())?;
 
-    assert_owned_by(auction_info, &auction_manager.auction_program)?;
+    assert_owned_by(auction_info, &store.auction_program)?;
     assert_owned_by(auction_manager_info, program_id)?;
+
+    if auction_manager.store != *store_info.key {
+        return Err(MetaplexError::AuctionManagerStoreMismatch.into());
+    }
 
     if auction_manager.auction != *auction_info.key {
         return Err(MetaplexError::AuctionManagerAuctionMismatch.into());
     }
 
-    if auction_manager.auction_program != *auction_program_info.key {
+    if store.auction_program != *auction_program_info.key {
         return Err(MetaplexError::AuctionManagerAuctionProgramMismatch.into());
     }
 
@@ -108,17 +114,16 @@ pub fn process_claim_bid(program_id: &Pubkey, accounts: &[AccountInfo]) -> Progr
         auction_manager.serialize(&mut *auction_manager_info.data.borrow_mut())?;
     }
 
-    let seeds = &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()];
-    let (key, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
+    let bump_seed = assert_derivation(
+        program_id,
+        auction_manager_info,
+        &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()],
+    )?;
     let authority_seeds = &[
         PREFIX.as_bytes(),
         &auction_manager.auction.as_ref(),
         &[bump_seed],
     ];
-
-    if key != *auction_manager_info.key {
-        return Err(MetaplexError::AuctionManagerKeyMismatch.into());
-    }
 
     issue_claim_bid(
         auction_program_info.clone(),

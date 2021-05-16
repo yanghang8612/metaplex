@@ -17,6 +17,7 @@ import {
   sendTransactions,
   cache,
   ensureWrappedAccount,
+  sendTransactionWithRetry,
 } from '@oyster/common';
 
 import { AccountLayout, MintLayout, Token } from '@solana/spl-token';
@@ -75,51 +76,53 @@ export async function sendRedeemBid(
   console.log('Winner index', winnerIndex);
 
   if (winnerIndex !== null) {
-    const winningConfig =
-      auctionView.auctionManager.info.settings.winningConfigs[winnerIndex];
-    const item = auctionView.items[winnerIndex];
-    const safetyDeposit = item.safetyDeposit;
-    switch (winningConfig.editionType) {
-      case EditionType.LimitedEdition:
-        console.log('Redeeming limited');
-        await setupRedeemLimitedInstructions(
-          auctionView,
-          accountsByMint,
-          accountRentExempt,
-          mintRentExempt,
-          wallet,
-          safetyDeposit,
-          item,
-          signers,
-          instructions,
-          winningConfig,
-        );
-        break;
-      case EditionType.MasterEdition:
-        console.log('Redeeming master');
-        await setupRedeemMasterInstructions(
-          auctionView,
-          accountsByMint,
-          accountRentExempt,
-          wallet,
-          safetyDeposit,
-          item,
-          signers,
-          instructions,
-        );
-        break;
-      case EditionType.NA:
-        console.log('Redeeming normal');
-        await setupRedeemInstructions(
-          auctionView,
-          accountsByMint,
-          accountRentExempt,
-          wallet,
-          safetyDeposit,
-          signers,
-          instructions,
-        );
-        break;
+    if (!auctionView.myBidRedemption?.info.bidRedeemed) {
+      const winningConfig =
+        auctionView.auctionManager.info.settings.winningConfigs[winnerIndex];
+      const item = auctionView.items[winnerIndex];
+      const safetyDeposit = item.safetyDeposit;
+      switch (winningConfig.editionType) {
+        case EditionType.LimitedEdition:
+          console.log('Redeeming limited');
+          await setupRedeemLimitedInstructions(
+            auctionView,
+            accountsByMint,
+            accountRentExempt,
+            mintRentExempt,
+            wallet,
+            safetyDeposit,
+            item,
+            signers,
+            instructions,
+            winningConfig,
+          );
+          break;
+        case EditionType.MasterEdition:
+          console.log('Redeeming master');
+          await setupRedeemMasterInstructions(
+            auctionView,
+            accountsByMint,
+            accountRentExempt,
+            wallet,
+            safetyDeposit,
+            item,
+            signers,
+            instructions,
+          );
+          break;
+        case EditionType.NA:
+          console.log('Redeeming normal');
+          await setupRedeemInstructions(
+            auctionView,
+            accountsByMint,
+            accountRentExempt,
+            wallet,
+            safetyDeposit,
+            signers,
+            instructions,
+          );
+          break;
+      }
     }
 
     if (auctionView.myBidderMetadata && auctionView.myBidderPot) {
@@ -168,14 +171,22 @@ export async function sendRedeemBid(
     );
   }
 
-  await sendTransactions(
-    connection,
-    wallet,
-    instructions,
-    signers,
-    SequenceType.StopOnFailure,
-    'single',
-  );
+  instructions.length == 1
+    ? await sendTransactionWithRetry(
+        connection,
+        wallet,
+        instructions[0],
+        signers[0],
+        'single',
+      )
+    : await sendTransactions(
+        connection,
+        wallet,
+        instructions,
+        signers,
+        SequenceType.StopOnFailure,
+        'single',
+      );
 }
 
 async function setupRedeemInstructions(
@@ -312,7 +323,8 @@ async function setupRedeemLimitedInstructions(
 
       for (let i = 0; i < winningConfig.amount; i++) {
         let cashInLimitedPrizeAuthorizationTokenSigner: Account[] = [];
-        let cashInLimitedPrizeAuthorizationTokenInstruction: TransactionInstruction[] = [];
+        let cashInLimitedPrizeAuthorizationTokenInstruction: TransactionInstruction[] =
+          [];
         signers.push(cashInLimitedPrizeAuthorizationTokenSigner);
         instructions.push(cashInLimitedPrizeAuthorizationTokenInstruction);
 
@@ -398,21 +410,27 @@ async function setupRedeemOpenInstructions(
       item.masterEdition.info.masterMint.toBase58(),
     )?.pubkey;
 
-    if (!auctionView.myBidRedemption?.info.bidRedeemed) {
+    if (!auctionView.myBidRedemption?.info.openEditionRedeemed) {
       let winningPrizeSigner: Account[] = [];
       let winningPrizeInstructions: TransactionInstruction[] = [];
       let cleanupInstructions: TransactionInstruction[] = [];
 
-      signers.push(winningPrizeSigner);
-      if (!newTokenAccount)
+      if (!newTokenAccount) {
+        // made a separate txn because we're over the txn limit by like 10 bytes.
+        let newTokenAccountSigner: Account[] = [];
+        let newTokenAccountInstructions: TransactionInstruction[] = [];
+        signers.push(newTokenAccountSigner);
+        instructions.push(newTokenAccountInstructions);
         newTokenAccount = createTokenAccount(
-          winningPrizeInstructions,
+          newTokenAccountInstructions,
           wallet.publicKey,
           accountRentExempt,
           item.masterEdition.info.masterMint,
           wallet.publicKey,
-          winningPrizeSigner,
+          newTokenAccountSigner,
         );
+      }
+      signers.push(winningPrizeSigner);
 
       let price: number = auctionView.auctionManager.info.settings
         .openEditionFixedPrice
@@ -459,7 +477,8 @@ async function setupRedeemOpenInstructions(
 
     if (newTokenAccount) {
       let cashInOpenPrizeAuthorizationTokenSigner: Account[] = [];
-      let cashInOpenPrizeAuthorizationTokenInstruction: TransactionInstruction[] = [];
+      let cashInOpenPrizeAuthorizationTokenInstruction: TransactionInstruction[] =
+        [];
       signers.push(cashInOpenPrizeAuthorizationTokenSigner);
       instructions.push(cashInOpenPrizeAuthorizationTokenInstruction);
 

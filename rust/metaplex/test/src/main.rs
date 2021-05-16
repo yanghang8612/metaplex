@@ -20,10 +20,10 @@ use {
     validate_safety_deposits::validate_safety_deposits,
 };
 
-pub const VAULT_PROGRAM_PUBKEY: &str = "6CniVQvDCWGW6vNhR6G7rPUJSVnocKz1BVb7pRDWUN7b";
-pub const AUCTION_PROGRAM_PUBKEY: &str = "HLGetPpEUaagthEtF4px9S24hwJrwz3qvgRZxkWTw4ei";
+pub const VAULT_PROGRAM_PUBKEY: &str = "GeQcdU63wetoiz4iE925wzFScjd3Xgqy7k6uQhXYZesa";
+pub const AUCTION_PROGRAM_PUBKEY: &str = "DBPY5XNr398qXCWkri9qaSar3kPgzHCkfa8r8agRKgsw";
 
-pub const PROGRAM_PUBKEY: &str = "47FzVrretFY2S1waDyBnBK5ockLW3e1B5tA2jxrKemM2";
+pub const PROGRAM_PUBKEY: &str = "3UQycUN83Kj5NTPdVCwhoohSr6WA2uaBrFPzpwFsRm7J";
 
 pub const TOKEN_PROGRAM_PUBKEY: &str = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 
@@ -48,6 +48,15 @@ fn main() {
                 .global(true)
                 .validator(is_url)
                 .help("JSON RPC URL for the cluster [default: devnet]"),
+        )
+        .arg(
+            Arg::with_name("admin")
+                .long("admin")
+                .value_name("ADMIN")
+                .required(false)
+                .validator(is_valid_signer)
+                .takes_value(true)
+                .help("Admin of the store you want to use, defaults to your key"),
         )
         .subcommand(
             SubCommand::with_name("init")

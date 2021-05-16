@@ -5,8 +5,8 @@ use {
         error::MetaplexError,
         state::{AuctionManager, PREFIX},
         utils::{
-            assert_authority_correct, assert_initialized, assert_owned_by, assert_rent_exempt,
-            spl_token_transfer,
+            assert_authority_correct, assert_derivation, assert_initialized, assert_owned_by,
+            assert_rent_exempt, spl_token_transfer,
         },
     },
     solana_program::{
@@ -51,17 +51,17 @@ pub fn process_empty_payment_account(
         return Err(MetaplexError::AcceptPaymentMintMismatch.into());
     }
 
-    let seeds = &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()];
-    let (key, bump_seed) = Pubkey::find_program_address(seeds, &program_id);
+    let bump_seed = assert_derivation(
+        program_id,
+        auction_manager_info,
+        &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()],
+    )?;
+
     let authority_seeds = &[
         PREFIX.as_bytes(),
         &auction_manager.auction.as_ref(),
         &[bump_seed],
     ];
-
-    if key != *auction_manager_info.key {
-        return Err(MetaplexError::AuctionManagerKeyMismatch.into());
-    }
 
     spl_token_transfer(
         accept_payment_info.clone(),

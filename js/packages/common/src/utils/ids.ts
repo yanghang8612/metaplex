@@ -1,6 +1,10 @@
 import { PublicKey } from '@solana/web3.js';
 import { TokenSwapLayout, TokenSwapLayoutV1 } from '../models/tokenSwap';
 
+export const STORE = new PublicKey(
+  'DD2F5f61MCwFRJaQtS1R4VC9UfTNMg82SWnyfvEDFEKY',
+);
+
 export const WRAPPED_SOL_MINT = new PublicKey(
   'So11111111111111111111111111111111111111112',
 );
@@ -20,7 +24,7 @@ export let BPF_UPGRADE_LOADER_ID = new PublicKey(
 );
 
 export const METADATA_PROGRAM_ID = new PublicKey(
-  'H88wygGuVdaH1Xpz8Hgj6gxqcFeS4bPnUNP1rfBHPQEF',
+  '3pYAqFimm1vtkGCK736VKEQNoyqsAc1bZJdBZHfyqeWf',
 );
 
 export const MEMO_ID = new PublicKey(
@@ -28,15 +32,15 @@ export const MEMO_ID = new PublicKey(
 );
 
 export const VAULT_ID = new PublicKey(
-  '6CniVQvDCWGW6vNhR6G7rPUJSVnocKz1BVb7pRDWUN7b',
+  'GeQcdU63wetoiz4iE925wzFScjd3Xgqy7k6uQhXYZesa',
 );
 
 export const AUCTION_ID = new PublicKey(
-  'HLGetPpEUaagthEtF4px9S24hwJrwz3qvgRZxkWTw4ei',
+  'DBPY5XNr398qXCWkri9qaSar3kPgzHCkfa8r8agRKgsw',
 );
 
 export const METAPLEX_ID = new PublicKey(
-  '47FzVrretFY2S1waDyBnBK5ockLW3e1B5tA2jxrKemM2',
+  '3UQycUN83Kj5NTPdVCwhoohSr6WA2uaBrFPzpwFsRm7J',
 );
 
 export let SYSTEM = new PublicKey('11111111111111111111111111111111');
@@ -183,5 +187,6 @@ export const programIds = () => {
     vault: VAULT_ID,
     auction: AUCTION_ID,
     metaplex: METAPLEX_ID,
+    store: STORE,
   };
 };

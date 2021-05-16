@@ -12,7 +12,7 @@ use {
     },
     solana_sdk::{
         pubkey::Pubkey,
-        signature::{Keypair, Signer},
+        signature::{read_keypair_file, Keypair, Signer},
         system_instruction::create_account,
         transaction::Transaction,
     },
@@ -20,12 +20,16 @@ use {
         instruction::create_auction_instruction,
         processor::{create_auction::CreateAuctionArgs, PriceFloor, WinnerLimit},
     },
-    spl_metaplex::{instruction::create_init_auction_manager_instruction, state::AuctionManager},
+    spl_metaplex::{
+        instruction::create_init_auction_manager_instruction,
+        instruction::create_set_store_instruction,
+        instruction::create_validate_open_edition_instruction, state::AuctionManager,
+    },
     spl_token::{
         instruction::{initialize_account, initialize_mint},
         state::{Account, Mint},
     },
-    spl_token_metadata::state::{Key, MasterEdition, Metadata, EDITION},
+    spl_token_metadata::state::{MasterEdition, Metadata, EDITION},
     spl_token_vault::{
         instruction::create_update_external_price_account_instruction,
         state::MAX_EXTERNAL_ACCOUNT_SIZE,
@@ -96,6 +100,44 @@ fn find_or_initialize_external_account<'a>(
     }
 
     external_key
+}
+
+fn find_or_initialize_store(
+    app_matches: &ArgMatches,
+    payer: &Keypair,
+    client: &RpcClient,
+) -> Pubkey {
+    let admin = read_keypair_file(
+        app_matches
+            .value_of("admin")
+            .unwrap_or_else(|| app_matches.value_of("keypair").unwrap()),
+    )
+    .unwrap();
+
+    let program_key = Pubkey::from_str(PROGRAM_PUBKEY).unwrap();
+    let admin_key = admin.pubkey();
+
+    let seeds = &[
+        spl_metaplex::state::PREFIX.as_bytes(),
+        &program_key.as_ref(),
+        &admin_key.as_ref(),
+    ];
+    let (store_key, _) = Pubkey::find_program_address(seeds, &program_key);
+
+    let instructions = [create_set_store_instruction(
+        program_key,
+        store_key,
+        admin.pubkey(),
+        payer.pubkey(),
+        true,
+    )];
+
+    let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
+    let recent_blockhash = client.get_recent_blockhash().unwrap().0;
+
+    transaction.sign(&[&admin, &payer], recent_blockhash);
+    client.send_and_confirm_transaction(&transaction).unwrap();
+    store_key
 }
 
 fn find_or_initialize_auction(
@@ -259,6 +301,7 @@ pub fn initialize_auction_manager(
     let accept_payment_account_key = Keypair::new();
     let token_key = Pubkey::from_str(TOKEN_PROGRAM_PUBKEY).unwrap();
     let authority = pubkey_of(app_matches, "authority").unwrap_or_else(|| payer.pubkey());
+    let store_key = find_or_initialize_store(app_matches, &payer, &client);
 
     let (settings, json_settings) = parse_settings(app_matches.value_of("settings_file").unwrap());
 
@@ -315,58 +358,6 @@ pub fn initialize_auction_manager(
     println!("Printed mints to file {:?}.json", auction_manager_key);
 
     let token_metadata = spl_token_metadata::id();
-    let metadata_key: Option<Pubkey>;
-    let metadata_authority: Option<Pubkey>;
-    let edition_key: Option<Pubkey>;
-    let open_edition_master_mint: Option<Pubkey>;
-    let open_edition_master_mint_authority: Option<Pubkey>;
-
-    match open_edition_mint_key {
-        Some(val) => {
-            let metadata_seeds = &[
-                spl_token_metadata::state::PREFIX.as_bytes(),
-                &token_metadata.as_ref(),
-                &val.as_ref(),
-            ];
-            let (mkey, _) = Pubkey::find_program_address(metadata_seeds, &spl_token_metadata::id());
-            let metadata_account = client.get_account(&mkey).unwrap();
-            metadata_key = Some(mkey);
-            let metadata: Metadata = try_from_slice_unchecked(&metadata_account.data).unwrap();
-
-            metadata_authority = Some(metadata.update_authority);
-
-            let edition_seeds = &[
-                spl_token_metadata::state::PREFIX.as_bytes(),
-                token_metadata.as_ref(),
-                val.as_ref(),
-                EDITION.as_bytes(),
-            ];
-            let (ek, _) = Pubkey::find_program_address(edition_seeds, &token_metadata);
-            edition_key = Some(ek);
-            let master_edition_account = client.get_account(&ek);
-
-            open_edition_master_mint_authority = Some(payer.pubkey());
-            match master_edition_account {
-                Ok(acct) => {
-                    if acct.data[0] == Key::MasterEditionV1 as u8 {
-                        let master_edition: MasterEdition =
-                            try_from_slice_unchecked(&acct.data).unwrap();
-                        open_edition_master_mint = Some(master_edition.master_mint);
-                    } else {
-                        open_edition_master_mint = None
-                    }
-                }
-                Err(_) => open_edition_master_mint = None,
-            }
-        }
-        None => {
-            metadata_key = None;
-            metadata_authority = None;
-            edition_key = None;
-            open_edition_master_mint = None;
-            open_edition_master_mint_authority = None;
-        }
-    }
 
     instructions.push(create_account(
         &payer.pubkey(),
@@ -392,19 +383,54 @@ pub fn initialize_auction_manager(
         auction_manager_key,
         vault_key,
         auction_key,
-        metadata_key,
-        metadata_authority,
-        edition_key,
-        open_edition_mint_key,
-        open_edition_master_mint,
-        open_edition_master_mint_authority,
         authority,
         payer.pubkey(),
         accept_payment_account_key.pubkey(),
-        vault_program_key,
-        auction_program_key,
+        store_key,
         settings,
     ));
+
+    if let Some(mint_key) = open_edition_mint_key {
+        let metadata_seeds = &[
+            spl_token_metadata::state::PREFIX.as_bytes(),
+            &token_metadata.as_ref(),
+            &mint_key.as_ref(),
+        ];
+        let (metadata_key, _) =
+            Pubkey::find_program_address(metadata_seeds, &spl_token_metadata::id());
+        let metadata_account = client.get_account(&metadata_key).unwrap();
+        let metadata: Metadata = try_from_slice_unchecked(&metadata_account.data).unwrap();
+
+        let metadata_authority = metadata.update_authority;
+
+        let edition_seeds = &[
+            spl_token_metadata::state::PREFIX.as_bytes(),
+            token_metadata.as_ref(),
+            mint_key.as_ref(),
+            EDITION.as_bytes(),
+        ];
+        let (edition_key, _) = Pubkey::find_program_address(edition_seeds, &token_metadata);
+        let master_edition_account = client.get_account(&edition_key).unwrap();
+        let master_edition: MasterEdition =
+            try_from_slice_unchecked(&master_edition_account.data).unwrap();
+        let open_edition_master_mint = master_edition.master_mint;
+        let open_edition_master_mint_authority = payer.pubkey();
+
+        instructions.push(create_validate_open_edition_instruction(
+            program_key,
+            auction_manager_key,
+            vault_key,
+            metadata_key,
+            metadata_authority,
+            mint_key,
+            edition_key,
+            open_edition_master_mint,
+            open_edition_master_mint_authority,
+            solana_program::system_program::id(),
+            authority,
+            store_key,
+        ));
+    }
 
     let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
     let recent_blockhash = client.get_recent_blockhash().unwrap().0;

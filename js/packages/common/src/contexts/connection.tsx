@@ -329,7 +329,9 @@ export const sendTransactions = async (
     }
   }
 
-  await Promise.all(pendingTxns);
+  if (sequenceType !== SequenceType.Parallel) {
+    await Promise.all(pendingTxns);
+  }
 
   return signedTxns.length;
 };

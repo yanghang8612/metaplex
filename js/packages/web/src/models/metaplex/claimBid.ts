@@ -70,7 +70,11 @@ export async function claimBid(
       isSigner: false,
       isWritable: false,
     },
-
+    {
+      pubkey: PROGRAM_IDS.store,
+      isSigner: false,
+      isWritable: false,
+    },
     {
       pubkey: PROGRAM_IDS.auction,
       isSigner: false,

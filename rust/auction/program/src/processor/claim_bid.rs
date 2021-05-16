@@ -119,11 +119,6 @@ pub fn claim_bid(
         return Err(AuctionError::InvalidState.into());
     }
 
-    // Pot must contain tokens.
-    if actual_account.amount == 0 {
-        return Err(AuctionError::BidderPotEmpty.into());
-    }
-
     // The mint provided in this claim must match the one the auction was initialized with.
     if auction.token_mint != *accounts.mint.key {
         return Err(AuctionError::IncorrectMint.into());

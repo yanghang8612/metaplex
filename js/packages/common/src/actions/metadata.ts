@@ -17,8 +17,19 @@ export const MAX_SYMBOL_LENGTH = 10;
 
 export const MAX_URI_LENGTH = 200;
 
+export const MAX_CREATOR_LIMIT = 5;
+
+export const MAX_CREATOR_LEN = 32 + 1 + 1;
+
 export const MAX_METADATA_LEN =
-  1 + 32 + 32 + MAX_NAME_LENGTH + MAX_SYMBOL_LENGTH + MAX_URI_LENGTH + 200;
+  1 +
+  32 +
+  32 +
+  MAX_NAME_LENGTH +
+  MAX_SYMBOL_LENGTH +
+  MAX_URI_LENGTH +
+  MAX_CREATOR_LIMIT * MAX_CREATOR_LEN +
+  200;
 
 export const MAX_MASTER_EDITION_KEN = 1 + 9 + 8 + 32;
 
@@ -82,55 +93,74 @@ export class Edition {
     this.edition = args.edition;
   }
 }
-export class Metadata {
-  key: MetadataKey;
-  updateAuthority: PublicKey;
 
-  mint: PublicKey;
+export class Creator {
+  address: PublicKey;
+  verified: boolean;
+  perc: number;
+
+  constructor(args: { address: PublicKey; verified: boolean; perc: number }) {
+    this.address = args.address;
+    this.verified = args.verified;
+    this.perc = args.perc;
+  }
+}
+
+export class Data {
   name: string;
   symbol: string;
   uri: string;
+  creators: Creator[] | null;
+  constructor(args: {
+    name: string;
+    symbol: string;
+    uri: string;
+    creators: Creator[] | null;
+  }) {
+    this.name = args.name;
+    this.symbol = args.symbol;
+    this.uri = args.uri;
+    this.creators = args.creators;
+  }
+}
+
+export class Metadata {
+  key: MetadataKey;
+  updateAuthority: PublicKey;
+  mint: PublicKey;
+  data: Data;
 
   extended?: IMetadataExtension;
   masterEdition?: PublicKey;
   edition?: PublicKey;
-
   constructor(args: {
     updateAuthority: PublicKey;
     mint: PublicKey;
-    name: string;
-    symbol: string;
-    uri: string;
+    data: Data;
   }) {
     this.key = MetadataKey.MetadataV1;
     this.updateAuthority = args.updateAuthority;
     this.mint = args.mint;
-    this.name = args.name;
-    this.symbol = args.symbol;
-    this.uri = args.uri;
+    this.data = args.data;
   }
 }
 
 class CreateMetadataArgs {
   instruction: number = 0;
-  name: string;
-  symbol: string;
-  uri: string;
+  data: Data;
 
-  constructor(args: { name: string; symbol: string; uri: string }) {
-    this.name = args.name;
-    this.symbol = args.symbol;
-    this.uri = args.uri;
+  constructor(args: { data: Data }) {
+    this.data = args.data;
   }
 }
 class UpdateMetadataArgs {
   instruction: number = 1;
-  uri: string | null;
+  data: Data | null;
   // Not used by this app, just required for instruction
   updateAuthority: PublicKey | null;
 
-  constructor(args: { uri?: string; updateAuthority?: string }) {
-    this.uri = args.uri ? args.uri : null;
+  constructor(args: { data?: Data; updateAuthority?: string }) {
+    this.data = args.data ? args.data : null;
     this.updateAuthority = args.updateAuthority
       ? new PublicKey(args.updateAuthority)
       : null;
@@ -152,9 +182,7 @@ export const METADATA_SCHEMA = new Map<any, any>([
       kind: 'struct',
       fields: [
         ['instruction', 'u8'],
-        ['name', 'string'],
-        ['symbol', 'string'],
-        ['uri', 'string'],
+        ['data', Data],
       ],
     },
   ],
@@ -164,7 +192,7 @@ export const METADATA_SCHEMA = new Map<any, any>([
       kind: 'struct',
       fields: [
         ['instruction', 'u8'],
-        ['uri', { kind: 'option', type: 'string' }],
+        ['data', { kind: 'option', type: Data }],
         ['updateAuthority', { kind: 'option', type: 'pubkey' }],
       ],
     },
@@ -204,6 +232,29 @@ export const METADATA_SCHEMA = new Map<any, any>([
     },
   ],
   [
+    Data,
+    {
+      kind: 'struct',
+      fields: [
+        ['name', 'string'],
+        ['symbol', 'string'],
+        ['uri', 'string'],
+        ['creators', { kind: 'option', type: [Creator] }],
+      ],
+    },
+  ],
+  [
+    Creator,
+    {
+      kind: 'struct',
+      fields: [
+        ['address', 'pubkey'],
+        ['verified', 'u8'],
+        ['perc', 'u8'],
+      ],
+    },
+  ],
+  [
     Metadata,
     {
       kind: 'struct',
@@ -211,9 +262,7 @@ export const METADATA_SCHEMA = new Map<any, any>([
         ['key', 'u8'],
         ['updateAuthority', 'pubkey'],
         ['mint', 'pubkey'],
-        ['name', 'string'],
-        ['symbol', 'string'],
-        ['uri', 'string'],
+        ['data', Data],
       ],
     },
   ],
@@ -243,7 +292,7 @@ export const decodeMasterEdition = (buffer: Buffer) => {
 };
 
 export async function updateMetadata(
-  uri: string,
+  data: Data | undefined,
   newUpdateAuthority: string | undefined,
   mintKey: PublicKey,
   updateAuthority: PublicKey,
@@ -266,10 +315,10 @@ export async function updateMetadata(
     )[0];
 
   const value = new UpdateMetadataArgs({
-    uri,
+    data,
     updateAuthority: !newUpdateAuthority ? undefined : newUpdateAuthority,
   });
-  const data = Buffer.from(serialize(METADATA_SCHEMA, value));
+  const txnData = Buffer.from(serialize(METADATA_SCHEMA, value));
   const keys = [
     {
       pubkey: metadataAccount,
@@ -286,7 +335,7 @@ export async function updateMetadata(
     new TransactionInstruction({
       keys,
       programId: metadataProgramId,
-      data,
+      data: txnData,
     }),
   );
 
@@ -294,9 +343,7 @@ export async function updateMetadata(
 }
 
 export async function createMetadata(
-  symbol: string,
-  name: string,
-  uri: string,
+  data: Data,
   updateAuthority: PublicKey,
   mintKey: PublicKey,
   mintAuthorityKey: PublicKey,
@@ -316,8 +363,8 @@ export async function createMetadata(
     )
   )[0];
 
-  const value = new CreateMetadataArgs({ name, symbol, uri });
-  const data = Buffer.from(serialize(METADATA_SCHEMA, value));
+  const value = new CreateMetadataArgs({ data });
+  const txnData = Buffer.from(serialize(METADATA_SCHEMA, value));
 
   const keys = [
     {
@@ -360,7 +407,7 @@ export async function createMetadata(
     new TransactionInstruction({
       keys,
       programId: metadataProgramId,
-      data,
+      data: txnData,
     }),
   );
 

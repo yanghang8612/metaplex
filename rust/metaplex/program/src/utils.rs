@@ -3,7 +3,8 @@ use {
         error::MetaplexError,
         state::{
             AuctionManager, AuctionManagerStatus, BidRedemptionTicket, Key,
-            OriginalAuthorityLookup, WinningConfig, WinningConfigState, PREFIX,
+            OriginalAuthorityLookup, Store, WhitelistedCreator, WinningConfig, WinningConfigState,
+            PREFIX,
         },
     },
     borsh::BorshSerialize,
@@ -20,10 +21,7 @@ use {
         system_instruction,
         sysvar::{rent::Rent, Sysvar},
     },
-    spl_auction::{
-        instruction::start_auction_instruction,
-        processor::{start_auction::StartAuctionArgs, AuctionData, AuctionState, BidderMetadata},
-    },
+    spl_auction::processor::{AuctionData, AuctionState, BidderMetadata},
     spl_token::{
         instruction::{set_authority, AuthorityType},
         state::{Account, Mint},
@@ -64,6 +62,14 @@ pub fn assert_owned_by(account: &AccountInfo, owner: &Pubkey) -> ProgramResult {
     }
 }
 
+pub fn assert_signer(account_info: &AccountInfo) -> ProgramResult {
+    if !account_info.is_signer {
+        Err(ProgramError::MissingRequiredSignature)
+    } else {
+        Ok(())
+    }
+}
+
 pub fn assert_store_safety_vault_manager_match(
     auction_manager: &AuctionManager,
     safety_deposit: &SafetyDepositBox,
@@ -84,6 +90,45 @@ pub fn assert_store_safety_vault_manager_match(
     Ok(())
 }
 
+pub fn assert_at_least_one_creator_matches_or_store_public(
+    program_id: &Pubkey,
+    auction_manager: &AuctionManager,
+    metadata: &Metadata,
+    whitelisted_creator_info: &AccountInfo,
+    store_info: &AccountInfo,
+) -> ProgramResult {
+    let store: Store = try_from_slice_unchecked(&store_info.data.borrow_mut())?;
+    if store.public {
+        return Ok(());
+    }
+    if let Some(creators) = &metadata.data.creators {
+        // does it exist? It better!
+        let existing_whitelist_creator: WhitelistedCreator =
+            try_from_slice_unchecked(&whitelisted_creator_info.data.borrow_mut())?;
+
+        if !existing_whitelist_creator.activated {
+            return Err(MetaplexError::WhitelistedCreatorInactive.into());
+        }
+
+        for creator in creators {
+            // Now find at least one creator that can make this pda in the list
+            let (key, _) = Pubkey::find_program_address(
+                &[
+                    PREFIX.as_bytes(),
+                    program_id.as_ref(),
+                    auction_manager.store.as_ref(),
+                    creator.address.as_ref(),
+                ],
+                program_id,
+            );
+            if key == *whitelisted_creator_info.key {
+                return Ok(());
+            }
+        }
+    }
+    Err(MetaplexError::InvalidWhitelistedCreator.into())
+}
+
 pub fn assert_authority_correct(
     auction_manager: &AuctionManager,
     authority_info: &AccountInfo,
@@ -92,9 +137,7 @@ pub fn assert_authority_correct(
         return Err(MetaplexError::AuctionManagerAuthorityMismatch.into());
     }
 
-    if !authority_info.is_signer {
-        return Err(MetaplexError::AuctionManagerAuthorityIsNotSigner.into());
-    }
+    assert_signer(authority_info)?;
 
     Ok(())
 }
@@ -151,7 +194,7 @@ pub fn transfer_safety_deposit_box_items<'a>(
     token_vault_program: AccountInfo<'a>,
     destination: AccountInfo<'a>,
     safety_deposit_box: AccountInfo<'a>,
-    store: AccountInfo<'a>,
+    safety_deposit_token_store: AccountInfo<'a>,
     vault: AccountInfo<'a>,
     fraction_mint: AccountInfo<'a>,
     vault_authority: AccountInfo<'a>,
@@ -165,7 +208,7 @@ pub fn transfer_safety_deposit_box_items<'a>(
             *token_vault_program.key,
             *destination.key,
             *safety_deposit_box.key,
-            *store.key,
+            *safety_deposit_token_store.key,
             *vault.key,
             *fraction_mint.key,
             *vault_authority.key,
@@ -176,34 +219,13 @@ pub fn transfer_safety_deposit_box_items<'a>(
             token_vault_program,
             destination,
             safety_deposit_box,
-            store,
+            safety_deposit_token_store,
             vault,
             fraction_mint,
             vault_authority,
             transfer_authority,
             rent,
         ],
-        &[&signer_seeds],
-    )?;
-
-    Ok(())
-}
-
-pub fn issue_start_auction<'a>(
-    auction_program: AccountInfo<'a>,
-    authority: AccountInfo<'a>,
-    auction: AccountInfo<'a>,
-    clock: AccountInfo<'a>,
-    vault: Pubkey,
-    signer_seeds: &[&[u8]],
-) -> ProgramResult {
-    invoke_signed(
-        &start_auction_instruction(
-            *auction_program.key,
-            *authority.key,
-            StartAuctionArgs { resource: vault },
-        ),
-        &[auction_program, authority, auction, clock],
         &[&signer_seeds],
     )?;
 
@@ -275,9 +297,7 @@ pub fn check_and_transfer_edition_master_mint<'a>(
         return Err(MetaplexError::MasterEditionMasterMintMismatch.into());
     }
 
-    if !master_edition_master_mint_authority_info.is_signer {
-        return Err(MetaplexError::MasterMintAuthorityMustBeSigner.into());
-    }
+    assert_signer(master_edition_master_mint_authority_info)?;
 
     if let COption::Some(authority) = master_mint.mint_authority {
         if authority != *master_edition_master_mint_authority_info.key {
@@ -361,13 +381,14 @@ pub struct CommonRedeemReturn {
     pub bidder_metadata: BidderMetadata,
     pub rent: Rent,
     pub destination: Account,
+    pub store: Store,
     pub bidder_pot_pubkey: Pubkey,
 }
 
 pub struct CommonRedeemCheckArgs<'a> {
     pub program_id: &'a Pubkey,
     pub auction_manager_info: &'a AccountInfo<'a>,
-    pub store_info: &'a AccountInfo<'a>,
+    pub safety_deposit_token_store_info: &'a AccountInfo<'a>,
     pub destination_info: &'a AccountInfo<'a>,
     pub bid_redemption_info: &'a AccountInfo<'a>,
     pub safety_deposit_info: &'a AccountInfo<'a>,
@@ -378,6 +399,7 @@ pub struct CommonRedeemCheckArgs<'a> {
     pub token_program_info: &'a AccountInfo<'a>,
     pub token_vault_program_info: &'a AccountInfo<'a>,
     pub token_metadata_program_info: &'a AccountInfo<'a>,
+    pub store_info: &'a AccountInfo<'a>,
     pub rent_info: &'a AccountInfo<'a>,
     pub is_open_edition: bool,
 }
@@ -389,7 +411,7 @@ pub fn common_redeem_checks(
     let CommonRedeemCheckArgs {
         program_id,
         auction_manager_info,
-        store_info,
+        safety_deposit_token_store_info,
         destination_info,
         bid_redemption_info,
         safety_deposit_info,
@@ -401,6 +423,7 @@ pub fn common_redeem_checks(
         token_vault_program_info,
         token_metadata_program_info,
         rent_info,
+        store_info,
         is_open_edition,
     } = args;
 
@@ -421,18 +444,20 @@ pub fn common_redeem_checks(
     let safety_deposit: SafetyDepositBox =
         try_from_slice_unchecked(&safety_deposit_info.data.borrow_mut())?;
     let auction: AuctionData = try_from_slice_unchecked(&auction_info.data.borrow_mut())?;
+    let store: Store = try_from_slice_unchecked(&store_info.data.borrow_mut())?;
     let bidder_metadata: BidderMetadata =
         try_from_slice_unchecked(&bidder_metadata_info.data.borrow_mut())?;
     // Is it initialized and an actual Account?
     let destination: Account = assert_initialized(&destination_info)?;
 
+    assert_signer(bidder_info)?;
     assert_owned_by(&destination_info, token_program_info.key)?;
     assert_owned_by(&auction_manager_info, &program_id)?;
     assert_store_safety_vault_manager_match(
         &auction_manager,
         &safety_deposit,
         &vault_info,
-        &store_info,
+        &safety_deposit_token_store_info,
     )?;
     // looking out for you!
     assert_rent_exempt(rent, &destination_info)?;
@@ -441,15 +466,15 @@ pub fn common_redeem_checks(
         return Err(MetaplexError::AuctionManagerAuctionMismatch.into());
     }
 
-    if auction_manager.token_program != *token_program_info.key {
+    if store.token_program != *token_program_info.key {
         return Err(MetaplexError::AuctionManagerTokenProgramMismatch.into());
     }
 
-    if auction_manager.token_vault_program != *token_vault_program_info.key {
+    if store.token_vault_program != *token_vault_program_info.key {
         return Err(MetaplexError::AuctionManagerTokenVaultProgramMismatch.into());
     }
 
-    if auction_manager.token_metadata_program != *token_metadata_program_info.key {
+    if store.token_metadata_program != *token_metadata_program_info.key {
         return Err(MetaplexError::AuctionManagerTokenMetadataProgramMismatch.into());
     }
 
@@ -474,13 +499,13 @@ pub fn common_redeem_checks(
 
     let meta_path = [
         spl_auction::PREFIX.as_bytes(),
-        auction_manager.auction_program.as_ref(),
+        store.auction_program.as_ref(),
         auction_info.key.as_ref(),
         bidder_metadata.bidder_pubkey.as_ref(),
         "metadata".as_bytes(),
     ];
 
-    let (meta_key, _) = Pubkey::find_program_address(&meta_path, &auction_manager.auction_program);
+    let (meta_key, _) = Pubkey::find_program_address(&meta_path, &store.auction_program);
 
     if meta_key != *bidder_metadata_info.key {
         return Err(MetaplexError::InvalidBidderMetadata.into());
@@ -490,18 +515,14 @@ pub fn common_redeem_checks(
         return Err(MetaplexError::BidderMetadataBidderMismatch.into());
     }
 
-    if !bidder_info.is_signer {
-        return Err(MetaplexError::BidderIsNotSigner.into());
-    }
-
     let bidder_pot_seeds = &[
         spl_auction::PREFIX.as_bytes(),
-        &auction_manager.auction_program.as_ref(),
+        &store.auction_program.as_ref(),
         &auction_manager.auction.as_ref(),
         bidder_metadata.bidder_pubkey.as_ref(),
     ];
     let (bidder_pot_pubkey, _) =
-        Pubkey::find_program_address(bidder_pot_seeds, &auction_manager.auction_program);
+        Pubkey::find_program_address(bidder_pot_seeds, &store.auction_program);
 
     Ok(CommonRedeemReturn {
         redemption_bump_seed,
@@ -511,6 +532,7 @@ pub fn common_redeem_checks(
         safety_deposit,
         rent: *rent,
         destination,
+        store,
         bidder_pot_pubkey,
     })
 }
@@ -606,6 +628,7 @@ pub struct CommonWinningConfigCheckReturn {
 
 pub fn common_winning_config_checks(
     auction_manager: &AuctionManager,
+    store: &Store,
     safety_deposit: &SafetyDepositBox,
     winning_index: usize,
 ) -> Result<CommonWinningConfigCheckReturn, ProgramError> {
@@ -621,12 +644,10 @@ pub fn common_winning_config_checks(
 
     let transfer_authority_seeds = [
         spl_token_vault::state::PREFIX.as_bytes(),
-        &auction_manager.token_vault_program.as_ref(),
+        &store.token_vault_program.as_ref(),
     ];
-    let (transfer_authority, _) = Pubkey::find_program_address(
-        &transfer_authority_seeds,
-        &&auction_manager.token_vault_program,
-    );
+    let (transfer_authority, _) =
+        Pubkey::find_program_address(&transfer_authority_seeds, &&store.token_vault_program);
 
     Ok(CommonWinningConfigCheckReturn {
         winning_config,
@@ -784,4 +805,16 @@ pub fn spl_token_mint_to<'a: 'b, 'b>(
         &[authority_signer_seeds],
     );
     result.map_err(|_| MetaplexError::TokenMintToFailed.into())
+}
+
+pub fn assert_derivation(
+    program_id: &Pubkey,
+    account: &AccountInfo,
+    path: &[&[u8]],
+) -> Result<u8, ProgramError> {
+    let (key, bump) = Pubkey::find_program_address(&path, program_id);
+    if key != *account.key {
+        return Err(MetaplexError::DerivedKeyInvalid.into());
+    }
+    Ok(bump)
 }

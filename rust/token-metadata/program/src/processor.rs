@@ -3,12 +3,12 @@ use {
         error::MetadataError,
         instruction::MetadataInstruction,
         state::{
-            Key, MasterEdition, Metadata, EDITION, MAX_MASTER_EDITION_LEN, MAX_METADATA_LEN,
-            MAX_NAME_LENGTH, MAX_SYMBOL_LENGTH, MAX_URI_LENGTH, PREFIX,
+            Data, Key, MasterEdition, Metadata, EDITION, MAX_MASTER_EDITION_LEN, MAX_METADATA_LEN,
+            PREFIX,
         },
         utils::{
-            assert_initialized, assert_mint_authority_matches_mint, assert_rent_exempt,
-            assert_update_authority_is_correct, create_or_allocate_account_raw,
+            assert_data_valid, assert_initialized, assert_mint_authority_matches_mint,
+            assert_rent_exempt, assert_update_authority_is_correct, create_or_allocate_account_raw,
             mint_limited_edition, spl_token_burn, spl_token_mint_to, transfer_mint_authority,
             TokenBurnParams, TokenMintToParams,
         },
@@ -35,17 +35,11 @@ pub fn process_instruction(
     match instruction {
         MetadataInstruction::CreateMetadataAccount(args) => {
             msg!("Instruction: Create Metadata Accounts");
-            process_create_metadata_accounts(
-                program_id,
-                accounts,
-                args.data.name,
-                args.data.symbol,
-                args.data.uri,
-            )
+            process_create_metadata_accounts(program_id, accounts, args.data)
         }
         MetadataInstruction::UpdateMetadataAccount(args) => {
             msg!("Instruction: Update Metadata Accounts");
-            process_update_metadata_accounts(program_id, accounts, args.uri, args.update_authority)
+            process_update_metadata_accounts(program_id, accounts, args.data, args.update_authority)
         }
         MetadataInstruction::CreateMasterEdition(args) => {
             msg!("Instruction: Create Master Edition");
@@ -62,9 +56,7 @@ pub fn process_instruction(
 pub fn process_create_metadata_accounts(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
-    name: String,
-    symbol: String,
-    uri: String,
+    data: Data,
 ) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
     let metadata_account_info = next_account_info(account_info_iter)?;
@@ -75,17 +67,7 @@ pub fn process_create_metadata_accounts(
     let system_account_info = next_account_info(account_info_iter)?;
     let rent_info = next_account_info(account_info_iter)?;
 
-    if name.len() > MAX_NAME_LENGTH {
-        return Err(MetadataError::NameTooLong.into());
-    }
-
-    if symbol.len() > MAX_SYMBOL_LENGTH {
-        return Err(MetadataError::SymbolTooLong.into());
-    }
-
-    if uri.len() > MAX_URI_LENGTH {
-        return Err(MetadataError::UriTooLong.into());
-    }
+    assert_data_valid(&data)?;
 
     let mint: Mint = assert_initialized(mint_info)?;
     assert_mint_authority_matches_mint(&mint, mint_authority_info)?;
@@ -121,9 +103,7 @@ pub fn process_create_metadata_accounts(
     let mut metadata: Metadata = try_from_slice_unchecked(&metadata_account_info.data.borrow())?;
     metadata.mint = *mint_info.key;
     metadata.key = Key::MetadataV1;
-    metadata.data.name = name;
-    metadata.data.symbol = symbol;
-    metadata.data.uri = uri;
+    metadata.data = data;
     metadata.update_authority = *update_authority_info.key;
 
     metadata.serialize(&mut *metadata_account_info.data.borrow_mut())?;
@@ -135,7 +115,7 @@ pub fn process_create_metadata_accounts(
 pub fn process_update_metadata_accounts(
     _: &Pubkey,
     accounts: &[AccountInfo],
-    uri: Option<String>,
+    optional_data: Option<Data>,
     update_authority: Option<Pubkey>,
 ) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
@@ -145,12 +125,9 @@ pub fn process_update_metadata_accounts(
     let mut metadata: Metadata = try_from_slice_unchecked(&metadata_account_info.data.borrow())?;
 
     assert_update_authority_is_correct(&metadata, update_authority_info)?;
-
-    if let Some(val) = uri {
-        if val.len() > MAX_URI_LENGTH {
-            return Err(MetadataError::UriTooLong.into());
-        }
-        metadata.data.uri = val;
+    if let Some(data) = optional_data {
+        assert_data_valid(&data)?;
+        metadata.data = data;
     }
 
     if let Some(val) = update_authority {
@@ -248,7 +225,6 @@ pub fn process_create_master_edition(
     // mint as many limited editions as you like, and coins to permission others
     // to mint one of them in the future.
     transfer_mint_authority(
-        edition_authority_seeds,
         &edition_key,
         edition_account_info,
         mint_info,
@@ -275,12 +251,11 @@ pub fn process_create_master_edition(
             destination: auth_token_acct_info.clone(),
             amount: supply,
             authority: master_mint_authority_info.clone(),
-            authority_signer_seeds: &[],
+            authority_signer_seeds: None,
             token_program: token_program_info.clone(),
         })?;
 
         transfer_mint_authority(
-            edition_authority_seeds,
             &edition_key,
             edition_account_info,
             master_mint_info,
@@ -288,6 +263,7 @@ pub fn process_create_master_edition(
             token_program_info,
         )?;
     }
+    msg!("Did we get all the way here?");
     Ok(())
 }
 
@@ -333,7 +309,7 @@ pub fn process_mint_new_edition_from_master_edition_via_token(
         source: master_token_account_info.clone(),
         amount: 1,
         authority: burn_authority.clone(),
-        authority_signer_seeds: &[],
+        authority_signer_seeds: None,
         token_program: token_program_account_info.clone(),
     })?;
 
