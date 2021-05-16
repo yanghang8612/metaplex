@@ -16,6 +16,7 @@ import {
   formatAmount,
   cache,
   formatTokenAmount,
+  useMint,
 } from '@oyster/common';
 import {
   AuctionView,
@@ -51,9 +52,9 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
 
   const bids = useBidsForAuction(auctionView.auction.pubkey);
 
-  const mint = auctionView.auction.info.tokenMint;
-  const mintAccount = cache.get(auctionView.auction.info.tokenMint) as ParsedAccount<MintInfo>;
-  const balance = useUserBalance(mint);
+  const mintKey = auctionView.auction.info.tokenMint;
+  const mintInfo = useMint(auctionView.auction.info.tokenMint);
+  const balance = useUserBalance(mintKey);
 
   const myPayingAccount = balance.accounts[0];
   let winnerIndex = null;
@@ -196,7 +197,7 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
           PLACE BID
         </Button>
       )}
-      <AuctionBids bids={bids} mint={mintAccount.info} />
+      <AuctionBids bids={bids} mint={mintInfo} />
       <MetaplexModal visible={showMModal} onCancel={() => setShowMModal(false)}>
         <h2>Congratulations!</h2>
         <p>Your bid has been placed</p>
@@ -216,7 +217,7 @@ export const AuctionBids = ({
   mint,
   bids,
 }: {
-  mint: MintInfo
+  mint?: MintInfo
   bids: ParsedAccount<BidderMetadata>[];
 }) => {
   return (
