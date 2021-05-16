@@ -17,40 +17,33 @@ export enum MetaplexKey {
   AuctionManagerV1 = 0,
   OriginalAuthorityLookupV1 = 1,
   BidRedemptionTicketV1 = 2,
+  StoreV1 = 3,
+  WhitelistedCreatorV1 = 4,
 }
 export class AuctionManager {
   key: MetaplexKey;
+  store: PublicKey;
   authority: PublicKey;
   auction: PublicKey;
   vault: PublicKey;
-  auctionProgram: PublicKey;
-  tokenVaultProgram: PublicKey;
-  tokenMetadataProgram: PublicKey;
-  tokenProgram: PublicKey;
   acceptPayment: PublicKey;
   state: AuctionManagerState;
   settings: AuctionManagerSettings;
 
   constructor(args: {
+    store: PublicKey;
     authority: PublicKey;
     auction: PublicKey;
     vault: PublicKey;
-    auctionProgram: PublicKey;
-    tokenVaultProgram: PublicKey;
-    tokenMetadataProgram: PublicKey;
-    tokenProgram: PublicKey;
     acceptPayment: PublicKey;
     state: AuctionManagerState;
     settings: AuctionManagerSettings;
   }) {
     this.key = MetaplexKey.AuctionManagerV1;
+    this.store = args.store;
     this.authority = args.authority;
     this.auction = args.auction;
     this.vault = args.vault;
-    this.auctionProgram = args.auctionProgram;
-    this.tokenVaultProgram = args.tokenVaultProgram;
-    this.tokenMetadataProgram = args.tokenMetadataProgram;
-    this.tokenProgram = args.tokenProgram;
     this.acceptPayment = args.acceptPayment;
     this.state = args.state;
     this.settings = args.settings;
@@ -90,6 +83,10 @@ export class ClaimBidArgs {
 }
 export class EmptyPaymentAccountArgs {
   instruction = 7;
+}
+
+export class ValidateOpenEditionArgs {
+  instruction = 10;
 }
 
 export enum WinningConstraint {
@@ -159,6 +156,38 @@ export class WinningConfigState {
   }
 }
 
+export class WhitelistedCreator {
+  key: MetaplexKey = MetaplexKey.WhitelistedCreatorV1;
+  activated: boolean = true;
+  constructor(args?: WhitelistedCreator) {
+    Object.assign(this, args);
+  }
+}
+
+export class Store {
+  key: MetaplexKey = MetaplexKey.StoreV1;
+  public: boolean = true;
+  auctionProgram: PublicKey;
+  tokenVaultProgram: PublicKey;
+  tokenMetadataProgram: PublicKey;
+  tokenProgram: PublicKey;
+
+  constructor(args: {
+    public: boolean;
+    auctionProgram: PublicKey;
+    tokenVaultProgram: PublicKey;
+    tokenMetadataProgram: PublicKey;
+    tokenProgram: PublicKey;
+  }) {
+    this.key = MetaplexKey.StoreV1;
+    this.public = args.public;
+    this.auctionProgram = args.auctionProgram;
+    this.tokenVaultProgram = args.tokenVaultProgram;
+    this.tokenMetadataProgram = args.tokenMetadataProgram;
+    this.tokenProgram = args.tokenProgram;
+  }
+}
+
 export class AuctionManagerState {
   status: AuctionManagerStatus = AuctionManagerStatus.Initialized;
   winningConfigsValidated: number = 0;
@@ -196,13 +225,10 @@ export const SCHEMA = new Map<any, any>([
       kind: 'struct',
       fields: [
         ['key', 'u8'],
+        ['store', 'pubkey'],
         ['authority', 'pubkey'],
         ['auction', 'pubkey'],
         ['vault', 'pubkey'],
-        ['auctionProgram', 'pubkey'],
-        ['tokenVaultProgram', 'pubkey'],
-        ['tokenMetadataProgram', 'pubkey'],
-        ['tokenProgram', 'pubkey'],
         ['acceptPayment', 'pubkey'],
         ['state', AuctionManagerState],
         ['settings', AuctionManagerSettings],
@@ -245,6 +271,30 @@ export const SCHEMA = new Map<any, any>([
     },
   ],
   [
+    WhitelistedCreator,
+    {
+      kind: 'struct',
+      fields: [
+        ['key', 'u8'],
+        ['activated', 'u8'],
+      ],
+    },
+  ],
+  [
+    Store,
+    {
+      kind: 'struct',
+      fields: [
+        ['key', 'u8'],
+        ['public', 'u8'],
+        ['auctionProgram', 'pubkey'],
+        ['tokenVaultProgram', 'pubkey'],
+        ['tokenMetadataProgram', 'pubkey'],
+        ['tokenProgram', 'pubkey'],
+      ],
+    },
+  ],
+  [
     AuctionManagerState,
     {
       kind: 'struct',
@@ -261,6 +311,7 @@ export const SCHEMA = new Map<any, any>([
     {
       kind: 'struct',
       fields: [
+        ['key', 'u8'],
         ['openEditionRedeemed', 'u8'], // bool
         ['bidRedeemed', 'u8'], // bool
       ],
@@ -320,6 +371,13 @@ export const SCHEMA = new Map<any, any>([
   ],
   [
     EmptyPaymentAccountArgs,
+    {
+      kind: 'struct',
+      fields: [['instruction', 'u8']],
+    },
+  ],
+  [
+    ValidateOpenEditionArgs,
     {
       kind: 'struct',
       fields: [['instruction', 'u8']],
@@ -407,6 +465,20 @@ export async function getOriginalAuthority(
         Buffer.from(METAPLEX_PREFIX),
         auctionKey.toBuffer(),
         metadata.toBuffer(),
+      ],
+      PROGRAM_IDS.metaplex,
+    )
+  )[0];
+}
+
+export async function getWhitelistedCreator(creator: PublicKey) {
+  const PROGRAM_IDS = programIds();
+  return (
+    await PublicKey.findProgramAddress(
+      [
+        Buffer.from(METAPLEX_PREFIX),
+        PROGRAM_IDS.store.toBuffer(),
+        creator.toBuffer(),
       ],
       PROGRAM_IDS.metaplex,
     )

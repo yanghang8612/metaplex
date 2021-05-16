@@ -10,12 +10,12 @@ import {
   ParsedAccount,
   WinnerLimit,
   MasterEdition,
-  getMetadata,
   SequenceType,
   sendTransactions,
   getSafetyDepositBox,
   Edition,
   getEdition,
+  programIds,
 } from '@oyster/common';
 
 import { AccountLayout } from '@solana/spl-token';
@@ -24,6 +24,7 @@ import {
   AuctionManagerSettings,
   EditionType,
   getAuctionKeys,
+  getWhitelistedCreator,
   initAuctionManager,
   startAuction,
   validateSafetyDepositBox,
@@ -37,6 +38,7 @@ import {
 } from './addTokensToVault';
 import { makeAuction } from './makeAuction';
 import { createExternalPriceAccount } from './createExternalPriceAccount';
+import { validateOpenEdition } from '../models/metaplex/validateOpenEdition';
 const { createTokenAccount } = actions;
 
 interface normalPattern {
@@ -58,6 +60,7 @@ interface byType {
   initAuctionManager: normalPattern;
   startAuction: normalPattern;
   externalPriceAccount: normalPattern;
+  validateOpenEdition?: normalPattern;
 }
 
 export interface SafetyDepositDraft {
@@ -136,7 +139,7 @@ export async function createAuctionManager(
   const {
     instructions: addTokenInstructions,
     signers: addTokenSigners,
-    stores,
+    safetyDepositTokenStores,
   } = await addTokensToVault(connection, wallet, vault, safetyDepositConfigs);
 
   let lookup: byType = {
@@ -168,17 +171,20 @@ export async function createAuctionManager(
       signers: auctionManagerSigners,
     },
     startAuction: await setupStartAuction(wallet, vault),
+    validateOpenEdition: openEditionSafetyDepositDraft
+      ? await validateOpen(wallet, vault, openEditionSafetyDepositDraft)
+      : undefined,
     validateBoxes: await validateBoxes(
       wallet,
       vault,
-      // No need to validate open edition, it's already been during init, or if not present, let all in
+      // Open editions validate differently, with above
       safetyDepositConfigs.filter(
         c =>
           !openEditionSafetyDepositDraft ||
           c.draft.metadata.pubkey.toBase58() !==
             openEditionSafetyDepositDraft.metadata.pubkey.toBase58(),
       ),
-      stores,
+      safetyDepositTokenStores,
       settings,
     ),
   };
@@ -193,6 +199,7 @@ export async function createAuctionManager(
     lookup.initAuctionManager.signers,
     ...lookup.validateBoxes.signers,
     lookup.startAuction.signers,
+    lookup.validateOpenEdition?.signers || [],
   ];
   let instructions: TransactionInstruction[][] = [
     lookup.externalPriceAccount.instructions,
@@ -201,9 +208,10 @@ export async function createAuctionManager(
     lookup.closeVault.instructions,
     lookup.makeAuction.instructions,
     lookup.initAuctionManager.instructions,
+    lookup.validateOpenEdition?.instructions || [],
     ...lookup.validateBoxes.instructions,
     lookup.startAuction.instructions,
-  ];
+  ].filter(instr => instr.length > 0);
 
   let stopPoint = 0;
   while (stopPoint < instructions.length) {
@@ -313,15 +321,10 @@ async function setupAuctionManagerInstructions(
 
   await initAuctionManager(
     vault,
-    openEditionSafetyDepositDraft?.metadata.pubkey,
-    wallet.publicKey,
-    openEditionSafetyDepositDraft?.masterEdition?.pubkey,
-    openEditionSafetyDepositDraft?.metadata.info.mint,
-    openEditionSafetyDepositDraft?.masterEdition?.info.masterMint,
-    wallet.publicKey,
     wallet.publicKey,
     wallet.publicKey,
     acceptPayment,
+    programIds().store,
     settings,
     instructions,
   );
@@ -344,11 +347,41 @@ async function setupStartAuction(
   return { instructions, signers };
 }
 
+async function validateOpen(
+  wallet: any,
+  vault: PublicKey,
+  openEditionSafetyDepositDraft: SafetyDepositDraft,
+): Promise<{ instructions: TransactionInstruction[]; signers: Account[] }> {
+  let instructions: TransactionInstruction[] = [];
+  const whitelistedCreator = openEditionSafetyDepositDraft.metadata.info.data
+    .creators
+    ? await getWhitelistedCreator(
+        openEditionSafetyDepositDraft.metadata.info.data.creators[0].address,
+      )
+    : undefined;
+  if (openEditionSafetyDepositDraft.masterEdition)
+    await validateOpenEdition(
+      vault,
+      openEditionSafetyDepositDraft.metadata.pubkey,
+      wallet.publicKey,
+      openEditionSafetyDepositDraft.masterEdition?.pubkey,
+      openEditionSafetyDepositDraft.metadata.info.mint,
+      openEditionSafetyDepositDraft.masterEdition?.info.masterMint,
+      wallet.publicKey,
+      wallet.publicKey,
+      programIds().store,
+      whitelistedCreator,
+      instructions,
+    );
+
+  return { instructions, signers: [] };
+}
+
 async function validateBoxes(
   wallet: any,
   vault: PublicKey,
   safetyDeposits: SafetyDepositInstructionConfig[],
-  stores: PublicKey[],
+  safetyDepositTokenStores: PublicKey[],
   settings: AuctionManagerSettings,
 ): Promise<{
   instructions: TransactionInstruction[][];
@@ -386,12 +419,20 @@ async function validateBoxes(
       const edition: PublicKey = await getEdition(
         safetyDeposits[i].draft.metadata.info.mint,
       );
+      const whitelistedCreator = safetyDeposits[i].draft.metadata.info.data
+        .creators
+        ? await getWhitelistedCreator(
+            // Ts weirdly blowing up on this when ternary checks it just fine
+            //@ts-ignore
+            safetyDeposits[i].draft.metadata.info.data.creators[0].address,
+          )
+        : undefined;
 
       await validateSafetyDepositBox(
         vault,
         safetyDeposits[i].draft.metadata.pubkey,
         safetyDepositBox,
-        stores[i],
+        safetyDepositTokenStores[i],
         //@ts-ignore
         winningConfig.editionType === EditionType.LimitedEdition
           ? safetyDeposits[i].draft.masterEdition?.info.masterMint
@@ -401,6 +442,8 @@ async function validateBoxes(
         wallet.publicKey,
         tokenInstructions,
         edition,
+        whitelistedCreator,
+        programIds().store,
         safetyDeposits[i].draft.masterEdition?.info.masterMint,
         safetyDeposits[i].draft.masterEdition ? wallet.publicKey : undefined,
       );

@@ -39,7 +39,7 @@ export const metadataToArt = (
   return {
     image: info?.extended?.image,
     category: info?.extended?.properties.category,
-    title: info?.name,
+    title: info?.data.name,
     about: info?.extended?.description,
     royalties: info?.extended?.properties.royalty,
     edition: editionNumber,
@@ -63,8 +63,8 @@ export const useArt = (id?: PublicKey | string) => {
   );
 
   useEffect(() => {
-    if (account && account.info.uri) {
-      fetch(account.info.uri, { cache: 'force-cache' })
+    if (account && account.info.data.uri) {
+      fetch(account.info.data.uri, { cache: 'force-cache' })
         .then(async _ => {
           try {
             account.info.extended = await _.json();
@@ -76,7 +76,7 @@ export const useArt = (id?: PublicKey | string) => {
             }
 
             if (account.info.extended?.image) {
-              const file = `${account.info.uri}/${account.info.extended.image}`;
+              const file = `${account.info.data.uri}/${account.info.extended.image}`;
               account.info.extended.image = file;
               await fetch(file, { cache: 'force-cache' })
                 .catch(er => {

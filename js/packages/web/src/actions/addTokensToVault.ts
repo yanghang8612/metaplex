@@ -30,7 +30,7 @@ export async function addTokensToVault(
 ): Promise<{
   instructions: Array<TransactionInstruction[]>;
   signers: Array<Account[]>;
-  stores: PublicKey[];
+  safetyDepositTokenStores: PublicKey[];
 }> {
   const PROGRAM_IDS = utils.programIds();
 
@@ -99,5 +99,5 @@ export async function addTokensToVault(
   signers.push(currSigners);
   instructions.push(currInstructions);
 
-  return { signers, instructions, stores: newStores };
+  return { signers, instructions, safetyDepositTokenStores: newStores };
 }

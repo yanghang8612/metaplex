@@ -23,6 +23,20 @@ pub fn validate_safety_deposits(app_matches: &ArgMatches, payer: Keypair, client
     let program_key = Pubkey::from_str(PROGRAM_PUBKEY).unwrap();
     let vault_program_key = Pubkey::from_str(VAULT_PROGRAM_PUBKEY).unwrap();
     let token_metadata_key = spl_token_metadata::id();
+    let admin = read_keypair_file(
+        app_matches
+            .value_of("admin")
+            .unwrap_or_else(|| app_matches.value_of("keypair").unwrap()),
+    )
+    .unwrap();
+
+    let admin_key = admin.pubkey();
+    let store_seeds = &[
+        spl_metaplex::state::PREFIX.as_bytes(),
+        &program_key.as_ref(),
+        &admin_key.as_ref(),
+    ];
+    let (store_key, _) = Pubkey::find_program_address(store_seeds, &program_key);
 
     let authority = read_keypair_file(
         app_matches
@@ -129,6 +143,8 @@ pub fn validate_safety_deposits(app_matches: &ArgMatches, payer: Keypair, client
             auction_manager_key,
             metadata_key,
             original_authority_key,
+            solana_program::system_program::id(),
+            store_key,
             *box_key,
             config_box.store,
             config_box.token_mint,

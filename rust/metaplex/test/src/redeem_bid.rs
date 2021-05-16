@@ -22,7 +22,7 @@ use {
             create_redeem_bid_instruction, create_redeem_master_edition_bid_instruction,
             create_redeem_open_edition_bid_instruction,
         },
-        state::{AuctionManager, WinningConfig},
+        state::{AuctionManager, Store, WinningConfig},
     },
     spl_token::{
         instruction::{approve, initialize_account, mint_to},
@@ -48,8 +48,10 @@ struct BaseAccountList {
     token_vault_program: Pubkey,
 }
 
+#[allow(clippy::too_many_arguments)]
 fn redeem_bid_na_type<'a>(
     base_account_list: BaseAccountList,
+    manager: &AuctionManager,
     winning_config: WinningConfig,
     safety_deposit: &SafetyDepositBox,
     program_id: &Pubkey,
@@ -130,7 +132,7 @@ fn redeem_bid_na_type<'a>(
         bidder_metadata,
         bidder,
         payer,
-        token_vault_program,
+        manager.store,
         transfer_authority,
     ));
 
@@ -169,7 +171,7 @@ fn redeem_bid_open_edition_type<'a>(
         bidder_metadata,
         bidder,
         payer,
-        token_vault_program,
+        token_vault_program: _t,
     } = base_account_list;
 
     let master_metadata_seeds = &[
@@ -258,7 +260,7 @@ fn redeem_bid_open_edition_type<'a>(
         bidder_metadata,
         bidder,
         payer,
-        token_vault_program,
+        manager.store,
         master_metadata_key,
         master_edition.master_mint,
         master_edition_key,
@@ -275,8 +277,10 @@ fn redeem_bid_open_edition_type<'a>(
     new_instructions
 }
 
+#[allow(clippy::too_many_arguments)]
 fn redeem_bid_master_edition_type<'a>(
     base_account_list: BaseAccountList,
+    manager: &AuctionManager,
     safety_deposit: &SafetyDepositBox,
     program_id: &Pubkey,
     token_program: &Pubkey,
@@ -358,7 +362,7 @@ fn redeem_bid_master_edition_type<'a>(
         bidder_metadata,
         bidder,
         payer,
-        token_vault_program,
+        manager.store,
         master_metadata_key,
         bidder,
         transfer_authority,
@@ -390,6 +394,9 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
 
     let account = client.get_account(&auction_manager_key).unwrap();
     let manager: AuctionManager = try_from_slice_unchecked(&account.data).unwrap();
+
+    let store_account = client.get_account(&manager.store).unwrap();
+    let store: Store = try_from_slice_unchecked(&store_account.data).unwrap();
     let all_vault_accounts = client.get_program_accounts(&token_vault_program).unwrap();
 
     let mut safety_deposits = HashMap::new();
@@ -411,13 +418,13 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
     let wallet_key = wallet.pubkey();
     let meta_path = [
         spl_auction::PREFIX.as_bytes(),
-        manager.auction_program.as_ref(),
+        store.auction_program.as_ref(),
         manager.auction.as_ref(),
         wallet_key.as_ref(),
         "metadata".as_bytes(),
     ];
 
-    let (meta_key, _) = Pubkey::find_program_address(&meta_path, &manager.auction_program);
+    let (meta_key, _) = Pubkey::find_program_address(&meta_path, &store.auction_program);
     let bidding_metadata = client.get_account(&meta_key).unwrap();
     let auction_data = client.get_account(&manager.auction).unwrap();
     let vault_data = client.get_account(&manager.vault).unwrap();
@@ -434,12 +441,12 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
 
     let bidder_pot_seeds = &[
         spl_auction::PREFIX.as_bytes(),
-        &manager.auction_program.as_ref(),
+        &store.auction_program.as_ref(),
         &manager.auction.as_ref(),
         bid.bidder_pubkey.as_ref(),
     ];
     let (bidder_pot_pubkey, _) =
-        Pubkey::find_program_address(bidder_pot_seeds, &manager.auction_program);
+        Pubkey::find_program_address(bidder_pot_seeds, &store.auction_program);
 
     if let Some(winning_index) = auction.is_winner(&bidder_pot_pubkey) {
         let destination = Keypair::new();
@@ -471,6 +478,7 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
             spl_metaplex::state::EditionType::Na
             | spl_metaplex::state::EditionType::LimitedEdition => redeem_bid_na_type(
                 base_account_list,
+                &manager,
                 winning_config,
                 safety_deposit,
                 &program_key,
@@ -480,6 +488,7 @@ pub fn redeem_bid_wrapper(app_matches: &ArgMatches, payer: Keypair, client: RpcC
             ),
             spl_metaplex::state::EditionType::MasterEdition => redeem_bid_master_edition_type(
                 base_account_list,
+                &manager,
                 safety_deposit,
                 &program_key,
                 &token_key,

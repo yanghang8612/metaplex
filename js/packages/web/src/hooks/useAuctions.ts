@@ -13,9 +13,14 @@ import {
   useWallet,
 } from '@oyster/common';
 import { WalletAdapter } from '@solana/wallet-base';
+import { PublicKey } from '@solana/web3.js';
 import { useEffect, useState } from 'react';
 import { useMeta } from '../contexts';
-import { AuctionManager, BidRedemptionTicket } from '../models/metaplex';
+import {
+  AuctionManager,
+  BidRedemptionTicket,
+  getBidderKeys,
+} from '../models/metaplex';
 
 export enum AuctionViewState {
   Live = '0',
@@ -45,11 +50,50 @@ export interface AuctionView {
   totallyComplete: boolean;
 }
 
-export const useAuctions = (state: AuctionViewState) => {
+export function useCachedRedemptionKeysByWallet() {
+  const { auctions, bidRedemptions } = useMeta();
   const { wallet } = useWallet();
+
+  const [cachedRedemptionKeys, setCachedRedemptionKeys] = useState<
+    Record<
+      string,
+      ParsedAccount<BidRedemptionTicket> | { pubkey: PublicKey; info: null }
+    >
+  >({});
+
+  useEffect(() => {
+    if (wallet && wallet.publicKey)
+      Object.keys(auctions).forEach(a => {
+        if (!cachedRedemptionKeys[a])
+          //@ts-ignore
+          getBidderKeys(auctions[a].pubkey, wallet.publicKey).then(key =>
+            setCachedRedemptionKeys(vals => ({
+              ...vals,
+              [a]: bidRedemptions[key.bidRedemption.toBase58()]
+                ? bidRedemptions[key.bidRedemption.toBase58()]
+                : { pubkey: key.bidRedemption, info: null },
+            })),
+          );
+        else if (!cachedRedemptionKeys[a].info)
+          setCachedRedemptionKeys(vals => ({
+            ...vals,
+            [a]:
+              bidRedemptions[cachedRedemptionKeys[a].pubkey.toBase58()] ||
+              cachedRedemptionKeys[a],
+          }));
+      });
+  }, [auctions, bidRedemptions, wallet?.publicKey]);
+
+  return cachedRedemptionKeys;
+}
+
+export const useAuctions = (state: AuctionViewState) => {
   const [auctionViews, setAuctionViews] = useState<
     Record<string, AuctionView | undefined>
   >({});
+  const { wallet } = useWallet();
+
+  const cachedRedemptionKeys = useCachedRedemptionKeysByWallet();
 
   const {
     auctions,
@@ -60,7 +104,6 @@ export const useAuctions = (state: AuctionViewState) => {
     bidderPotsByAuctionAndBidder,
     vaults,
     masterEditions,
-    bidRedemptions,
     masterEditionsByMasterMint,
     metadataByMasterEdition,
   } = useMeta();
@@ -76,13 +119,13 @@ export const useAuctions = (state: AuctionViewState) => {
           auctionManagersByAuction,
           safetyDepositBoxesByVaultAndIndex,
           metadataByMint,
-          bidRedemptions,
           bidderMetadataByAuctionAndBidder,
           bidderPotsByAuctionAndBidder,
           masterEditions,
           vaults,
           masterEditionsByMasterMint,
           metadataByMasterEdition,
+          cachedRedemptionKeys,
           state,
           existingAuctionView,
         );
@@ -98,10 +141,10 @@ export const useAuctions = (state: AuctionViewState) => {
     bidderPotsByAuctionAndBidder,
     vaults,
     masterEditions,
-    bidRedemptions,
     masterEditionsByMasterMint,
     metadataByMasterEdition,
-    wallet,
+    wallet?.publicKey,
+    cachedRedemptionKeys,
   ]);
 
   return Object.values(auctionViews).filter(v => v) as AuctionView[];
@@ -116,7 +159,6 @@ export function processAccountsIntoAuctionView(
     ParsedAccount<SafetyDepositBox>
   >,
   metadataByMint: Record<string, ParsedAccount<Metadata>>,
-  bidRedemptions: Record<string, ParsedAccount<BidRedemptionTicket>>,
   bidderMetadataByAuctionAndBidder: Record<
     string,
     ParsedAccount<BidderMetadata>
@@ -126,6 +168,10 @@ export function processAccountsIntoAuctionView(
   vaults: Record<string, ParsedAccount<Vault>>,
   masterEditionsByMasterMint: Record<string, ParsedAccount<MasterEdition>>,
   metadataByMasterEdition: Record<string, ParsedAccount<Metadata>>,
+  cachedRedemptionKeysByWallet: Record<
+    string,
+    ParsedAccount<BidRedemptionTicket> | { pubkey: PublicKey; info: null }
+  >,
   desiredState: AuctionViewState | undefined,
   existingAuctionView?: AuctionView,
 ): AuctionView | undefined {
@@ -149,10 +195,12 @@ export function processAccountsIntoAuctionView(
 
     let bidRedemption:
       | ParsedAccount<BidRedemptionTicket>
-      | undefined = undefined;
-    if (auction.info.bidRedemptionKey?.toBase58()) {
-      bidRedemption = bidRedemptions[auction.info.bidRedemptionKey?.toBase58()];
-    }
+      | undefined = cachedRedemptionKeysByWallet[auction.pubkey.toBase58()]
+      ?.info
+      ? (cachedRedemptionKeysByWallet[
+          auction.pubkey.toBase58()
+        ] as ParsedAccount<BidRedemptionTicket>)
+      : undefined;
 
     const bidderMetadata =
       bidderMetadataByAuctionAndBidder[
@@ -291,11 +339,7 @@ export function processAccountsIntoAuctionView(
         view.vault
       );
       if (!view.thumbnail || !view.thumbnail.metadata) return undefined;
-      if (
-        auctionManager.pubkey.toBase58() ===
-        '8wmPH76W8tkek269cPwSHJ1xhhcobCZCjXYdedBhaboJ'
-      )
-        console.log('Got here', view);
+
       return view as AuctionView;
     }
   }

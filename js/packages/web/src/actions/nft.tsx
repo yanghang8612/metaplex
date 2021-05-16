@@ -9,6 +9,7 @@ import {
   createMasterEdition,
   sendTransactionWithRetry,
   createTokenAccount,
+  Data,
 } from '@oyster/common';
 import React from 'react';
 import { AccountLayout, MintLayout, Token } from '@solana/spl-token';
@@ -54,10 +55,8 @@ export const mintNFT = async (
     new File([JSON.stringify(metadata)], 'metadata.json'),
   ];
 
-  const {
-    instructions: pushInstructions,
-    signers: pushSigners,
-  } = await prepPayForFilesTxn(wallet, realFiles, metadata);
+  const { instructions: pushInstructions, signers: pushSigners } =
+    await prepPayForFilesTxn(wallet, realFiles, metadata);
 
   const TOKEN_PROGRAM_ID = programIds().token;
 
@@ -120,9 +119,12 @@ export const mintNFT = async (
   );
 
   const metadataAccount = await createMetadata(
-    metadata.symbol,
-    metadata.name,
-    `https://-------.---/rfX69WKd7Bin_RTbcnH4wM3BuWWsR_ZhWSSqZBLYdMY`,
+    new Data({
+      symbol: metadata.symbol,
+      name: metadata.name,
+      uri: `https://-------.---/rfX69WKd7Bin_RTbcnH4wM3BuWWsR_ZhWSSqZBLYdMY`,
+      creators: null,
+    }),
     payerPublicKey,
     mintKey,
     payerPublicKey,
@@ -196,7 +198,12 @@ export const mintNFT = async (
     // TODO: connect to testnet arweave
     const arweaveLink = `https://arweave.net/${metadataFile.transactionId}`;
     await updateMetadata(
-      arweaveLink,
+      new Data({
+        name: metadata.name,
+        symbol: metadata.symbol,
+        uri: arweaveLink,
+        creators: null,
+      }),
       undefined,
       mintKey,
       payerPublicKey,

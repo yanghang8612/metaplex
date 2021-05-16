@@ -110,7 +110,7 @@ export const AuctionCreateView = () => {
   const mint = useMint(QUOTE_MINT);
 
   const [step, setStep] = useState<number>(0);
-  const [saving, setSaving] = useState<boolean>(false);
+  const [stepsVisible, setStepsVisible] = useState<boolean>(true);
   const [auctionObj, setAuctionObj] =
     useState<
       | {
@@ -126,6 +126,8 @@ export const AuctionCreateView = () => {
     category: AuctionCategory.Open,
     saleType: 'auction',
     winnersCount: 1,
+    startSaleTS: undefined,
+    startListTS: undefined,
   });
 
   useEffect(() => {
@@ -311,7 +313,7 @@ export const AuctionCreateView = () => {
     <ReviewStep
       attributes={attributes}
       confirm={() => {
-        setSaving(true);
+        setStepsVisible(false);
         gotoNextStep();
       }}
       connection={connection}
@@ -375,13 +377,13 @@ export const AuctionCreateView = () => {
   return (
     <>
       <Row style={{ paddingTop: 50 }}>
-        {!saving && (
-          <Col xl={5}>
+        {stepsVisible && (
+          <Col span={24} md={4}>
             <Steps
               progressDot
               direction="vertical"
               current={step}
-              style={{ width: 200, marginLeft: 20, marginRight: 30 }}
+              style={{ width: "fit-content", margin: "auto" }}
             >
               {stepsByCategory[attributes.category]
                 .filter(_ => !!_[0])
@@ -391,10 +393,12 @@ export const AuctionCreateView = () => {
             </Steps>
           </Col>
         )}
-        <Col {...(saving ? { xl: 24 } : { xl: 16, md: 17 })}>
+        <Col span={24} {...(stepsVisible ? { md: 20 } : { md: 24 })}>
           {stepsByCategory[attributes.category][step][1]}
-          {0 < step && !saving && (
-            <Button onClick={() => gotoNextStep(step - 1)}>Back</Button>
+          {0 < step && stepsVisible && (
+            <div style={{ margin: "auto", width: "fit-content" }}>
+              <Button onClick={() => gotoNextStep(step - 1)}>Back</Button>
+            </div>
           )}
         </Col>
       </Row>
@@ -413,7 +417,7 @@ const CategoryStep = (props: {
           First time listing on Metaplex? <a>Read our sellers' guide.</a>
         </p>
       </Row>
-      <Row>
+      <Row justify="center">
         <Col>
           <Row>
             <Button
@@ -1007,11 +1011,17 @@ const InitialPhaseStep = (props: {
   }, [listMoment]);
 
   useEffect(() => {
-    if (startNow) setSaleMoment(moment());
+    if (startNow) {
+      setSaleMoment(undefined);
+      setListNow(true);
+    } else {
+      setSaleMoment(moment());
+    }
   }, [startNow]);
 
   useEffect(() => {
-    if (listNow) setListMoment(moment());
+    if (listNow) setListMoment(undefined);
+    else setListMoment(moment());
   }, [listNow]);
 
   return (
@@ -1052,7 +1062,13 @@ const InitialPhaseStep = (props: {
                 <span className="field-title">
                   {capitalize(props.attributes.saleType)} Start Date
                 </span>
-                {saleMoment && <DateTimePicker momentObj={saleMoment} setMomentObj={setSaleMoment}/>}
+                {saleMoment && <DateTimePicker
+                  momentObj={saleMoment}
+                  setMomentObj={setSaleMoment}
+                  datePickerProps={{
+                    disabledDate: (current: moment.Moment) => current && current < moment().endOf('day')
+                  }}
+                />}
               </label>
 
               <label className="action-field">
@@ -1088,7 +1104,14 @@ const InitialPhaseStep = (props: {
               {!listNow && (
                 <label className="action-field">
                   <span className="field-title">Preview Start Date</span>
-                  {listMoment && <DateTimePicker momentObj={listMoment} setMomentObj={setListMoment}/>}
+                  {listMoment && <DateTimePicker
+                    momentObj={listMoment}
+                    setMomentObj={setListMoment}
+                    datePickerProps={{
+                      disabledDate: (current: moment.Moment) =>
+                        current && saleMoment && (current < moment().endOf('day') || current > saleMoment)
+                    }}
+                  />}
                 </label>
               )}
             </>
@@ -1220,6 +1243,7 @@ const EndingPhaseSale = (props: {
   setAttributes: (attr: AuctionState) => void;
   confirm: () => void;
 }) => {
+  const startMoment = props.attributes.startSaleTS ? moment.unix(props.attributes.startSaleTS / 1000) : moment()
   const [untilSold, setUntilSold] = useState<boolean>(true);
   const [endMoment, setEndMoment] = useState<moment.Moment | undefined>(
     props.attributes.endTS ? moment.unix(props.attributes.endTS) : undefined,
@@ -1234,6 +1258,7 @@ const EndingPhaseSale = (props: {
 
   useEffect(() => {
     if (untilSold) setEndMoment(undefined);
+    else setEndMoment(startMoment);
   }, [untilSold]);
 
   return (
@@ -1275,7 +1300,7 @@ const EndingPhaseSale = (props: {
                 momentObj={endMoment}
                 setMomentObj={setEndMoment}
                 datePickerProps={{
-                  disabledDate: (current: moment.Moment) => current && current < moment().endOf('day')
+                  disabledDate: (current: moment.Moment) => current && current < startMoment
                 }}
               />}
             </label>
@@ -1398,15 +1423,13 @@ const ReviewStep = (props: {
       </Row>
       <Row style={{ display: 'block' }}>
         <Divider />
-        {props.attributes.startSaleTS && (
-          <Statistic
-            className="create-statistic"
-            title="Start date"
-            value={moment
-              .unix((props.attributes.startSaleTS as number) / 1000)
-              .format('dddd, MMMM Do YYYY, h:mm a')}
-          />
-        )}
+        <Statistic
+          className="create-statistic"
+          title="Start date"
+          value={props.attributes.startSaleTS ? (moment
+            .unix((props.attributes.startSaleTS as number) / 1000)
+            .format('dddd, MMMM Do YYYY, h:mm a')) : "Rigth after successfully published"}
+        />
         <br />
         {props.attributes.startListTS && (
           <Statistic
@@ -1418,13 +1441,13 @@ const ReviewStep = (props: {
           />
         )}
         <Divider />
-        {props.attributes.endTS && (
-          <Statistic
-            className="create-statistic"
-            title="Sale ends"
-            value={props.attributes.endTS}
-          />
-        )}
+        <Statistic
+          className="create-statistic"
+          title="Sale ends"
+          value={props.attributes.endTS ? (moment
+            .unix((props.attributes.endTS as number) / 1000)
+            .format('dddd, MMMM Do YYYY, h:mm a')) : "Until sold"}
+        />
       </Row>
       <Row>
         <Button
@@ -1457,7 +1480,12 @@ const WaitingStep = (props: {
   }, []);
 
   return (
-    <div style={{ marginTop: 70 }}>
+    <div style={{
+      marginTop: 70,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+    }}>
       <Progress type="circle" percent={progress} />
       <div className="waiting-title">
         Your creation is being listed with Metaplex...
@@ -1492,7 +1520,12 @@ const Congrats = (props: {
 
   return (
     <>
-      <div style={{ marginTop: 70 }}>
+      <div style={{
+        marginTop: 70,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+      }}>
         <div className="waiting-title">
           Congratulations! Your auction is now live.
         </div>

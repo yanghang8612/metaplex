@@ -21,9 +21,9 @@ export const DateTimePicker = (props: IDateTimePicker) => {
         if (!momentObj) return setMomentObj(value);
 
         const currentMoment = momentObj.clone();
-        currentMoment.hour(value.hour());
-        currentMoment.minute(value.minute());
-        currentMoment.second(value.second());
+        currentMoment.year(value.year());
+        currentMoment.month(value.month());
+        currentMoment.date(value.date());
         setMomentObj(currentMoment);
       }}
       {...datePickerProps}

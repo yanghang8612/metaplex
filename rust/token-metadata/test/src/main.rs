@@ -21,7 +21,7 @@ use {
             create_master_edition, create_metadata_accounts,
             mint_new_edition_from_master_edition_via_token, update_metadata_accounts,
         },
-        state::{Edition, Key, MasterEdition, Metadata, EDITION, PREFIX},
+        state::{Data, Edition, Key, MasterEdition, Metadata, EDITION, PREFIX},
     },
     std::str::FromStr,
 };
@@ -483,12 +483,22 @@ fn update_metadata_account_call(
 
     let new_update_authority = pubkey_of(app_matches, "new_update_authority");
 
+    let metadata_account = client.get_account(&metadata_key).unwrap();
+    let metadata: Metadata = try_from_slice_unchecked(&metadata_account.data).unwrap();
+
+    let new_data = Data {
+        name: metadata.data.name,
+        symbol: metadata.data.symbol,
+        uri: uri.unwrap_or(metadata.data.uri),
+        creators: metadata.data.creators,
+    };
+
     let instructions = [update_metadata_accounts(
         program_key,
         metadata_key,
         update_authority.pubkey(),
         new_update_authority,
-        uri,
+        Some(new_data),
     )];
 
     let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));
@@ -556,6 +566,7 @@ fn create_metadata_account_call(
             name,
             symbol,
             uri,
+            Some(vec![]),
             update_authority.pubkey() != payer.pubkey(),
         ),
     ];

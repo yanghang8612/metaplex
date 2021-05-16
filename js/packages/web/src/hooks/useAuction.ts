@@ -5,11 +5,16 @@ import {
   useWallet,
 } from '@oyster/common';
 import { useEffect, useState } from 'react';
-import { AuctionView, processAccountsIntoAuctionView } from '.';
+import {
+  AuctionView,
+  processAccountsIntoAuctionView,
+  useCachedRedemptionKeysByWallet,
+} from '.';
 import { useMeta } from '../contexts';
 
 export const useAuction = (id: string) => {
   const { wallet } = useWallet();
+  const cachedRedemptionKeys = useCachedRedemptionKeysByWallet();
 
   const [existingAuctionView, setAuctionView] = useState<AuctionView | null>(
     null,
@@ -23,7 +28,6 @@ export const useAuction = (id: string) => {
     bidderMetadataByAuctionAndBidder,
     bidderPotsByAuctionAndBidder,
     masterEditions,
-    bidRedemptions,
     vaults,
 
     masterEditionsByMasterMint,
@@ -39,13 +43,13 @@ export const useAuction = (id: string) => {
         auctionManagersByAuction,
         safetyDepositBoxesByVaultAndIndex,
         metadataByMint,
-        bidRedemptions,
         bidderMetadataByAuctionAndBidder,
         bidderPotsByAuctionAndBidder,
         masterEditions,
         vaults,
         masterEditionsByMasterMint,
         metadataByMasterEdition,
+        cachedRedemptionKeys,
         undefined,
         existingAuctionView || undefined,
       );
@@ -53,7 +57,7 @@ export const useAuction = (id: string) => {
     }
   }, [
     auctions,
-    wallet,
+    wallet?.publicKey,
     auctionManagersByAuction,
     safetyDepositBoxesByVaultAndIndex,
     metadataByMint,
@@ -61,9 +65,9 @@ export const useAuction = (id: string) => {
     bidderPotsByAuctionAndBidder,
     vaults,
     masterEditions,
-    bidRedemptions,
     masterEditionsByMasterMint,
     metadataByMasterEdition,
+    cachedRedemptionKeys,
   ]);
   return existingAuctionView;
 };

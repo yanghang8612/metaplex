@@ -16,15 +16,10 @@ import {
 
 export async function initAuctionManager(
   vault: PublicKey,
-  openEditionMetadata: PublicKey | undefined,
-  openEditionAuthority: PublicKey | undefined,
-  openEditionMasterAccount: PublicKey | undefined,
-  openEditionMint: PublicKey | undefined,
-  openEditionMasterMint: PublicKey | undefined,
-  openEditionMasterMintAuthority: PublicKey | undefined,
   auctionManagerAuthority: PublicKey,
   payer: PublicKey,
   acceptPaymentAccount: PublicKey,
+  store: PublicKey,
   settings: AuctionManagerSettings,
   instructions: TransactionInstruction[],
 ) {
@@ -36,7 +31,7 @@ export async function initAuctionManager(
   });
 
   const data = Buffer.from(serialize(SCHEMA, value));
-  console.log('mData', data, settings);
+
   const keys = [
     {
       pubkey: auctionManagerKey,
@@ -55,36 +50,6 @@ export async function initAuctionManager(
       isWritable: false,
     },
     {
-      pubkey: openEditionMetadata || SystemProgram.programId, // Won't actually be used if openEditionConfig is null
-      isSigner: false,
-      isWritable: true,
-    },
-    {
-      pubkey: openEditionAuthority || SystemProgram.programId, // Won't actually be used if openEditionConfig is null
-      isSigner: true,
-      isWritable: false,
-    },
-    {
-      pubkey: openEditionMasterAccount || SystemProgram.programId, // Won't actually be used if openEditionConfig is null
-      isSigner: false,
-      isWritable: false,
-    },
-    {
-      pubkey: openEditionMint || SystemProgram.programId, // Won't actually be used if openEditionConfig is null
-      isSigner: false,
-      isWritable: true,
-    },
-    {
-      pubkey: openEditionMasterMint || SystemProgram.programId, // Won't actually be used if openEditionConfig is null
-      isSigner: false,
-      isWritable: true,
-    },
-    {
-      pubkey: openEditionMasterMintAuthority || SystemProgram.programId, // Won't actually be used if openEditionConfig is null
-      isSigner: true,
-      isWritable: false,
-    },
-    {
       pubkey: auctionManagerAuthority,
       isSigner: false,
       isWritable: false,
@@ -100,22 +65,7 @@ export async function initAuctionManager(
       isWritable: false,
     },
     {
-      pubkey: PROGRAM_IDS.token,
-      isSigner: false,
-      isWritable: false,
-    },
-    {
-      pubkey: PROGRAM_IDS.vault,
-      isSigner: false,
-      isWritable: false,
-    },
-    {
-      pubkey: PROGRAM_IDS.metadata,
-      isSigner: false,
-      isWritable: false,
-    },
-    {
-      pubkey: PROGRAM_IDS.auction,
+      pubkey: store,
       isSigner: false,
       isWritable: false,
     },

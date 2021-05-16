@@ -134,6 +134,14 @@ pub enum MetadataError {
     /// This feature is currently disabled.
     #[error("This feature is currently disabled.")]
     Disabled,
+
+    /// Creators list too long
+    #[error("Creators list too long")]
+    CreatorsTooLong,
+
+    /// Creators must be at least one if set
+    #[error("Creators must be at least one if set")]
+    CreatorsMustBeAtleastOne,
 }
 
 impl PrintProgramError for MetadataError {

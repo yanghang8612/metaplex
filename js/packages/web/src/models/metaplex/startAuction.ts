@@ -36,7 +36,11 @@ export async function startAuction(
       isSigner: true,
       isWritable: false,
     },
-
+    {
+      pubkey: PROGRAM_IDS.store,
+      isSigner: false,
+      isWritable: false,
+    },
     {
       pubkey: PROGRAM_IDS.auction,
       isSigner: false,

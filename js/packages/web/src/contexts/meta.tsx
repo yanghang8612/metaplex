@@ -25,8 +25,6 @@ import {
   BIDDER_POT_LEN,
   decodeVault,
   Vault,
-  TokenAccount,
-  useUserAccounts,
 } from '@oyster/common';
 import { MintInfo } from '@solana/spl-token';
 import { Connection, PublicKey, PublicKeyAndAccount } from '@solana/web3.js';
@@ -37,8 +35,6 @@ import {
   BidRedemptionTicket,
   decodeAuctionManager,
   decodeBidRedemptionTicket,
-  getAuctionManagerKey,
-  getBidderKeys,
   MetaplexKey,
 } from '../models/metaplex';
 
@@ -83,11 +79,6 @@ const MetaContext = React.createContext<MetaContextState>({
 
 export function MetaProvider({ children = null as any }) {
   const connection = useConnection();
-  const { userAccounts } = useUserAccounts();
-  const accountByMint = userAccounts.reduce((prev, acc) => {
-    prev.set(acc.info.mint.toBase58(), acc);
-    return prev;
-  }, new Map<string, TokenAccount>());
 
   const [metadata, setMetadata] = useState<ParsedAccount<Metadata>[]>([]);
   const [metadataByMint, setMetadataByMint] = useState<
@@ -126,10 +117,8 @@ export function MetaProvider({ children = null as any }) {
     bidderMetadataByAuctionAndBidder,
     setBidderMetadataByAuctionAndBidder,
   ] = useState<Record<string, ParsedAccount<BidderMetadata>>>({});
-  const [
-    bidderPotsByAuctionAndBidder,
-    setBidderPotsByAuctionAndBidder,
-  ] = useState<Record<string, ParsedAccount<BidderPot>>>({});
+  const [bidderPotsByAuctionAndBidder, setBidderPotsByAuctionAndBidder] =
+    useState<Record<string, ParsedAccount<BidderPot>>>({});
   const [
     safetyDepositBoxesByVaultAndIndex,
     setSafetyDepositBoxesByVaultAndIndex,
@@ -147,13 +136,7 @@ export function MetaProvider({ children = null as any }) {
             a.account,
             AuctionParser,
           ) as ParsedAccount<AuctionData>;
-          const payerAcct = accountByMint.get(
-            account.info.tokenMint.toBase58(),
-          );
-          if (payerAcct)
-            account.info.bidRedemptionKey = (
-              await getBidderKeys(a.pubkey, payerAcct.pubkey)
-            ).bidRedemption;
+
           setAuctions(e => ({
             ...e,
             [a.pubkey.toBase58()]: account,
@@ -214,7 +197,7 @@ export function MetaProvider({ children = null as any }) {
         async info => {
           const pubkey =
             typeof info.accountId === 'string'
-              ? new PublicKey((info.accountId as unknown) as string)
+              ? new PublicKey(info.accountId as unknown as string)
               : info.accountId;
           await processAuctions({
             pubkey,
@@ -230,7 +213,7 @@ export function MetaProvider({ children = null as any }) {
     return () => {
       dispose();
     };
-  }, [connection, setAuctions, userAccounts]);
+  }, [connection, setAuctions]);
 
   useEffect(() => {
     let dispose = () => {};
@@ -246,9 +229,8 @@ export function MetaProvider({ children = null as any }) {
             };
             setSafetyDepositBoxesByVaultAndIndex(e => ({
               ...e,
-              [safetyDeposit.vault.toBase58() +
-              '-' +
-              safetyDeposit.order]: account,
+              [safetyDeposit.vault.toBase58() + '-' + safetyDeposit.order]:
+                account,
             }));
           } else if (a.account.data[0] === VaultKey.VaultV1) {
             const vault = await decodeVault(a.account.data);
@@ -278,7 +260,7 @@ export function MetaProvider({ children = null as any }) {
         async info => {
           const pubkey =
             typeof info.accountId === 'string'
-              ? new PublicKey((info.accountId as unknown) as string)
+              ? new PublicKey(info.accountId as unknown as string)
               : info.accountId;
           await processVaultData({
             pubkey,
@@ -342,7 +324,7 @@ export function MetaProvider({ children = null as any }) {
         async info => {
           const pubkey =
             typeof info.accountId === 'string'
-              ? new PublicKey((info.accountId as unknown) as string)
+              ? new PublicKey(info.accountId as unknown as string)
               : info.accountId;
           await processAuctionManagers({
             pubkey,
@@ -368,8 +350,8 @@ export function MetaProvider({ children = null as any }) {
           if (meta.account.data[0] === MetadataKey.MetadataV1) {
             const metadata = await decodeMetadata(meta.account.data);
             if (
-              isValidHttpUrl(metadata.uri) &&
-              metadata.uri.indexOf('arweave') >= 0
+              isValidHttpUrl(metadata.data.uri) &&
+              metadata.data.uri.indexOf('arweave') >= 0
             ) {
               const account: ParsedAccount<Metadata> = {
                 pubkey: meta.pubkey,
@@ -437,7 +419,7 @@ export function MetaProvider({ children = null as any }) {
         async info => {
           const pubkey =
             typeof info.accountId === 'string'
-              ? new PublicKey((info.accountId as unknown) as string)
+              ? new PublicKey(info.accountId as unknown as string)
               : info.accountId;
           await processMetaData({
             pubkey,

@@ -16,7 +16,7 @@ use {
         instruction::place_bid_instruction,
         processor::{place_bid::PlaceBidArgs, AuctionData, BidderMetadata, BidderPot},
     },
-    spl_metaplex::state::AuctionManager,
+    spl_metaplex::state::{AuctionManager, Store},
     spl_token::{
         instruction::{approve, initialize_account, mint_to},
         state::Account,
@@ -45,6 +45,9 @@ pub fn make_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
 
     let account = client.get_account(&auction_manager_key).unwrap();
     let manager: AuctionManager = try_from_slice_unchecked(&account.data).unwrap();
+
+    let store_account = client.get_account(&manager.store).unwrap();
+    let store: Store = try_from_slice_unchecked(&store_account.data).unwrap();
 
     let auction_account = client.get_account(&manager.auction).unwrap();
     let auction: AuctionData = try_from_slice_unchecked(&auction_account.data).unwrap();
@@ -169,12 +172,12 @@ pub fn make_bid(app_matches: &ArgMatches, payer: Keypair, client: RpcClient) {
     let wallet_key = wallet.pubkey();
     let meta_path = [
         spl_auction::PREFIX.as_bytes(),
-        manager.auction_program.as_ref(),
+        store.auction_program.as_ref(),
         manager.auction.as_ref(),
         wallet_key.as_ref(),
         "metadata".as_bytes(),
     ];
-    let (meta_key, _) = Pubkey::find_program_address(&meta_path, &manager.auction_program);
+    let (meta_key, _) = Pubkey::find_program_address(&meta_path, &store.auction_program);
     let bidding_metadata = client.get_account(&meta_key).unwrap();
     let _bid: BidderMetadata = try_from_slice_unchecked(&bidding_metadata.data).unwrap();
     write_keypair_file(&wallet, wallet.pubkey().to_string() + ".json").unwrap();
