@@ -48,6 +48,7 @@ struct BaseAccountList {
     token_vault_program: Pubkey,
 }
 
+#[allow(clippy::too_many_arguments)]
 fn redeem_bid_na_type<'a>(
     base_account_list: BaseAccountList,
     manager: &AuctionManager,
@@ -276,6 +277,7 @@ fn redeem_bid_open_edition_type<'a>(
     new_instructions
 }
 
+#[allow(clippy::too_many_arguments)]
 fn redeem_bid_master_edition_type<'a>(
     base_account_list: BaseAccountList,
     manager: &AuctionManager,
