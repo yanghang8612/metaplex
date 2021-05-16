@@ -126,7 +126,7 @@ pub fn assert_at_least_one_creator_matches_or_store_public(
             }
         }
     }
-    return Err(MetaplexError::InvalidWhitelistedCreator.into());
+    Err(MetaplexError::InvalidWhitelistedCreator.into())
 }
 
 pub fn assert_authority_correct(

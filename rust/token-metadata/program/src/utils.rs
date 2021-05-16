@@ -46,7 +46,7 @@ pub fn assert_data_valid(data: &Data) -> ProgramResult {
                 return Err(MetadataError::CreatorsTooLong.into());
             }
 
-            if creators.len() < 1 {
+            if creators.is_empty() {
                 return Err(MetadataError::CreatorsMustBeAtleastOne.into());
             }
         }
