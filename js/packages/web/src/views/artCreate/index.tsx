@@ -313,7 +313,7 @@ const UploadStep = (props: {
       <Row className="content-action">
         <h3>{uploadMsg(props.attributes.properties.category)}</h3>
         <Dragger
-          accept={acceptableFiles(props.attributes.category)}
+          accept={acceptableFiles(props.attributes.properties.category)}
           style={{ padding: 20 }}
           multiple={false}
           customRequest={info => {
