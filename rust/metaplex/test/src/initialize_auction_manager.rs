@@ -129,7 +129,7 @@ fn find_or_initialize_store(
         store_key,
         admin.pubkey(),
         payer.pubkey(),
-        false,
+        true,
     )];
 
     let mut transaction = Transaction::new_with_payer(&instructions, Some(&payer.pubkey()));

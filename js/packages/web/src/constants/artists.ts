@@ -3,7 +3,7 @@ import { PublicKey } from '@solana/web3.js';
 // Dummy lookup file until we integrate name service
 export interface IArtist {
   address: PublicKey;
-  name: String;
+  name: string;
 }
 
 export const ARTISTS: IArtist[] = [

@@ -91,6 +91,22 @@ export class EmptyPaymentAccountArgs {
   instruction = 7;
 }
 
+export class SetStoreArgs {
+  instruction = 8;
+  public: boolean;
+  constructor(args: { public: boolean }) {
+    this.public = args.public;
+  }
+}
+
+export class SetWhitelistedCreatorArgs {
+  instruction = 9;
+  activated: boolean;
+  constructor(args: { activated: boolean }) {
+    this.activated = args.activated;
+  }
+}
+
 export class ValidateOpenEditionArgs {
   instruction = 10;
 }
@@ -408,6 +424,26 @@ export const SCHEMA = new Map<any, any>([
     },
   ],
   [
+    SetStoreArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['instruction', 'u8'],
+        ['public', 'u8'], //bool
+      ],
+    },
+  ],
+  [
+    SetWhitelistedCreatorArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['instruction', 'u8'],
+        ['activated', 'u8'], //bool
+      ],
+    },
+  ],
+  [
     ValidateOpenEditionArgs,
     {
       kind: 'struct',
@@ -508,6 +544,7 @@ export async function getWhitelistedCreator(creator: PublicKey) {
     await PublicKey.findProgramAddress(
       [
         Buffer.from(METAPLEX_PREFIX),
+        PROGRAM_IDS.metaplex.toBuffer(),
         PROGRAM_IDS.store.toBuffer(),
         creator.toBuffer(),
       ],

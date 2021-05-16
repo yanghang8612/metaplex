@@ -1,27 +1,118 @@
 import React, { useState } from 'react';
-import { Layout, Row, Col, Table, Switch, Spin } from 'antd';
+import {
+  Layout,
+  Row,
+  Col,
+  Table,
+  Switch,
+  Spin,
+  Modal,
+  Button,
+  Input,
+} from 'antd';
 import { useMeta } from '../../contexts';
 import { Store, WhitelistedCreator } from '../../models/metaplex';
-import { ParsedAccount } from '@oyster/common';
+import {
+  notify,
+  ParsedAccount,
+  useConnection,
+  useWallet,
+} from '@oyster/common';
 import { ARTISTS } from '../../constants/artists';
+import { Connection, PublicKey } from '@solana/web3.js';
+import { saveAdmin } from '../../actions/saveAdmin';
+import { WalletAdapter } from '@solana/wallet-base';
+import './index.less';
 
 const { Content } = Layout;
 export const AdminView = () => {
   const { store, whitelistedCreators } = useMeta();
+  const connection = useConnection();
+  const { wallet } = useWallet();
 
-  return store ? (
-    <InnerAdminView store={store} whitelistedCreators={whitelistedCreators} />
+  return store && connection && wallet ? (
+    <InnerAdminView
+      store={store}
+      whitelistedCreators={whitelistedCreators}
+      connection={connection}
+      wallet={wallet}
+    />
   ) : (
     <Spin />
   );
 };
 
+function ArtistModal({
+  setUpdatedCreators,
+  uniqueCreatorsWithUpdates,
+}: {
+  setUpdatedCreators: React.Dispatch<
+    React.SetStateAction<Record<string, WhitelistedCreator>>
+  >;
+  uniqueCreatorsWithUpdates: Record<string, WhitelistedCreator>;
+}) {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalAddress, setModalAddress] = useState<string>('');
+  return (
+    <>
+      <Modal
+        title="Add New Artist Address"
+        visible={modalOpen}
+        onOk={() => {
+          if (uniqueCreatorsWithUpdates[modalAddress]) {
+            notify({
+              message: 'Artist already added!',
+              type: 'error',
+            });
+            return;
+          }
+
+          const artist = ARTISTS.find(
+            a => a.address.toBase58() == modalAddress,
+          );
+
+          if (artist) {
+            setModalAddress('');
+            setModalOpen(false);
+            setUpdatedCreators(u => ({
+              ...u,
+              [artist.address.toBase58()]: new WhitelistedCreator({
+                address: artist.address,
+                activated: true,
+              }),
+            }));
+          } else {
+            notify({
+              message: 'Artist wallet not found in preset list!',
+              type: 'error',
+            });
+          }
+        }}
+        onCancel={() => {
+          setModalAddress('');
+          setModalOpen(false);
+        }}
+      >
+        <Input
+          value={modalAddress}
+          onChange={e => setModalAddress(e.target.value)}
+        />
+      </Modal>
+      <Button onClick={() => setModalOpen(true)}>Add Creator</Button>
+    </>
+  );
+}
+
 function InnerAdminView({
   store,
   whitelistedCreators,
+  connection,
+  wallet,
 }: {
   store: ParsedAccount<Store>;
   whitelistedCreators: Record<string, ParsedAccount<WhitelistedCreator>>;
+  connection: Connection;
+  wallet: WalletAdapter;
 }) {
   const [newStore, setNewStore] = useState(new Store(store.info));
   const [updatedCreators, setUpdatedCreators] = useState<
@@ -47,49 +138,104 @@ function InnerAdminView({
     {
       title: 'Address',
       dataIndex: 'address',
+      render: (val: PublicKey) => <span>{val.toBase58()}</span>,
       key: 'address',
     },
     {
       title: 'Activated',
       dataIndex: 'activated',
       key: 'activated',
+      render: (
+        value: boolean,
+        record: {
+          address: PublicKey;
+          activated: boolean;
+          name: string;
+          key: string;
+        },
+      ) => (
+        <Switch
+          checkedChildren="Active"
+          unCheckedChildren="Inactive"
+          checked={value}
+          onChange={val =>
+            setUpdatedCreators(u => ({
+              ...u,
+              [record.key]: new WhitelistedCreator({
+                activated: val,
+                address: record.address,
+              }),
+            }))
+          }
+        />
+      ),
     },
   ];
 
   return (
-    <Layout style={{ margin: 0, marginTop: 30 }}>
-      <Content style={{ display: 'flex', flexWrap: 'wrap' }}>
-        <Col style={{ width: '100%', marginTop: 10 }}>
-          <Row>
+    <Content>
+      <Col style={{ marginTop: 10 }}>
+        <Row>
+          <Col span={21}>
+            <ArtistModal
+              setUpdatedCreators={setUpdatedCreators}
+              uniqueCreatorsWithUpdates={uniqueCreatorsWithUpdates}
+            />
+            <Button
+              onClick={async () => {
+                notify({
+                  message: 'Saving...',
+                  type: 'info',
+                });
+                await saveAdmin(
+                  connection,
+                  wallet,
+                  newStore.public,
+                  Object.values(updatedCreators),
+                );
+                notify({
+                  message: 'Saved',
+                  type: 'success',
+                });
+              }}
+              type="primary"
+            >
+              Submit
+            </Button>
+          </Col>
+          <Col span={3}>
             <Switch
               checkedChildren="Public"
               unCheckedChildren="Whitelist Only"
               checked={newStore.public}
               onChange={val => {
-                setNewStore(store => {
-                  store.public = val;
-                  return store;
+                setNewStore(_ => {
+                  const newS = new Store(store.info);
+                  newS.public = val;
+                  return newS;
                 });
               }}
             />
-          </Row>
-          <Row>
-            <Table
-              columns={columns}
-              dataSource={Object.keys(uniqueCreatorsWithUpdates).map(key => ({
-                key,
-                address: uniqueCreatorsWithUpdates[key].address,
-                activated: uniqueCreatorsWithUpdates[key].activated,
-                name: ARTISTS.find(
+          </Col>
+        </Row>
+        <Row>
+          <Table
+            className="artist-whitelist-table"
+            columns={columns}
+            dataSource={Object.keys(uniqueCreatorsWithUpdates).map(key => ({
+              key,
+              address: uniqueCreatorsWithUpdates[key].address,
+              activated: uniqueCreatorsWithUpdates[key].activated,
+              name:
+                ARTISTS.find(
                   a =>
                     a.address.toBase58() ==
                     uniqueCreatorsWithUpdates[key].address.toBase58(),
-                )?.name,
-              }))}
-            ></Table>
-          </Row>
-        </Col>
-      </Content>
-    </Layout>
+                )?.name || 'N/A',
+            }))}
+          ></Table>
+        </Row>
+      </Col>
+    </Content>
   );
 }
