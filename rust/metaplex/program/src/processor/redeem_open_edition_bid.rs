@@ -109,6 +109,16 @@ pub fn process_redeem_open_edition_bid<'a>(
         }
     }
 
+    if !gets_open_edition {
+        // this might be an open edition that is listed as an actual prize, let's check...
+        // if it is, the above checks are moot.
+        for winning_config in &auction_manager.settings.winning_configs {
+            if winning_config.safety_deposit_box_index == safety_deposit.order {
+                gets_open_edition = true
+            }
+        }
+    }
+
     if gets_open_edition {
         let seeds = &[PREFIX.as_bytes(), &auction_manager.auction.as_ref()];
         let (_, bump_seed) = Pubkey::find_program_address(seeds, &program_id);

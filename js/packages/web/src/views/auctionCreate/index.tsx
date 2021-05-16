@@ -495,7 +495,8 @@ const CopiesStep = (props: {
 }) => {
   let filter: ((i: SafetyDepositDraft) => boolean) | undefined;
   if (props.attributes.category === AuctionCategory.Limited) {
-    filter = (i: SafetyDepositDraft) => !!i.masterEdition;
+    filter = (i: SafetyDepositDraft) =>
+      !!i.masterEdition && !!i.masterEdition.info.maxSupply;
   } else if (
     props.attributes.category === AuctionCategory.Single ||
     props.attributes.category === AuctionCategory.Tiered

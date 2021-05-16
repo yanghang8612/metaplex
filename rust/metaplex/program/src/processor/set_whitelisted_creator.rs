@@ -8,7 +8,6 @@ use {
         account_info::{next_account_info, AccountInfo},
         borsh::try_from_slice_unchecked,
         entrypoint::ProgramResult,
-        msg,
         pubkey::Pubkey,
     },
 };
