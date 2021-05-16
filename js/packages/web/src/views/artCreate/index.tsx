@@ -80,12 +80,12 @@ export const ArtCreateView = () => {
       name: attributes.name,
       symbol: attributes.symbol,
       description: attributes.description,
-      image: attributes.properties.files && attributes.properties.files?.[0] && attributes.properties.files[0].name,
+      image: attributes.properties?.files && attributes.properties?.files?.[0] && attributes.properties?.files[0].name,
       external_url: attributes.externalUrl,
       properties: {
-        files: (attributes?.properties.files || []).map(f => f.name),
-        category: attributes.properties.category,
-        royalty: attributes.properties.royalty,
+        files: (attributes?.properties?.files || []).map(f => f.name),
+        category: attributes.properties?.category,
+        royalty: attributes.properties?.royalty,
       },
     };
     setStepsVisible(false);
@@ -95,9 +95,9 @@ export const ArtCreateView = () => {
       connection,
       wallet,
       env,
-      attributes?.properties.files || [],
+      attributes?.properties?.files || [],
       metadata,
-      attributes.properties.maxSupply,
+      attributes.properties?.maxSupply,
     );
     if (_nft) setNft(_nft);
     clearInterval(inte);
@@ -311,9 +311,9 @@ const UploadStep = (props: {
         </p>
       </Row>
       <Row className="content-action">
-        <h3>{uploadMsg(props.attributes.properties.category)}</h3>
+        <h3>{uploadMsg(props.attributes.properties?.category)}</h3>
         <Dragger
-          accept={acceptableFiles(props.attributes.properties.category)}
+          accept={acceptableFiles(props.attributes.properties?.category)}
           style={{ padding: 20 }}
           multiple={false}
           customRequest={info => {
@@ -324,7 +324,7 @@ const UploadStep = (props: {
           onChange={async info => {
             const file = info.file.originFileObj;
             if (file) setMainFile(file);
-            if (props.attributes.properties.category !== MetadataCategory.Audio) {
+            if (props.attributes.properties?.category !== MetadataCategory.Audio) {
               const reader = new FileReader();
               reader.onload = function (event) {
                 setImage((event.target?.result as string) || '');
@@ -339,7 +339,7 @@ const UploadStep = (props: {
           <p className="ant-upload-text">Drag and drop, or click to browse</p>
         </Dragger>
       </Row>
-      {props.attributes.properties.category === MetadataCategory.Audio && (
+      {props.attributes.properties?.category === MetadataCategory.Audio && (
         <Row className="content-action">
           <h3>
             Optionally, you can upload a cover image or video (PNG, JPG, GIF,
@@ -357,7 +357,7 @@ const UploadStep = (props: {
             onChange={async info => {
               const file = info.file.originFileObj;
               if (file) setCoverFile(file);
-              if (props.attributes.properties.category === MetadataCategory.Audio) {
+              if (props.attributes.properties?.category === MetadataCategory.Audio) {
                 const reader = new FileReader();
                 reader.onload = function (event) {
                   setImage((event.target?.result as string) || '');
@@ -437,7 +437,7 @@ const InfoStep = (props: {
           {props.attributes.image && (
             <ArtCard
               image={props.attributes.image}
-              category={props.attributes.properties.category}
+              category={props.attributes.properties?.category}
               name={props.attributes.name}
               symbol={props.attributes.symbol}
               small={true}
@@ -623,7 +623,7 @@ const RoyaltiesStep = (props: {
           {file && (
             <ArtCard
               image={props.attributes.image}
-              category={props.attributes.properties.category}
+              category={props.attributes.properties?.category}
               name={props.attributes.name}
               symbol={props.attributes.symbol}
               small={true}
@@ -685,7 +685,7 @@ const LaunchStep = (props: {
   attributes: IMetadataExtension;
   connection: Connection;
 }) => {
-  const files = props.attributes.properties.files || [];
+  const files = props.attributes.properties?.files || [];
   const metadata = {
     ...(props.attributes as any),
     files: files.map(f => f?.name),
@@ -739,7 +739,7 @@ const LaunchStep = (props: {
           {props.attributes.image && (
             <ArtCard
               image={props.attributes.image}
-              category={props.attributes.properties.category}
+              category={props.attributes.properties?.category}
               name={props.attributes.name}
               symbol={props.attributes.symbol}
               small={true}
@@ -750,7 +750,7 @@ const LaunchStep = (props: {
           <Statistic
             className="create-statistic"
             title="Royalty Percentage"
-            value={props.attributes.properties.royalty}
+            value={props.attributes.properties?.royalty}
             suffix="%"
           />
           {cost ? (
