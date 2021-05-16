@@ -173,6 +173,8 @@ export const mintNFT = async (
   data.append('transaction', txid);
   realFiles.map(f => data.append('file[]', f));
 
+  // TODO: convert to absolute file name for image
+
   const result: IArweaveResult = await (
     await fetch(
       // TODO: add CNAME
@@ -234,7 +236,7 @@ export const mintNFT = async (
     // // In this instruction, mint authority will be removed from the main mint, while
     // // minting authority will be maintained for the master mint (which we want.)
     await createMasterEdition(
-      maxSupply != undefined ? new BN(maxSupply) : undefined,
+      maxSupply !== undefined ? new BN(maxSupply) : undefined,
       mintKey,
       masterMint,
       payerPublicKey,

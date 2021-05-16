@@ -5,8 +5,7 @@ import {
   TransactionInstruction,
 } from '@solana/web3.js';
 import { programIds } from '../utils/ids';
-import { deserializeBorsh } from './../utils/borsh';
-import { serialize } from 'borsh';
+import { deserializeUnchecked, serialize } from 'borsh';
 import BN from 'bn.js';
 
 export const VAULT_PREFIX = 'vault';
@@ -255,11 +254,11 @@ export const VAULT_SCHEMA = new Map<any, any>([
 ]);
 
 export const decodeVault = (buffer: Buffer) => {
-  return deserializeBorsh(VAULT_SCHEMA, Vault, buffer) as Vault;
+  return deserializeUnchecked(VAULT_SCHEMA, Vault, buffer) as Vault;
 };
 
 export const decodeSafetyDeposit = (buffer: Buffer) => {
-  return deserializeBorsh(
+  return deserializeUnchecked(
     VAULT_SCHEMA,
     SafetyDepositBox,
     buffer,

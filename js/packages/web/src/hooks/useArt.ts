@@ -38,10 +38,10 @@ export const metadataToArt = (
   }
   return {
     image: info?.extended?.image,
-    category: info?.extended?.category,
+    category: info?.extended?.properties.category,
     title: info?.data.name,
     about: info?.extended?.description,
-    royalties: info?.extended?.royalty,
+    royalties: info?.extended?.properties.royalty,
     edition: editionNumber,
     maxSupply,
     supply,
@@ -70,7 +70,7 @@ export const useArt = (id?: PublicKey | string) => {
             account.info.extended = await _.json();
             if (
               !account.info.extended ||
-              account.info.extended?.files?.length === 0
+              account.info.extended?.properties.files?.length === 0
             ) {
               return;
             }
@@ -79,6 +79,10 @@ export const useArt = (id?: PublicKey | string) => {
               const file = `${account.info.data.uri}/${account.info.extended.image}`;
               account.info.extended.image = file;
               await fetch(file, { cache: 'force-cache' })
+                .catch(er => {
+                  debugger;
+                  return fetch(file, { cache: 'reload' });
+                })
                 .then(res => res.blob())
                 .then(
                   blob =>

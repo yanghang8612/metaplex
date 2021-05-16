@@ -1,11 +1,7 @@
-import {
-  AUCTION_PREFIX,
-  deserializeBorsh,
-  programIds,
-  METADATA,
-} from '@oyster/common';
+import { AUCTION_PREFIX, programIds, METADATA } from '@oyster/common';
 import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
+import { deserializeUnchecked } from 'borsh';
 
 export * from './initAuctionManager';
 export * from './redeemBid';
@@ -139,11 +135,11 @@ export class WinningConfig {
   }
 }
 export const decodeAuctionManager = (buffer: Buffer) => {
-  return deserializeBorsh(SCHEMA, AuctionManager, buffer) as AuctionManager;
+  return deserializeUnchecked(SCHEMA, AuctionManager, buffer) as AuctionManager;
 };
 
 export const decodeBidRedemptionTicket = (buffer: Buffer) => {
-  return deserializeBorsh(
+  return deserializeUnchecked(
     SCHEMA,
     BidRedemptionTicket,
     buffer,

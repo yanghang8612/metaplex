@@ -192,7 +192,7 @@ export const formatAmount = (
 ) => (abbr ? abbreviateNumber(val, precision) : val.toFixed(precision));
 
 export function formatTokenAmount(
-  account?: TokenAccount,
+  account?: TokenAccount | number | BN,
   mint?: MintInfo,
   rate: number = 1.0,
   prefix = '',
