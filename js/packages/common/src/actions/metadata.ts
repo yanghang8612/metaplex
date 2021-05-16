@@ -48,6 +48,7 @@ export interface IMetadataExtension {
   name: string;
   symbol: string;
   description: string;
+  creators: Creator[] | null;
   // preview image
   image: string;
   // stores link to item on meta
@@ -99,12 +100,12 @@ export class Edition {
 export class Creator {
   address: PublicKey;
   verified: boolean;
-  perc: number;
+  share: number;
 
-  constructor(args: { address: PublicKey; verified: boolean; perc: number }) {
+  constructor(args: { address: PublicKey; verified: boolean; share: number }) {
     this.address = args.address;
     this.verified = args.verified;
-    this.perc = args.perc;
+    this.share = args.share;
   }
 }
 
@@ -252,7 +253,7 @@ export const METADATA_SCHEMA = new Map<any, any>([
       fields: [
         ['address', 'pubkey'],
         ['verified', 'u8'],
-        ['perc', 'u8'],
+        ['share', 'u8'],
       ],
     },
   ],

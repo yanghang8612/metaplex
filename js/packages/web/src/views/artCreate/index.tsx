@@ -24,11 +24,9 @@ import {
   IMetadataExtension,
   MetadataCategory,
   useConnectionConfig,
+  Creator,
 } from '@oyster/common';
-import {
-  getAssetCostToStore,
-  LAMPORT_MULTIPLIER,
-} from '../../utils/assets';
+import { getAssetCostToStore, LAMPORT_MULTIPLIER } from '../../utils/assets';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { MintLayout } from '@solana/spl-token';
 import { useHistory, useParams } from 'react-router-dom';
@@ -49,9 +47,8 @@ export const ArtCreateView = () => {
   const [step, setStep] = useState<number>(0);
   const [stepsVisible, setStepsVisible] = useState<boolean>(true);
   const [progress, setProgress] = useState<number>(0);
-  const [nft, setNft] = useState<{ metadataAccount: PublicKey } | undefined>(
-    undefined,
-  );
+  const [nft, setNft] =
+    useState<{ metadataAccount: PublicKey } | undefined>(undefined);
   const [attributes, setAttributes] = useState<IMetadataExtension>({
     name: '',
     symbol: '',
@@ -61,13 +58,17 @@ export const ArtCreateView = () => {
     properties: {
       royalty: 0,
       files: [],
+      creators: []
       category: MetadataCategory.Image,
     }
   });
 
-  const gotoStep = useCallback((_step: number) => {
-    history.push(`/art/create/${_step.toString()}`);
-  }, [history]);
+  const gotoStep = useCallback(
+    (_step: number) => {
+      history.push(`/art/create/${_step.toString()}`);
+    },
+    [history],
+  );
 
   useEffect(() => {
     if (step_param) setStep(parseInt(step_param));
@@ -193,7 +194,8 @@ const CategoryStep = (props: {
       <Row className="call-to-action">
         <h2>Create a new item</h2>
         <p>
-          First time creating on Metaplex? <a href="#">Read our creators’ guide.</a>
+          First time creating on Metaplex?{' '}
+          <a href="#">Read our creators’ guide.</a>
         </p>
       </Row>
       <Row>
@@ -402,7 +404,7 @@ const UploadStep = (props: {
 };
 
 interface Royalty {
-  creator_key: string;
+  creatorKey: string;
   amount: number;
 }
 
@@ -417,7 +419,7 @@ const InfoStep = (props: {
   useEffect(() => {
     setRoyalties(
       creators.map(creator => ({
-        creator_key: creator.key,
+        creatorKey: creator.key,
         amount: Math.trunc(100 / creators.length),
       })),
     );
@@ -511,7 +513,23 @@ const InfoStep = (props: {
         <Button
           type="primary"
           size="large"
-          onClick={props.confirm}
+          onClick={() => {
+            const creatorStructs: Creator[] = creators.map(
+              c =>
+                new Creator({
+                  address: new PublicKey(c.value),
+                  verified: true,
+                  share:
+                    royalties.find(r => r.creatorKey == c.value)?.amount || 0,
+                }),
+            );
+            props.setAttributes({
+              ...props.attributes,
+              creators: creatorStructs,
+            });
+
+            props.confirm();
+          }}
           className="action-btn"
         >
           Continue to royalties
@@ -534,14 +552,14 @@ const RoyaltiesSplitter = (props: {
     <Col>
       {props.creators.map((creator, idx) => {
         const royalty = props.royalties.find(
-          royalty => royalty.creator_key === creator.key,
+          royalty => royalty.creatorKey === creator.key,
         );
         if (!royalty) return null;
 
         const amt = royalty.amount;
         const handleSlide = (newAmt: number) => {
           const othersRoyalties = props.royalties.filter(
-            _royalty => _royalty.creator_key !== royalty.creator_key,
+            _royalty => _royalty.creatorKey !== royalty.creatorKey,
           );
           if (othersRoyalties.length < 1) return;
           shuffle(othersRoyalties);
@@ -566,12 +584,12 @@ const RoyaltiesSplitter = (props: {
           props.setRoyalties(
             props.royalties.map(_royalty => {
               const computed_amount = othersRoyalties.find(
-                newRoyalty => newRoyalty.creator_key === _royalty.creator_key,
+                newRoyalty => newRoyalty.creatorKey === _royalty.creatorKey,
               )?.amount;
               return {
                 ..._royalty,
                 amount:
-                  _royalty.creator_key === royalty.creator_key
+                  _royalty.creatorKey === royalty.creatorKey
                     ? newAmt
                     : computed_amount,
               };
@@ -754,10 +772,7 @@ const LaunchStep = (props: {
             suffix="%"
           />
           {cost ? (
-            <AmountLabel
-              title="Cost to Create"
-              amount={cost}
-            />
+            <AmountLabel title="Cost to Create" amount={cost} />
           ) : (
             <Spin />
           )}

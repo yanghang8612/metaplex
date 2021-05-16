@@ -17,6 +17,7 @@ import {
 import { UseWalletProvider } from 'use-wallet';
 import { CoingeckoProvider } from './contexts/coingecko';
 import { BillingView } from './views/auction/billing';
+import { AdminView } from './views/admin';
 const { WalletProvider } = contexts.Wallet;
 const { ConnectionProvider } = contexts.Connection;
 const { AccountsProvider } = contexts.Accounts;
@@ -33,6 +34,11 @@ export function Routes() {
                   <MetaProvider>
                     <AppLayout>
                       <Switch>
+                        <Route
+                          exact
+                          path="/admin"
+                          component={() => <AdminView />}
+                        />
                         <Route
                           exact
                           path="/art/create/:step_param?"

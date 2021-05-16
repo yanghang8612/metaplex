@@ -10,6 +10,7 @@ import {
   sendTransactionWithRetry,
   createTokenAccount,
   Data,
+  Creator,
 } from '@oyster/common';
 import React from 'react';
 import { AccountLayout, MintLayout, Token } from '@solana/spl-token';
@@ -42,7 +43,7 @@ export const mintNFT = async (
   wallet: WalletAdapter | undefined,
   env: ENV,
   files: File[],
-  metadata: { name: string; symbol: string },
+  metadata: { name: string; symbol: string; creators: Creator[] },
   maxSupply?: number,
 ): Promise<{
   metadataAccount: PublicKey;
@@ -117,13 +118,12 @@ export const mintNFT = async (
       1,
     ),
   );
-
   const metadataAccount = await createMetadata(
     new Data({
       symbol: metadata.symbol,
       name: metadata.name,
       uri: `https://-------.---/rfX69WKd7Bin_RTbcnH4wM3BuWWsR_ZhWSSqZBLYdMY`,
-      creators: null,
+      creators: metadata.creators,
     }),
     payerPublicKey,
     mintKey,
@@ -202,7 +202,7 @@ export const mintNFT = async (
         name: metadata.name,
         symbol: metadata.symbol,
         uri: arweaveLink,
-        creators: null,
+        creators: metadata.creators,
       }),
       undefined,
       mintKey,

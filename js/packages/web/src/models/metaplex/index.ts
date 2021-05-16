@@ -1,5 +1,11 @@
-import { AUCTION_PREFIX, programIds, METADATA } from '@oyster/common';
-import { PublicKey } from '@solana/web3.js';
+import {
+  AUCTION_PREFIX,
+  programIds,
+  METADATA,
+  AccountParser,
+  deserializeBorsh,
+} from '@oyster/common';
+import { AccountInfo, PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { deserializeUnchecked } from 'borsh';
 
@@ -134,6 +140,28 @@ export class WinningConfig {
     Object.assign(this, args);
   }
 }
+
+export const decodeWhitelistedCreator = (buffer: Buffer) => {
+  return deserializeBorsh(
+    SCHEMA,
+    WhitelistedCreator,
+    buffer,
+  ) as WhitelistedCreator;
+};
+
+export const WhitelistedCreatorParser: AccountParser = (
+  pubkey: PublicKey,
+  account: AccountInfo<Buffer>,
+) => ({
+  pubkey,
+  account,
+  info: decodeWhitelistedCreator(account.data),
+});
+
+export const decodeStore = (buffer: Buffer) => {
+  return deserializeBorsh(SCHEMA, Store, buffer) as Store;
+};
+
 export const decodeAuctionManager = (buffer: Buffer) => {
   return deserializeUnchecked(SCHEMA, AuctionManager, buffer) as AuctionManager;
 };
@@ -158,9 +186,11 @@ export class WinningConfigState {
 
 export class WhitelistedCreator {
   key: MetaplexKey = MetaplexKey.WhitelistedCreatorV1;
+  address: PublicKey;
   activated: boolean = true;
-  constructor(args?: WhitelistedCreator) {
-    Object.assign(this, args);
+  constructor(args: { address: PublicKey; activated: boolean }) {
+    this.address = args.address;
+    this.activated = args.activated;
   }
 }
 
@@ -276,6 +306,7 @@ export const SCHEMA = new Map<any, any>([
       kind: 'struct',
       fields: [
         ['key', 'u8'],
+        ['address', 'pubkey'],
         ['activated', 'u8'],
       ],
     },

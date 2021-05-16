@@ -72,6 +72,7 @@ pub fn process_set_whitelisted_creator<'a>(
         try_from_slice_unchecked(&creator_info.data.borrow_mut())?;
 
     whitelisted_creator.key = Key::WhitelistedCreatorV1;
+    whitelisted_creator.address = *creator_info.key;
     whitelisted_creator.activated = activated;
 
     whitelisted_creator.serialize(&mut *creator_info.data.borrow_mut())?;

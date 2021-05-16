@@ -104,7 +104,10 @@ pub fn assert_at_least_one_creator_matches_or_store_public(
     if let Some(creators) = &metadata.data.creators {
         // does it exist? It better!
         let existing_whitelist_creator: WhitelistedCreator =
-            try_from_slice_unchecked(&whitelisted_creator_info.data.borrow_mut())?;
+            match try_from_slice_unchecked(&whitelisted_creator_info.data.borrow_mut()) {
+                Ok(val) => val,
+                Err(_) => return Err(MetaplexError::InvalidWhitelistedCreator.into()),
+            };
 
         if !existing_whitelist_creator.activated {
             return Err(MetaplexError::WhitelistedCreatorInactive.into());
