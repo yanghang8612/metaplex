@@ -29,7 +29,7 @@ import {
 import { MintInfo } from '@solana/spl-token';
 import { Connection, PublicKey, PublicKeyAndAccount } from '@solana/web3.js';
 import BN from 'bn.js';
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import {
   AuctionManager,
   BidRedemptionTicket,
@@ -66,7 +66,10 @@ export interface MetaContextState {
   >;
   bidderPotsByAuctionAndBidder: Record<string, ParsedAccount<BidderPot>>;
   bidRedemptions: Record<string, ParsedAccount<BidRedemptionTicket>>;
-  whitelistedCreators: Record<string, ParsedAccount<WhitelistedCreator>>;
+  whitelistedCreatorsByCreator: Record<
+    string,
+    ParsedAccount<WhitelistedCreator>
+  >;
 }
 
 const MetaContext = React.createContext<MetaContextState>({
@@ -84,7 +87,7 @@ const MetaContext = React.createContext<MetaContextState>({
   safetyDepositBoxesByVaultAndIndex: {},
   bidderPotsByAuctionAndBidder: {},
   bidRedemptions: {},
-  whitelistedCreators: {},
+  whitelistedCreatorsByCreator: {},
 });
 
 export function MetaProvider({ children = null as any }) {
@@ -124,9 +127,8 @@ export function MetaProvider({ children = null as any }) {
     {},
   );
   const [store, setStore] = useState<ParsedAccount<Store> | null>(null);
-  const [whitelistedCreators, setWhitelistedCreators] = useState<
-    Record<string, ParsedAccount<WhitelistedCreator>>
-  >({});
+  const [whitelistedCreatorsByCreator, setWhitelistedCreatorsByCreator] =
+    useState<Record<string, ParsedAccount<WhitelistedCreator>>>({});
 
   const [
     bidderMetadataByAuctionAndBidder,
@@ -301,16 +303,19 @@ export function MetaProvider({ children = null as any }) {
       ) => {
         try {
           if (a.account.data[0] === MetaplexKey.AuctionManagerV1) {
-            const auctionManager = await decodeAuctionManager(a.account.data);
-            const account: ParsedAccount<AuctionManager> = {
-              pubkey: a.pubkey,
-              account: a.account,
-              info: auctionManager,
-            };
-            setAuctionManagersByAuction(e => ({
-              ...e,
-              [auctionManager.auction.toBase58()]: account,
-            }));
+            const storeKey = new PublicKey(a.account.data.slice(1, 33));
+            if (storeKey.toBase58() == PROGRAM_IDS.store.toBase58()) {
+              const auctionManager = await decodeAuctionManager(a.account.data);
+              const account: ParsedAccount<AuctionManager> = {
+                pubkey: a.pubkey,
+                account: a.account,
+                info: auctionManager,
+              };
+              setAuctionManagersByAuction(e => ({
+                ...e,
+                [auctionManager.auction.toBase58()]: account,
+              }));
+            }
           } else if (a.account.data[0] === MetaplexKey.BidRedemptionTicketV1) {
             const ticket = await decodeBidRedemptionTicket(a.account.data);
             const account: ParsedAccount<BidRedemptionTicket> = {
@@ -346,9 +351,9 @@ export function MetaProvider({ children = null as any }) {
                 a.account,
                 WhitelistedCreatorParser,
               ) as ParsedAccount<WhitelistedCreator>;
-              setWhitelistedCreators(e => ({
+              setWhitelistedCreatorsByCreator(e => ({
                 ...e,
-                [account.pubkey.toBase58()]: account,
+                [whitelistedCreator.address.toBase58()]: account,
               }));
             }
           }
@@ -498,11 +503,21 @@ export function MetaProvider({ children = null as any }) {
     setMetadataByMasterEdition,
     setEditions,
   ]);
-
+  const memoizedMeta = useMemo(
+    () =>
+      metadata.filter(m =>
+        m.info.data.creators?.find(
+          c =>
+            c.verified &&
+            whitelistedCreatorsByCreator[c.address.toBase58()].info.activated,
+        ),
+      ),
+    [metadata, whitelistedCreatorsByCreator],
+  );
   return (
     <MetaContext.Provider
       value={{
-        metadata,
+        metadata: memoizedMeta,
         editions,
         masterEditions,
         auctionManagersByAuction,
@@ -515,7 +530,7 @@ export function MetaProvider({ children = null as any }) {
         bidRedemptions,
         masterEditionsByMasterMint,
         metadataByMasterEdition,
-        whitelistedCreators,
+        whitelistedCreatorsByCreator,
         store,
       }}
     >

@@ -78,7 +78,10 @@ export interface SafetyDepositDraft {
 export async function createAuctionManager(
   connection: Connection,
   wallet: any,
-  whitelistedCreators: Record<string, ParsedAccount<WhitelistedCreator>>,
+  whitelistedCreatorsByCreator: Record<
+    string,
+    ParsedAccount<WhitelistedCreator>
+  >,
   settings: AuctionManagerSettings,
   winnerLimit: WinnerLimit,
   endAuctionAt: BN,
@@ -176,14 +179,14 @@ export async function createAuctionManager(
     validateOpenEdition: openEditionSafetyDepositDraft
       ? await validateOpen(
           wallet,
-          whitelistedCreators,
+          whitelistedCreatorsByCreator,
           vault,
           openEditionSafetyDepositDraft,
         )
       : undefined,
     validateBoxes: await validateBoxes(
       wallet,
-      whitelistedCreators,
+      whitelistedCreatorsByCreator,
       vault,
       // Open editions validate differently, with above
       safetyDepositConfigs.filter(
@@ -356,7 +359,10 @@ async function setupStartAuction(
 
 async function validateOpen(
   wallet: any,
-  whitelistedCreators: Record<string, ParsedAccount<WhitelistedCreator>>,
+  whitelistedCreatorsByCreator: Record<
+    string,
+    ParsedAccount<WhitelistedCreator>
+  >,
   vault: PublicKey,
   openEditionSafetyDepositDraft: SafetyDepositDraft,
 ): Promise<{ instructions: TransactionInstruction[]; signers: Account[] }> {
@@ -364,7 +370,7 @@ async function validateOpen(
   const whitelistedCreator = openEditionSafetyDepositDraft.metadata.info.data
     .creators
     ? await findValidWhitelistedCreator(
-        whitelistedCreators,
+        whitelistedCreatorsByCreator,
         //@ts-ignore
         openEditionSafetyDepositDraft.metadata.info.data.creators,
       )
@@ -388,21 +394,28 @@ async function validateOpen(
 }
 
 async function findValidWhitelistedCreator(
-  whitelistedCreators: Record<string, ParsedAccount<WhitelistedCreator>>,
+  whitelistedCreatorsByCreator: Record<
+    string,
+    ParsedAccount<WhitelistedCreator>
+  >,
   creators: Creator[],
 ): Promise<PublicKey> {
   for (let i = 0; i < creators.length; i++) {
     const creator = creators[i];
-    const whitelistedCreator = await getWhitelistedCreator(creator.address);
 
-    if (whitelistedCreators[whitelistedCreator.toBase58()]?.info.activated)
-      return whitelistedCreator;
+    if (
+      whitelistedCreatorsByCreator[creator.address.toBase58()]?.info.activated
+    )
+      return whitelistedCreatorsByCreator[creator.address.toBase58()].pubkey;
   }
   return await getWhitelistedCreator(creators[0]?.address);
 }
 async function validateBoxes(
   wallet: any,
-  whitelistedCreators: Record<string, ParsedAccount<WhitelistedCreator>>,
+  whitelistedCreatorsByCreator: Record<
+    string,
+    ParsedAccount<WhitelistedCreator>
+  >,
   vault: PublicKey,
   safetyDeposits: SafetyDepositInstructionConfig[],
   safetyDepositTokenStores: PublicKey[],
@@ -447,7 +460,7 @@ async function validateBoxes(
       const whitelistedCreator = safetyDeposits[i].draft.metadata.info.data
         .creators
         ? await findValidWhitelistedCreator(
-            whitelistedCreators,
+            whitelistedCreatorsByCreator,
             //@ts-ignore
             safetyDeposits[i].draft.metadata.info.data.creators,
           )

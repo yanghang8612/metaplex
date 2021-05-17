@@ -106,7 +106,7 @@ export interface AuctionState {
 export const AuctionCreateView = () => {
   const connection = useConnection();
   const { wallet } = useWallet();
-  const { whitelistedCreators } = useMeta();
+  const { whitelistedCreatorsByCreator } = useMeta();
   const { step_param }: { step_param: string } = useParams();
   const history = useHistory();
   const mint = useMint(QUOTE_MINT);
@@ -224,7 +224,7 @@ export const AuctionCreateView = () => {
     const _auctionObj = await createAuctionManager(
       connection,
       wallet,
-      whitelistedCreators,
+      whitelistedCreatorsByCreator,
       settings,
       winnerLimit,
       new BN(endAuctionAt),

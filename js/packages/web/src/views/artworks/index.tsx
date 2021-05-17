@@ -10,7 +10,6 @@ const { TabPane } = Tabs;
 
 const { Content } = Layout;
 
-
 export enum ArtworkViewState {
   Metaplex = '0',
   Owned = '1',
@@ -28,9 +27,13 @@ export const ArtworksView = () => {
     500: 1,
   };
 
-  const items = activeKey === ArtworkViewState.Metaplex ? metadata : ownedMetadata.map(m => m.metadata);
+  const items =
+    activeKey === ArtworkViewState.Metaplex
+      ? metadata
+      : ownedMetadata.map(m => m.metadata);
 
-  const artworkGrid = <Masonry
+  const artworkGrid = (
+    <Masonry
       breakpointCols={breakpointColumnsObj}
       className="my-masonry-grid"
       columnClassName="my-masonry-grid_column"
@@ -39,15 +42,12 @@ export const ArtworksView = () => {
         const id = m.pubkey.toBase58();
         return (
           <Link to={`/art/${id}`} key={idx}>
-            <ArtCard
-              key={id}
-              pubkey={m.pubkey}
-              preview={false}
-            />
+            <ArtCard key={id} pubkey={m.pubkey} preview={false} />
           </Link>
         );
       })}
-    </Masonry>;
+    </Masonry>
+  );
 
   return (
     <Layout style={{ margin: 0, marginTop: 30 }}>

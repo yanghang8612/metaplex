@@ -26,14 +26,14 @@ import './index.less';
 
 const { Content } = Layout;
 export const AdminView = () => {
-  const { store, whitelistedCreators } = useMeta();
+  const { store, whitelistedCreatorsByCreator } = useMeta();
   const connection = useConnection();
   const { wallet } = useWallet();
 
   return store && connection && wallet ? (
     <InnerAdminView
       store={store}
-      whitelistedCreators={whitelistedCreators}
+      whitelistedCreatorsByCreator={whitelistedCreatorsByCreator}
       connection={connection}
       wallet={wallet}
     />
@@ -105,12 +105,15 @@ function ArtistModal({
 
 function InnerAdminView({
   store,
-  whitelistedCreators,
+  whitelistedCreatorsByCreator,
   connection,
   wallet,
 }: {
   store: ParsedAccount<Store>;
-  whitelistedCreators: Record<string, ParsedAccount<WhitelistedCreator>>;
+  whitelistedCreatorsByCreator: Record<
+    string,
+    ParsedAccount<WhitelistedCreator>
+  >;
   connection: Connection;
   wallet: WalletAdapter;
 }) {
@@ -119,7 +122,7 @@ function InnerAdminView({
     Record<string, WhitelistedCreator>
   >({});
 
-  const uniqueCreators = Object.values(whitelistedCreators).reduce(
+  const uniqueCreators = Object.values(whitelistedCreatorsByCreator).reduce(
     (acc: Record<string, WhitelistedCreator>, e) => {
       acc[e.info.address.toBase58()] = e.info;
       return acc;

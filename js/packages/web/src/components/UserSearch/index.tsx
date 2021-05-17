@@ -2,7 +2,9 @@ import { Select, Spin } from 'antd';
 import { SelectProps } from 'antd/es/select';
 import debounce from 'lodash/debounce';
 import React, { useMemo, useRef, useState } from 'react';
-import { ARTISTS } from '../../constants/artists';
+import { ARTISTS, IArtist } from '../../constants/artists';
+import { useMeta } from '../../contexts';
+import { getWhitelistedCreator } from '../../models/metaplex';
 import './styles.less';
 
 export interface DebounceSelectProps<ValueType = any>
@@ -64,6 +66,7 @@ export interface UserValue {
 
 export const UserSearch = (props: { setCreators: Function }) => {
   const [value, setValue] = React.useState<UserValue[]>([]);
+  const { whitelistedCreatorsByCreator } = useMeta();
 
   return (
     <DebounceSelect
@@ -73,9 +76,13 @@ export const UserSearch = (props: { setCreators: Function }) => {
       value={value}
       placeholder="Select creator"
       fetchOptions={(search: string) =>
-        new Promise(res =>
+        new Promise(async res =>
           res(
-            ARTISTS.map(a => ({ label: a.name, value: a.address.toBase58() })),
+            ARTISTS.filter(
+              a =>
+                whitelistedCreatorsByCreator[a.address.toBase58()]?.info
+                  .activated,
+            ).map(a => ({ label: a.name, value: a.address.toBase58() })),
           ),
         )
       }

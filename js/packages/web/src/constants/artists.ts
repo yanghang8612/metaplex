@@ -15,4 +15,8 @@ export const ARTISTS: IArtist[] = [
     address: new PublicKey('HRjJmdknBEzMXFUwF3mcpbQ3PrwrC5svVSGfXLpRDmUR'),
     name: 'Bartosz Lipinski',
   },
+  {
+    address: new PublicKey('3yp9iTsCgZoBsXhtRLB8cWHNcTDeR6VJniRuDrHNTuxU'),
+    name: 'Helen Azgolei',
+  },
 ];
