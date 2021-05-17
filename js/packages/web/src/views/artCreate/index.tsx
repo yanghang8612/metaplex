@@ -55,12 +55,12 @@ export const ArtCreateView = () => {
     description: '',
     externalUrl: '',
     image: '',
+    creators: [],
     properties: {
       royalty: 0,
       files: [],
-      creators: []
       category: MetadataCategory.Image,
-    }
+    },
   });
 
   const gotoStep = useCallback(
@@ -80,8 +80,12 @@ export const ArtCreateView = () => {
     const metadata = {
       name: attributes.name,
       symbol: attributes.symbol,
+      creators: attributes.creators,
       description: attributes.description,
-      image: attributes.properties?.files && attributes.properties?.files?.[0] && attributes.properties?.files[0].name,
+      image:
+        attributes.properties?.files &&
+        attributes.properties?.files?.[0] &&
+        attributes.properties?.files[0].name,
       external_url: attributes.externalUrl,
       properties: {
         files: (attributes?.properties?.files || []).map(f => f.name),
@@ -113,7 +117,7 @@ export const ArtCreateView = () => {
               progressDot
               direction="vertical"
               current={step}
-              style={{ width: "fit-content", margin: "auto" }}
+              style={{ width: 'fit-content', margin: 'auto' }}
             >
               <Step title="Category" />
               <Step title="Upload" />
@@ -131,7 +135,7 @@ export const ArtCreateView = () => {
                   ...attributes,
                   properties: {
                     ...attributes.properties,
-                    category
+                    category,
                   },
                 });
                 gotoStep(1);
@@ -176,7 +180,7 @@ export const ArtCreateView = () => {
           )}
           {step === 6 && <Congrats nft={nft} />}
           {0 < step && step < 5 && (
-            <div style={{ margin: "auto", width: "fit-content" }}>
+            <div style={{ margin: 'auto', width: 'fit-content' }}>
               <Button onClick={() => gotoStep(step - 1)}>Back</Button>
             </div>
           )}
@@ -326,7 +330,9 @@ const UploadStep = (props: {
           onChange={async info => {
             const file = info.file.originFileObj;
             if (file) setMainFile(file);
-            if (props.attributes.properties?.category !== MetadataCategory.Audio) {
+            if (
+              props.attributes.properties?.category !== MetadataCategory.Audio
+            ) {
               const reader = new FileReader();
               reader.onload = function (event) {
                 setImage((event.target?.result as string) || '');
@@ -359,7 +365,9 @@ const UploadStep = (props: {
             onChange={async info => {
               const file = info.file.originFileObj;
               if (file) setCoverFile(file);
-              if (props.attributes.properties?.category === MetadataCategory.Audio) {
+              if (
+                props.attributes.properties?.category === MetadataCategory.Audio
+              ) {
                 const reader = new FileReader();
                 reader.onload = function (event) {
                   setImage((event.target?.result as string) || '');
@@ -387,8 +395,8 @@ const UploadStep = (props: {
               properties: {
                 ...props.attributes.properties,
                 files: [mainFile, coverFile]
-                .filter(f => f)
-                .map(f => new File([f], cleanName(f.name), { type: f.type })),
+                  .filter(f => f)
+                  .map(f => new File([f], cleanName(f.name), { type: f.type })),
               },
               image,
             });
@@ -499,16 +507,18 @@ const InfoStep = (props: {
           </label>
         </Col>
       </Row>
-      {creators.length > 0 && <Row>
-        <label className="action-field" style={{ width: '100%' }}>
-          <span className="field-title">Royalties Split</span>
-          <RoyaltiesSplitter
-            creators={creators}
-            royalties={royalties}
-            setRoyalties={setRoyalties}
-          />
-        </label>
-      </Row>}
+      {creators.length > 0 && (
+        <Row>
+          <label className="action-field" style={{ width: '100%' }}>
+            <span className="field-title">Royalties Split</span>
+            <RoyaltiesSplitter
+              creators={creators}
+              royalties={royalties}
+              setRoyalties={setRoyalties}
+            />
+          </label>
+        </Row>
+      )}
       <Row>
         <Button
           type="primary"
@@ -657,11 +667,13 @@ const RoyaltiesStep = (props: {
               max={100}
               placeholder="Between 0 and 100"
               onChange={(val: number) => {
-                props.setAttributes({ ...props.attributes,
+                props.setAttributes({
+                  ...props.attributes,
                   properties: {
                     ...props.attributes.properties,
                     royalty: val,
-                  }, });
+                  },
+                });
               }}
               className="royalties-input"
             />
@@ -675,7 +687,7 @@ const RoyaltiesStep = (props: {
                   ...props.attributes,
                   properties: {
                     ...props.attributes.properties,
-                    maxSupply: val
+                    maxSupply: val,
                   },
                 });
               }}
@@ -814,12 +826,14 @@ const WaitingStep = (props: {
   }, []);
 
   return (
-    <div style={{
-      marginTop: 70,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-    }}>
+    <div
+      style={{
+        marginTop: 70,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+      }}
+    >
       <Progress type="circle" percent={props.progress} />
       <div className="waiting-title">
         Your creation is being uploaded to the decentralized web...
@@ -839,8 +853,9 @@ const Congrats = (props: {
   const newTweetURL = () => {
     const params = {
       text: "I've created a new NFT artwork on Metaplex, check it out!",
-      url: `${window.location.origin
-        }/#/art/${props.nft?.metadataAccount.toString()}`,
+      url: `${
+        window.location.origin
+      }/#/art/${props.nft?.metadataAccount.toString()}`,
       hashtags: 'NFT,Crypto,Metaplex',
       // via: "Metaplex",
       related: 'Metaplex,Solana',
@@ -851,12 +866,14 @@ const Congrats = (props: {
 
   return (
     <>
-      <div style={{
-        marginTop: 70,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-      }}>
+      <div
+        style={{
+          marginTop: 70,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}
+      >
         <div className="waiting-title">
           Congratulations, you created an NFT!
         </div>

@@ -43,7 +43,7 @@ export const mintNFT = async (
   wallet: WalletAdapter | undefined,
   env: ENV,
   files: File[],
-  metadata: { name: string; symbol: string; creators: Creator[] },
+  metadata: { name: string; symbol: string; creators: Creator[] | null },
   maxSupply?: number,
 ): Promise<{
   metadataAccount: PublicKey;

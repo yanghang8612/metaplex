@@ -3,7 +3,6 @@ import {
   programIds,
   METADATA,
   AccountParser,
-  deserializeBorsh,
 } from '@oyster/common';
 import { AccountInfo, PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
@@ -158,7 +157,7 @@ export class WinningConfig {
 }
 
 export const decodeWhitelistedCreator = (buffer: Buffer) => {
-  return deserializeBorsh(
+  return deserializeUnchecked(
     SCHEMA,
     WhitelistedCreator,
     buffer,
@@ -175,7 +174,7 @@ export const WhitelistedCreatorParser: AccountParser = (
 });
 
 export const decodeStore = (buffer: Buffer) => {
-  return deserializeBorsh(SCHEMA, Store, buffer) as Store;
+  return deserializeUnchecked(SCHEMA, Store, buffer) as Store;
 };
 
 export const decodeAuctionManager = (buffer: Buffer) => {

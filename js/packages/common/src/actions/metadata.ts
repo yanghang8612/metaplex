@@ -47,8 +47,9 @@ export enum MetadataCategory {
 export interface IMetadataExtension {
   name: string;
   symbol: string;
-  description: string;
+
   creators: Creator[] | null;
+  description: string;
   // preview image
   image: string;
   // stores link to item on meta
