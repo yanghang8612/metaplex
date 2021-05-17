@@ -12,7 +12,7 @@ pub const MAX_AUCTION_MANAGER_SIZE: usize =
     1 + 32 + 32 + 32 + 32 + 1 + 1 + 1 + 1 + MAX_WINNER_SIZE + 2 + 9 + 150;
 // Add padding for future booleans/enums
 pub const MAX_STORE_SIZE: usize = 2 + 32 + 32 + 32 + 32 + 100;
-pub const MAX_WHITELISTED_CREATOR_SIZE: usize = 2 + 10;
+pub const MAX_WHITELISTED_CREATOR_SIZE: usize = 2 + 32 + 10;
 
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq, Debug, Copy)]
@@ -177,5 +177,6 @@ pub struct Store {
 #[derive(Clone, BorshSerialize, BorshDeserialize, Copy)]
 pub struct WhitelistedCreator {
     pub key: Key,
+    pub address: Pubkey,
     pub activated: bool,
 }

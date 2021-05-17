@@ -19,9 +19,10 @@ pub fn process_set_whitelisted_creator<'a>(
 ) -> ProgramResult {
     let account_info_iter = &mut accounts.iter();
 
-    let creator_info = next_account_info(account_info_iter)?;
+    let whitelisted_creator_info = next_account_info(account_info_iter)?;
     let admin_wallet_info = next_account_info(account_info_iter)?;
     let payer_info = next_account_info(account_info_iter)?;
+    let creator_info = next_account_info(account_info_iter)?;
     let store_info = next_account_info(account_info_iter)?;
     let system_info = next_account_info(account_info_iter)?;
     let rent_info = next_account_info(account_info_iter)?;
@@ -41,7 +42,7 @@ pub fn process_set_whitelisted_creator<'a>(
 
     let creator_bump = assert_derivation(
         program_id,
-        creator_info,
+        whitelisted_creator_info,
         &[
             PREFIX.as_bytes(),
             program_id.as_ref(),
@@ -50,10 +51,10 @@ pub fn process_set_whitelisted_creator<'a>(
         ],
     )?;
 
-    if creator_info.data_is_empty() {
+    if whitelisted_creator_info.data_is_empty() {
         create_or_allocate_account_raw(
             *program_id,
-            store_info,
+            whitelisted_creator_info,
             rent_info,
             system_info,
             payer_info,
@@ -69,11 +70,12 @@ pub fn process_set_whitelisted_creator<'a>(
     }
 
     let mut whitelisted_creator: WhitelistedCreator =
-        try_from_slice_unchecked(&creator_info.data.borrow_mut())?;
+        try_from_slice_unchecked(&whitelisted_creator_info.data.borrow_mut())?;
 
     whitelisted_creator.key = Key::WhitelistedCreatorV1;
+    whitelisted_creator.address = *creator_info.key;
     whitelisted_creator.activated = activated;
 
-    whitelisted_creator.serialize(&mut *creator_info.data.borrow_mut())?;
+    whitelisted_creator.serialize(&mut *whitelisted_creator_info.data.borrow_mut())?;
     Ok(())
 }

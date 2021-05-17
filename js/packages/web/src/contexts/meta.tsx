@@ -29,13 +29,19 @@ import {
 import { MintInfo } from '@solana/spl-token';
 import { Connection, PublicKey, PublicKeyAndAccount } from '@solana/web3.js';
 import BN from 'bn.js';
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import {
   AuctionManager,
   BidRedemptionTicket,
   decodeAuctionManager,
   decodeBidRedemptionTicket,
+  decodeStore,
+  decodeWhitelistedCreator,
+  getWhitelistedCreator,
   MetaplexKey,
+  Store,
+  WhitelistedCreator,
+  WhitelistedCreatorParser,
 } from '../models/metaplex';
 
 const { MetadataKey } = actions;
@@ -49,6 +55,7 @@ export interface MetaContextState {
   auctionManagersByAuction: Record<string, ParsedAccount<AuctionManager>>;
   auctions: Record<string, ParsedAccount<AuctionData>>;
   vaults: Record<string, ParsedAccount<Vault>>;
+  store: ParsedAccount<Store> | null;
   bidderMetadataByAuctionAndBidder: Record<
     string,
     ParsedAccount<BidderMetadata>
@@ -59,6 +66,10 @@ export interface MetaContextState {
   >;
   bidderPotsByAuctionAndBidder: Record<string, ParsedAccount<BidderPot>>;
   bidRedemptions: Record<string, ParsedAccount<BidRedemptionTicket>>;
+  whitelistedCreatorsByCreator: Record<
+    string,
+    ParsedAccount<WhitelistedCreator>
+  >;
 }
 
 const MetaContext = React.createContext<MetaContextState>({
@@ -71,14 +82,17 @@ const MetaContext = React.createContext<MetaContextState>({
   auctionManagersByAuction: {},
   auctions: {},
   vaults: {},
+  store: null,
   bidderMetadataByAuctionAndBidder: {},
   safetyDepositBoxesByVaultAndIndex: {},
   bidderPotsByAuctionAndBidder: {},
   bidRedemptions: {},
+  whitelistedCreatorsByCreator: {},
 });
 
 export function MetaProvider({ children = null as any }) {
   const connection = useConnection();
+  const PROGRAM_IDS = programIds();
 
   const [metadata, setMetadata] = useState<ParsedAccount<Metadata>[]>([]);
   const [metadataByMint, setMetadataByMint] = useState<
@@ -112,6 +126,9 @@ export function MetaProvider({ children = null as any }) {
   const [vaults, setVaults] = useState<Record<string, ParsedAccount<Vault>>>(
     {},
   );
+  const [store, setStore] = useState<ParsedAccount<Store> | null>(null);
+  const [whitelistedCreatorsByCreator, setWhitelistedCreatorsByCreator] =
+    useState<Record<string, ParsedAccount<WhitelistedCreator>>>({});
 
   const [
     bidderMetadataByAuctionAndBidder,
@@ -281,19 +298,24 @@ export function MetaProvider({ children = null as any }) {
   useEffect(() => {
     let dispose = () => {};
     (async () => {
-      const processAuctionManagers = async (a: PublicKeyAndAccount<Buffer>) => {
+      const processMetaplexAccounts = async (
+        a: PublicKeyAndAccount<Buffer>,
+      ) => {
         try {
           if (a.account.data[0] === MetaplexKey.AuctionManagerV1) {
-            const auctionManager = await decodeAuctionManager(a.account.data);
-            const account: ParsedAccount<AuctionManager> = {
-              pubkey: a.pubkey,
-              account: a.account,
-              info: auctionManager,
-            };
-            setAuctionManagersByAuction(e => ({
-              ...e,
-              [auctionManager.auction.toBase58()]: account,
-            }));
+            const storeKey = new PublicKey(a.account.data.slice(1, 33));
+            if (storeKey.toBase58() == PROGRAM_IDS.store.toBase58()) {
+              const auctionManager = await decodeAuctionManager(a.account.data);
+              const account: ParsedAccount<AuctionManager> = {
+                pubkey: a.pubkey,
+                account: a.account,
+                info: auctionManager,
+              };
+              setAuctionManagersByAuction(e => ({
+                ...e,
+                [auctionManager.auction.toBase58()]: account,
+              }));
+            }
           } else if (a.account.data[0] === MetaplexKey.BidRedemptionTicketV1) {
             const ticket = await decodeBidRedemptionTicket(a.account.data);
             const account: ParsedAccount<BidRedemptionTicket> = {
@@ -305,6 +327,35 @@ export function MetaProvider({ children = null as any }) {
               ...e,
               [a.pubkey.toBase58()]: account,
             }));
+          } else if (a.account.data[0] == MetaplexKey.StoreV1) {
+            const store = await decodeStore(a.account.data);
+            const account: ParsedAccount<Store> = {
+              pubkey: a.pubkey,
+              account: a.account,
+              info: store,
+            };
+            if (a.pubkey.toBase58() == PROGRAM_IDS.store.toBase58())
+              setStore(account);
+          } else if (a.account.data[0] == MetaplexKey.WhitelistedCreatorV1) {
+            const whitelistedCreator = await decodeWhitelistedCreator(
+              a.account.data,
+            );
+            const creatorKeyIfCreatorWasPartOfThisStore =
+              await getWhitelistedCreator(whitelistedCreator.address);
+            if (
+              creatorKeyIfCreatorWasPartOfThisStore.toBase58() ==
+              a.pubkey.toBase58()
+            ) {
+              const account = cache.add(
+                a.pubkey,
+                a.account,
+                WhitelistedCreatorParser,
+              ) as ParsedAccount<WhitelistedCreator>;
+              setWhitelistedCreatorsByCreator(e => ({
+                ...e,
+                [whitelistedCreator.address.toBase58()]: account,
+              }));
+            }
           }
         } catch {
           // ignore errors
@@ -316,7 +367,7 @@ export function MetaProvider({ children = null as any }) {
         programIds().metaplex,
       );
       for (let i = 0; i < accounts.length; i++) {
-        await processAuctionManagers(accounts[i]);
+        await processMetaplexAccounts(accounts[i]);
       }
 
       let subId = connection.onProgramAccountChange(
@@ -326,7 +377,7 @@ export function MetaProvider({ children = null as any }) {
             typeof info.accountId === 'string'
               ? new PublicKey(info.accountId as unknown as string)
               : info.accountId;
-          await processAuctionManagers({
+          await processMetaplexAccounts({
             pubkey,
             account: info.accountInfo,
           });
@@ -452,11 +503,21 @@ export function MetaProvider({ children = null as any }) {
     setMetadataByMasterEdition,
     setEditions,
   ]);
-
+  const memoizedMeta = useMemo(
+    () =>
+      metadata.filter(m =>
+        m.info.data.creators?.find(
+          c =>
+            c.verified &&
+            whitelistedCreatorsByCreator[c.address.toBase58()].info.activated,
+        ),
+      ),
+    [metadata, whitelistedCreatorsByCreator],
+  );
   return (
     <MetaContext.Provider
       value={{
-        metadata,
+        metadata: memoizedMeta,
         editions,
         masterEditions,
         auctionManagersByAuction,
@@ -469,6 +530,8 @@ export function MetaProvider({ children = null as any }) {
         bidRedemptions,
         masterEditionsByMasterMint,
         metadataByMasterEdition,
+        whitelistedCreatorsByCreator,
+        store,
       }}
     >
       {children}

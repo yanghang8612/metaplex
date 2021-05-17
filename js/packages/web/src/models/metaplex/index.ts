@@ -1,5 +1,10 @@
-import { AUCTION_PREFIX, programIds, METADATA } from '@oyster/common';
-import { PublicKey } from '@solana/web3.js';
+import {
+  AUCTION_PREFIX,
+  programIds,
+  METADATA,
+  AccountParser,
+} from '@oyster/common';
+import { AccountInfo, PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { deserializeUnchecked } from 'borsh';
 
@@ -85,6 +90,22 @@ export class EmptyPaymentAccountArgs {
   instruction = 7;
 }
 
+export class SetStoreArgs {
+  instruction = 8;
+  public: boolean;
+  constructor(args: { public: boolean }) {
+    this.public = args.public;
+  }
+}
+
+export class SetWhitelistedCreatorArgs {
+  instruction = 9;
+  activated: boolean;
+  constructor(args: { activated: boolean }) {
+    this.activated = args.activated;
+  }
+}
+
 export class ValidateOpenEditionArgs {
   instruction = 10;
 }
@@ -134,6 +155,28 @@ export class WinningConfig {
     Object.assign(this, args);
   }
 }
+
+export const decodeWhitelistedCreator = (buffer: Buffer) => {
+  return deserializeUnchecked(
+    SCHEMA,
+    WhitelistedCreator,
+    buffer,
+  ) as WhitelistedCreator;
+};
+
+export const WhitelistedCreatorParser: AccountParser = (
+  pubkey: PublicKey,
+  account: AccountInfo<Buffer>,
+) => ({
+  pubkey,
+  account,
+  info: decodeWhitelistedCreator(account.data),
+});
+
+export const decodeStore = (buffer: Buffer) => {
+  return deserializeUnchecked(SCHEMA, Store, buffer) as Store;
+};
+
 export const decodeAuctionManager = (buffer: Buffer) => {
   return deserializeUnchecked(SCHEMA, AuctionManager, buffer) as AuctionManager;
 };
@@ -158,9 +201,11 @@ export class WinningConfigState {
 
 export class WhitelistedCreator {
   key: MetaplexKey = MetaplexKey.WhitelistedCreatorV1;
+  address: PublicKey;
   activated: boolean = true;
-  constructor(args?: WhitelistedCreator) {
-    Object.assign(this, args);
+  constructor(args: { address: PublicKey; activated: boolean }) {
+    this.address = args.address;
+    this.activated = args.activated;
   }
 }
 
@@ -276,6 +321,7 @@ export const SCHEMA = new Map<any, any>([
       kind: 'struct',
       fields: [
         ['key', 'u8'],
+        ['address', 'pubkey'],
         ['activated', 'u8'],
       ],
     },
@@ -374,6 +420,26 @@ export const SCHEMA = new Map<any, any>([
     {
       kind: 'struct',
       fields: [['instruction', 'u8']],
+    },
+  ],
+  [
+    SetStoreArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['instruction', 'u8'],
+        ['public', 'u8'], //bool
+      ],
+    },
+  ],
+  [
+    SetWhitelistedCreatorArgs,
+    {
+      kind: 'struct',
+      fields: [
+        ['instruction', 'u8'],
+        ['activated', 'u8'], //bool
+      ],
     },
   ],
   [
@@ -477,6 +543,7 @@ export async function getWhitelistedCreator(creator: PublicKey) {
     await PublicKey.findProgramAddress(
       [
         Buffer.from(METAPLEX_PREFIX),
+        PROGRAM_IDS.metaplex.toBuffer(),
         PROGRAM_IDS.store.toBuffer(),
         creator.toBuffer(),
       ],

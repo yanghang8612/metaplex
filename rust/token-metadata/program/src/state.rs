@@ -94,5 +94,5 @@ pub struct Edition {
 pub struct Creator {
     pub address: Pubkey,
     pub verified: bool,
-    pub perc: u8,
+    pub share: u8,
 }

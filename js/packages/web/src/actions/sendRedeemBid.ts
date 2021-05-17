@@ -122,6 +122,20 @@ export async function sendRedeemBid(
             instructions,
           );
           break;
+        case EditionType.OpenEdition:
+          console.log('Redeeming Open that was listed as a Prize');
+          await setupRedeemOpenInstructions(
+            auctionView,
+            accountsByMint,
+            accountRentExempt,
+            mintRentExempt,
+            wallet,
+            safetyDeposit,
+            item,
+            signers,
+            instructions,
+          );
+          break;
       }
     }
 
@@ -323,8 +337,7 @@ async function setupRedeemLimitedInstructions(
 
       for (let i = 0; i < winningConfig.amount; i++) {
         let cashInLimitedPrizeAuthorizationTokenSigner: Account[] = [];
-        let cashInLimitedPrizeAuthorizationTokenInstruction: TransactionInstruction[] =
-          [];
+        let cashInLimitedPrizeAuthorizationTokenInstruction: TransactionInstruction[] = [];
         signers.push(cashInLimitedPrizeAuthorizationTokenSigner);
         instructions.push(cashInLimitedPrizeAuthorizationTokenInstruction);
 
@@ -477,8 +490,7 @@ async function setupRedeemOpenInstructions(
 
     if (newTokenAccount) {
       let cashInOpenPrizeAuthorizationTokenSigner: Account[] = [];
-      let cashInOpenPrizeAuthorizationTokenInstruction: TransactionInstruction[] =
-        [];
+      let cashInOpenPrizeAuthorizationTokenInstruction: TransactionInstruction[] = [];
       signers.push(cashInOpenPrizeAuthorizationTokenSigner);
       instructions.push(cashInOpenPrizeAuthorizationTokenInstruction);
 

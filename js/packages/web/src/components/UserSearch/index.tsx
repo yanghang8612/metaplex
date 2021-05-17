@@ -2,6 +2,9 @@ import { Select, Spin } from 'antd';
 import { SelectProps } from 'antd/es/select';
 import debounce from 'lodash/debounce';
 import React, { useMemo, useRef, useState } from 'react';
+import { ARTISTS, IArtist } from '../../constants/artists';
+import { useMeta } from '../../contexts';
+import { getWhitelistedCreator } from '../../models/metaplex';
 import './styles.less';
 
 export interface DebounceSelectProps<ValueType = any>
@@ -11,7 +14,11 @@ export interface DebounceSelectProps<ValueType = any>
 }
 
 function DebounceSelect<
-  ValueType extends { key?: string; label: React.ReactNode; value: string | number } = any
+  ValueType extends {
+    key?: string;
+    label: React.ReactNode;
+    value: string | number;
+  } = any,
 >({ fetchOptions, debounceTimeout = 800, ...props }: DebounceSelectProps) {
   const [fetching, setFetching] = useState(false);
   const [options, setOptions] = useState<ValueType[]>([]);
@@ -57,23 +64,9 @@ export interface UserValue {
   value: string;
 }
 
-async function fetchUserList(username: string): Promise<UserValue[]> {
-  console.log('fetching user', username);
-
-  return fetch('https://randomuser.me/api/?results=5')
-    .then(response => response.json())
-    .then(body =>
-      body.results.map(
-        (user: { name: { first: string; last: string }; login: { username: string } }) => ({
-          label: `${user.name.first} ${user.name.last}`,
-          value: user.login.username,
-        }),
-      ),
-    );
-}
-
-export const UserSearch = (props: {setCreators: Function}) => {
+export const UserSearch = (props: { setCreators: Function }) => {
   const [value, setValue] = React.useState<UserValue[]>([]);
+  const { whitelistedCreatorsByCreator } = useMeta();
 
   return (
     <DebounceSelect
@@ -82,9 +75,19 @@ export const UserSearch = (props: {setCreators: Function}) => {
       size="large"
       value={value}
       placeholder="Select creator"
-      fetchOptions={fetchUserList}
+      fetchOptions={(search: string) =>
+        new Promise(async res =>
+          res(
+            ARTISTS.filter(
+              a =>
+                whitelistedCreatorsByCreator[a.address.toBase58()]?.info
+                  .activated,
+            ).map(a => ({ label: a.name, value: a.address.toBase58() })),
+          ),
+        )
+      }
       onChange={newValue => {
-        props.setCreators(newValue)
+        props.setCreators(newValue);
         setValue(newValue);
       }}
       style={{ width: '100%' }}

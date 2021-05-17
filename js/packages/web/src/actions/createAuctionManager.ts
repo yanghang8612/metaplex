@@ -16,6 +16,7 @@ import {
   Edition,
   getEdition,
   programIds,
+  Creator,
 } from '@oyster/common';
 
 import { AccountLayout } from '@solana/spl-token';
@@ -28,6 +29,7 @@ import {
   initAuctionManager,
   startAuction,
   validateSafetyDepositBox,
+  WhitelistedCreator,
   WinningConfig,
 } from '../models/metaplex';
 import { createVault } from './createVault';
@@ -76,6 +78,10 @@ export interface SafetyDepositDraft {
 export async function createAuctionManager(
   connection: Connection,
   wallet: any,
+  whitelistedCreatorsByCreator: Record<
+    string,
+    ParsedAccount<WhitelistedCreator>
+  >,
   settings: AuctionManagerSettings,
   winnerLimit: WinnerLimit,
   endAuctionAt: BN,
@@ -133,7 +139,6 @@ export async function createAuctionManager(
     vault,
     paymentMint,
     settings,
-    openEditionSafetyDepositDraft,
   );
 
   const {
@@ -172,10 +177,16 @@ export async function createAuctionManager(
     },
     startAuction: await setupStartAuction(wallet, vault),
     validateOpenEdition: openEditionSafetyDepositDraft
-      ? await validateOpen(wallet, vault, openEditionSafetyDepositDraft)
+      ? await validateOpen(
+          wallet,
+          whitelistedCreatorsByCreator,
+          vault,
+          openEditionSafetyDepositDraft,
+        )
       : undefined,
     validateBoxes: await validateBoxes(
       wallet,
+      whitelistedCreatorsByCreator,
       vault,
       // Open editions validate differently, with above
       safetyDepositConfigs.filter(
@@ -296,7 +307,6 @@ async function setupAuctionManagerInstructions(
   vault: PublicKey,
   paymentMint: PublicKey,
   settings: AuctionManagerSettings,
-  openEditionSafetyDepositDraft?: SafetyDepositDraft,
 ): Promise<{
   instructions: TransactionInstruction[];
   signers: Account[];
@@ -349,14 +359,20 @@ async function setupStartAuction(
 
 async function validateOpen(
   wallet: any,
+  whitelistedCreatorsByCreator: Record<
+    string,
+    ParsedAccount<WhitelistedCreator>
+  >,
   vault: PublicKey,
   openEditionSafetyDepositDraft: SafetyDepositDraft,
 ): Promise<{ instructions: TransactionInstruction[]; signers: Account[] }> {
   let instructions: TransactionInstruction[] = [];
   const whitelistedCreator = openEditionSafetyDepositDraft.metadata.info.data
     .creators
-    ? await getWhitelistedCreator(
-        openEditionSafetyDepositDraft.metadata.info.data.creators[0].address,
+    ? await findValidWhitelistedCreator(
+        whitelistedCreatorsByCreator,
+        //@ts-ignore
+        openEditionSafetyDepositDraft.metadata.info.data.creators,
       )
     : undefined;
   if (openEditionSafetyDepositDraft.masterEdition)
@@ -377,8 +393,29 @@ async function validateOpen(
   return { instructions, signers: [] };
 }
 
+async function findValidWhitelistedCreator(
+  whitelistedCreatorsByCreator: Record<
+    string,
+    ParsedAccount<WhitelistedCreator>
+  >,
+  creators: Creator[],
+): Promise<PublicKey> {
+  for (let i = 0; i < creators.length; i++) {
+    const creator = creators[i];
+
+    if (
+      whitelistedCreatorsByCreator[creator.address.toBase58()]?.info.activated
+    )
+      return whitelistedCreatorsByCreator[creator.address.toBase58()].pubkey;
+  }
+  return await getWhitelistedCreator(creators[0]?.address);
+}
 async function validateBoxes(
   wallet: any,
+  whitelistedCreatorsByCreator: Record<
+    string,
+    ParsedAccount<WhitelistedCreator>
+  >,
   vault: PublicKey,
   safetyDeposits: SafetyDepositInstructionConfig[],
   safetyDepositTokenStores: PublicKey[],
@@ -419,12 +456,13 @@ async function validateBoxes(
       const edition: PublicKey = await getEdition(
         safetyDeposits[i].draft.metadata.info.mint,
       );
+
       const whitelistedCreator = safetyDeposits[i].draft.metadata.info.data
         .creators
-        ? await getWhitelistedCreator(
-            // Ts weirdly blowing up on this when ternary checks it just fine
+        ? await findValidWhitelistedCreator(
+            whitelistedCreatorsByCreator,
             //@ts-ignore
-            safetyDeposits[i].draft.metadata.info.data.creators[0].address,
+            safetyDeposits[i].draft.metadata.info.data.creators,
           )
         : undefined;
 

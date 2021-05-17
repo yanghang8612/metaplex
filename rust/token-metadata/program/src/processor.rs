@@ -263,7 +263,7 @@ pub fn process_create_master_edition(
             token_program_info,
         )?;
     }
-    msg!("Did we get all the way here?");
+
     Ok(())
 }
 

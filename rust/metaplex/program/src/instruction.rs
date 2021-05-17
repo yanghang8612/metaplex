@@ -232,9 +232,10 @@ pub enum MetaplexInstruction {
     ///   0. `[writable]` The whitelisted creator pda key, seed of ['metaplex', store key, creator key]
     ///   1. `[signer]`  The admin wallet
     ///   2. `[signer]`  Payer
-    ///   3. `[]` The store key, seed of ['metaplex', admin wallet]
-    ///   4. `[]` System
-    ///   5. `[]` Rent sysvar
+    ///   3. `[]` The creator key
+    ///   4. `[]` The store key, seed of ['metaplex', admin wallet]
+    ///   5. `[]` System
+    ///   6. `[]` Rent sysvar
     SetWhitelistedCreator(SetWhitelistedCreatorArgs),
 
     ///   Validates an open edition (if present) on the Auction Manager. Because of the differing mechanics of an open
