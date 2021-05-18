@@ -154,7 +154,9 @@ fn inspect_auction(app_matches: &ArgMatches, _payer: Keypair, client: RpcClient)
         - Price Floor: {}
     ",
         auction.state,
-        !auction.ended(client.get_block_time(client.get_slot().unwrap()).unwrap()).unwrap(),
+        !auction
+            .ended(client.get_block_time(client.get_slot().unwrap()).unwrap())
+            .unwrap(),
         auction_pubkey,
         auction.authority,
         auction.token_mint,
