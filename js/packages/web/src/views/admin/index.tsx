@@ -15,10 +15,10 @@ import { Store, WhitelistedCreator } from '../../models/metaplex';
 import {
   notify,
   ParsedAccount,
+  shortenAddress,
   useConnection,
   useWallet,
 } from '@oyster/common';
-import { ARTISTS } from '../../constants/artists';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { saveAdmin } from '../../actions/saveAdmin';
 import { WalletAdapter } from '@solana/wallet-base';
@@ -59,7 +59,11 @@ function ArtistModal({
         title="Add New Artist Address"
         visible={modalOpen}
         onOk={() => {
-          if (uniqueCreatorsWithUpdates[modalAddress]) {
+          const addressToAdd = modalAddress;
+          setModalAddress('');
+          setModalOpen(false);
+
+          if (uniqueCreatorsWithUpdates[addressToAdd]) {
             notify({
               message: 'Artist already added!',
               type: 'error',
@@ -67,25 +71,21 @@ function ArtistModal({
             return;
           }
 
-          const artist = ARTISTS.find(
-            a => a.address.toBase58() == modalAddress,
-          );
-
-          if (artist) {
-            setModalAddress('');
-            setModalOpen(false);
+          let address: PublicKey;
+          try {
+            address = new PublicKey(addressToAdd);
             setUpdatedCreators(u => ({
               ...u,
-              [artist.address.toBase58()]: new WhitelistedCreator({
-                address: artist.address,
+              [modalAddress]: new WhitelistedCreator({
+                address,
                 activated: true,
               }),
             }));
-          } else {
+          } catch {
             notify({
-              message: 'Artist wallet not found in preset list!',
-              type: 'error',
-            });
+              message: 'Only valid Solana addresses are supported',
+              type: 'error'
+            })
           }
         }}
         onCancel={() => {
@@ -229,12 +229,8 @@ function InnerAdminView({
               key,
               address: uniqueCreatorsWithUpdates[key].address,
               activated: uniqueCreatorsWithUpdates[key].activated,
-              name:
-                ARTISTS.find(
-                  a =>
-                    a.address.toBase58() ==
-                    uniqueCreatorsWithUpdates[key].address.toBase58(),
-                )?.name || 'N/A',
+              name: uniqueCreatorsWithUpdates[key].name || shortenAddress(uniqueCreatorsWithUpdates[key].address.toBase58()),
+              image: uniqueCreatorsWithUpdates[key].image
             }))}
           ></Table>
         </Row>

@@ -56,7 +56,7 @@ export function Routes() {
                         />
                         <Route
                           exact
-                          path="/artist/:id"
+                          path="/artists/:id"
                           component={() => <ArtistView />}
                         />
                         <Route

@@ -203,6 +203,12 @@ export class WhitelistedCreator {
   key: MetaplexKey = MetaplexKey.WhitelistedCreatorV1;
   address: PublicKey;
   activated: boolean = true;
+
+  // Populated from name service
+  twitter?: string;
+  name?: string;
+  image?: string;
+
   constructor(args: { address: PublicKey; activated: boolean }) {
     this.address = args.address;
     this.activated = args.activated;

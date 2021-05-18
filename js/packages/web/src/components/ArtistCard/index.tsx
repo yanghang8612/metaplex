@@ -1,26 +1,28 @@
-import React from 'react'
-import { useHistory } from 'react-router-dom'
-import { Card } from 'antd'
+import React, { useState } from 'react'
+import { Card, Avatar } from 'antd'
 
 import { Artist } from '../../types'
 
 import './index.less'
+import { Identicon, shortenAddress } from '@oyster/common'
 
 export const ArtistCard = ({artist}: {artist: Artist}) => {
-  const history = useHistory()
-
-  const handleCoverClick = async () => {
-    history.push(artist.link)
-  }
+  const [noImage, setNoImage] = useState(false);
 
   return (
     <Card
-      className="artist-card"
-      cover={<img alt={artist.name} src={artist.image} onClick={handleCoverClick} />}
+      hoverable={true}
+      className={`artist-card`}
+      cover={<div style={{ height: 220 }} />}
     >
-      <div>{artist.name}</div>
-      <div style={{color: "#ffd691"}}>{artist.itemsAvailable} items available</div>
-      <div style={{color: "#82dfd5"}}>{artist.itemsSold} sold</div>
-    </Card> 
+      <div>
+        <Avatar src={noImage ? <Identicon address={artist.address} style={{ width: 64 }} /> : artist.image} onError={() => {
+          setNoImage(true);
+          return false;
+        }} />
+        <div className="artist-card-name">{artist.name || shortenAddress(artist.address || '')}</div>
+        <div className="artist-card-description">{artist.about}</div>
+      </div>
+    </Card>
   )
 }

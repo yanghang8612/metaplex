@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Row, Col, Button, InputNumber, Alert } from 'antd';
 
 import './index.less';
@@ -33,6 +33,7 @@ import { AmountLabel } from '../AmountLabel';
 import { sendCancelBid } from '../../actions/cancelBid';
 import BN from 'bn.js';
 import { MintInfo } from '@solana/spl-token';
+import { useMeta } from '../../contexts';
 
 const { useWallet } = contexts.Wallet;
 
@@ -47,6 +48,7 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
   const [value, setValue] = useState<number>();
   const [showMModal, setShowMModal] = useState<boolean>(false);
   const [lastBid, setLastBid] = useState<{ amount: BN } | undefined>(undefined);
+  const { whitelistedCreatorsByCreator } = useMeta();
 
   const { accountByMint } = useUserAccounts();
 
@@ -90,6 +92,7 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
 
   const isUpcoming = auctionView.state === AuctionViewState.Upcoming;
   const isStarted = auctionView.state === AuctionViewState.Live;
+  const gapTime = (auctionView.auction.info.auctionGap?.toNumber() || 0) / 60;
 
   return (
     <div className="presale-card-container">
@@ -126,13 +129,13 @@ export const AuctionCard = ({ auctionView }: { auctionView: AuctionView }) => {
         </>
       )}
       <br />
-      <div
+      {gapTime && <div
         className="info-content"
         style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.9rem' }}
       >
-        Any bids placed in the last 15 minutes will extend the auction for
-        another 15 minutes.
-      </div>
+        Any bids placed in the last {gapTime} minutes will extend the auction for
+        another {gapTime} minutes.
+      </div>}
       <br />
 
       <div className="info-line" />
