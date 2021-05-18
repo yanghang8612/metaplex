@@ -110,7 +110,7 @@ fn main() {
                         .value_name("GAP_TIME")
                         .required(false)
                         .takes_value(true)
-                        .help("Defaults to 1200 slots, ignored if existing auction provided."),
+                        .help("Defaults to 1200 seconds, ignored if existing auction provided."),
                 )
                 .arg(
                     Arg::with_name("end_time")
@@ -118,7 +118,7 @@ fn main() {
                         .value_name("END_TIME")
                         .required(false)
                         .takes_value(true)
-                        .help("Defaults to 1200 slots, ignored if existing auction provided."),
+                        .help("Defaults to 1200 seconds, ignored if existing auction provided."),
                 )
                 .arg(
                     Arg::with_name("settings_file")

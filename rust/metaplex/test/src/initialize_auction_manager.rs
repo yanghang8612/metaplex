@@ -162,13 +162,13 @@ fn find_or_initialize_auction(
         let gap_time = app_matches
             .value_of("gap_time")
             .unwrap_or("1200")
-            .parse::<u64>()
+            .parse::<i64>()
             .unwrap();
 
         let end_time = app_matches
             .value_of("end_time")
             .unwrap_or("1200")
-            .parse::<u64>()
+            .parse::<i64>()
             .unwrap();
 
         let auction_path = [
