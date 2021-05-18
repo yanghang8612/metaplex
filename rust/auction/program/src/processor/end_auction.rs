@@ -107,7 +107,7 @@ pub fn end_auction<'a, 'b: 'a>(
     }
 
     AuctionData {
-        ended_at: Some(clock.slot),
+        ended_at: Some(clock.unix_timestamp),
         state: auction.state.end()?,
         price_floor: reveal(auction.price_floor, args.reveal)?,
         ..auction

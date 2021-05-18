@@ -115,7 +115,7 @@ pub fn claim_bid(
     }
 
     // Auction must have ended.
-    if !auction.ended(clock.slot)? {
+    if !auction.ended(clock.unix_timestamp)? {
         return Err(AuctionError::InvalidState.into());
     }
 

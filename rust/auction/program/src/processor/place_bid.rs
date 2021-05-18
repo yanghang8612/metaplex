@@ -117,7 +117,7 @@ pub fn place_bid<'r, 'b: 'r>(
     let clock = Clock::from_account_info(accounts.clock_sysvar)?;
 
     // Verify auction has not ended.
-    if auction.ended(clock.slot)? {
+    if auction.ended(clock.unix_timestamp)? {
         auction.state = auction.state.end()?;
         auction.serialize(&mut *accounts.auction.data.borrow_mut())?;
         msg!("Auction ended!");
@@ -270,7 +270,7 @@ pub fn place_bid<'r, 'b: 'r>(
     })?;
 
     // Serialize new Auction State
-    auction.last_bid = Some(clock.slot);
+    auction.last_bid = Some(clock.unix_timestamp);
     auction
         .bid_state
         .place_bid(Bid(*accounts.bidder_pot.key, args.amount))?;

@@ -78,7 +78,7 @@ pub fn start_auction<'a, 'b: 'a>(
 
     // Calculate the relative end time.
     let ended_at = if let Some(end_auction_at) = auction.end_auction_at {
-        match clock.slot.checked_add(end_auction_at) {
+        match clock.unix_timestamp.checked_add(end_auction_at) {
             Some(val) => Some(val),
             None => return Err(AuctionError::NumericalOverflowError.into()),
         }

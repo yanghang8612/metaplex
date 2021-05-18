@@ -75,13 +75,13 @@ pub struct AuctionData {
     /// Token mint for the SPL token being used to bid
     pub token_mint: Pubkey,
     /// The time the last bid was placed, used to keep track of auction timing.
-    pub last_bid: Option<Slot>,
-    /// Slot time the auction was officially ended by.
-    pub ended_at: Option<Slot>,
+    pub last_bid: Option<UnixTimestamp>,
+    /// Unix timestamp the auction was officially ended by.
+    pub ended_at: Option<UnixTimestamp>,
     /// End time is the cut-off point that the auction is forced to end by.
-    pub end_auction_at: Option<Slot>,
-    /// Gap time is the amount of time in slots after the previous bid at which the auction ends.
-    pub end_auction_gap: Option<Slot>,
+    pub end_auction_at: Option<UnixTimestamp>,
+    /// Gap time is the amount of time in seconds after the previous bid at which the auction ends.
+    pub end_auction_gap: Option<UnixTimestamp>,
     /// Minimum price for any bid to meet.
     pub price_floor: PriceFloor,
     /// The state the auction is in, whether it has started or ended.
@@ -91,7 +91,7 @@ pub struct AuctionData {
 }
 
 impl AuctionData {
-    pub fn ended(&self, now: Slot) -> Result<bool, ProgramError> {
+    pub fn ended(&self, now: UnixTimestamp) -> Result<bool, ProgramError> {
         // If there is an end time specified, handle conditions.
         return match (self.ended_at, self.end_auction_gap) {
             // Both end and gap present, means a bid can still be placed post-auction if it is
