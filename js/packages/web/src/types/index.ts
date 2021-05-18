@@ -13,6 +13,7 @@ export interface Auction {
 }
 
 export interface Artist {
+  address?: string;
   name: string;
   link: string;
   image: string;

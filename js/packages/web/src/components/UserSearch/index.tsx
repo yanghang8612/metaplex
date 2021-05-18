@@ -1,10 +1,9 @@
+import { shortenAddress } from '@oyster/common';
 import { Select, Spin } from 'antd';
 import { SelectProps } from 'antd/es/select';
 import debounce from 'lodash/debounce';
 import React, { useMemo, useRef, useState } from 'react';
-import { ARTISTS, IArtist } from '../../constants/artists';
 import { useMeta } from '../../contexts';
-import { getWhitelistedCreator } from '../../models/metaplex';
 import './styles.less';
 
 export interface DebounceSelectProps<ValueType = any>
@@ -75,16 +74,17 @@ export const UserSearch = (props: { setCreators: Function }) => {
       size="large"
       value={value}
       placeholder="Select creator"
-      fetchOptions={(search: string) =>
-        new Promise(async res =>
-          res(
-            ARTISTS.filter(
-              a =>
-                whitelistedCreatorsByCreator[a.address.toBase58()]?.info
-                  .activated,
-            ).map(a => ({ label: a.name, value: a.address.toBase58() })),
-          ),
-        )
+      fetchOptions={async (search: string) =>
+        {
+          const items = Object.values(whitelistedCreatorsByCreator)
+          .filter(c => c.info.activated)
+          .map(a => ({
+            label: a.info.name || shortenAddress(a.info.address.toBase58()),
+            value: a.info.address.toBase58()
+          }));
+
+          return items;
+        }
       }
       onChange={newValue => {
         props.setCreators(newValue);

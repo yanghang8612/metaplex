@@ -273,7 +273,6 @@ export const METADATA_SCHEMA = new Map<any, any>([
 ]);
 
 export const decodeMetadata = async (buffer: Buffer): Promise<Metadata> => {
-  debugger;
   const metadata = deserializeUnchecked(
     METADATA_SCHEMA,
     Metadata,

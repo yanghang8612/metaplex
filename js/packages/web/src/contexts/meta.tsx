@@ -27,6 +27,7 @@ import {
   Vault,
 } from '@oyster/common';
 import { MintInfo } from '@solana/spl-token';
+import { NAME_PROGRAM_ID, VERIFICATION_AUTHORITY_OFFSET, TWITTER_VERIFICATION_AUTHORITY, TWITTER_ACCOUNT_LENGTH, NameRegistryState } from '@solana/spl-name-service';
 import { Connection, PublicKey, PublicKeyAndAccount } from '@solana/web3.js';
 import BN from 'bn.js';
 import React, { useContext, useEffect, useMemo, useState } from 'react';
@@ -43,6 +44,7 @@ import {
   WhitelistedCreator,
   WhitelistedCreatorParser,
 } from '../models/metaplex';
+import names from './../config/userNames.json';
 
 const { MetadataKey } = actions;
 export interface MetaContextState {
@@ -351,6 +353,14 @@ export function MetaProvider({ children = null as any }) {
                 a.account,
                 WhitelistedCreatorParser,
               ) as ParsedAccount<WhitelistedCreator>;
+
+              const nameInfo = (names as any)[account.info.address.toBase58()];
+              if(nameInfo) {
+                account.info.name = nameInfo.name;
+                account.info.image = nameInfo.image;
+                account.info.twitter = nameInfo.twitter;
+              }
+
               setWhitelistedCreatorsByCreator(e => ({
                 ...e,
                 [whitelistedCreator.address.toBase58()]: account,
@@ -514,6 +524,40 @@ export function MetaProvider({ children = null as any }) {
       ),
     [metadata, whitelistedCreatorsByCreator],
   );
+
+  useEffect(() => {
+    // TODO: fetch names dynamically
+
+  })
+
+  // TODO: get names for creators
+  // useEffect(() => {
+  //   (async () => {
+  //     const twitterHandles = await connection.getProgramAccounts(NAME_PROGRAM_ID, {
+  //      filters: [
+  //        {
+  //           dataSize: TWITTER_ACCOUNT_LENGTH,
+  //        },
+  //        {
+  //          memcmp: {
+  //           offset: VERIFICATION_AUTHORITY_OFFSET,
+  //           bytes: TWITTER_VERIFICATION_AUTHORITY.toBase58()
+  //          }
+  //        }
+  //      ]
+  //     });
+
+  //     const handles = twitterHandles.map(t => {
+  //       const owner = new PublicKey(t.account.data.slice(32, 64));
+  //       const name = t.account.data.slice(96, 114).toString();
+  //     });
+
+
+  //     console.log(handles);
+
+  //   })();
+  // }, [whitelistedCreatorsByCreator]);
+
   return (
     <MetaContext.Provider
       value={{

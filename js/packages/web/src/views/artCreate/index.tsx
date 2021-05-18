@@ -224,7 +224,7 @@ const CategoryStep = (props: {
             >
               <div>
                 <div>Video</div>
-                <div className="type-btn-description">MP3, WAV, FLAC</div>
+                <div className="type-btn-description">MP4</div>
               </div>
             </Button>
           </Row>
@@ -236,7 +236,7 @@ const CategoryStep = (props: {
             >
               <div>
                 <div>Audio</div>
-                <div className="type-btn-description">MP4</div>
+                <div className="type-btn-description">MP3, WAV, FLAC</div>
               </div>
             </Button>
           </Row>
@@ -471,7 +471,7 @@ const InfoStep = (props: {
               }
             />
           </label>
-          <label className="action-field">
+          {/* <label className="action-field">
             <span className="field-title">Symbol</span>
             <Input
               className="input"
@@ -485,7 +485,7 @@ const InfoStep = (props: {
                 })
               }
             />
-          </label>
+          </label> */}
           <label className="action-field">
             <span className="field-title">Creators</span>
             <UserSearch setCreators={setCreators} />

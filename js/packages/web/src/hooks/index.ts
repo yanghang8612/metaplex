@@ -4,3 +4,4 @@ export * from './useUserArts';
 export * from './useAuction';
 export * from './useBidsForAuction';
 export * from './useUserBalance';
+export * from './useCreator';

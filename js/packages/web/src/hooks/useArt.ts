@@ -80,7 +80,6 @@ export const useArt = (id?: PublicKey | string) => {
               account.info.extended.image = file;
               await fetch(file, { cache: 'force-cache' })
                 .catch(er => {
-                  debugger;
                   return fetch(file, { cache: 'reload' });
                 })
                 .then(res => res.blob())
