@@ -126,6 +126,8 @@ export class PriceFloor {
 export class AuctionData {
   /// Pubkey of the authority with permission to modify this auction.
   authority: PublicKey;
+  /// Pubkey of the resource being auctioned.
+  resource: PublicKey;
   /// Token mint for the SPL token being used to bid
   tokenMint: PublicKey;
   /// The time the last bid was placed, used to keep track of auction timing.
@@ -147,6 +149,7 @@ export class AuctionData {
 
   constructor(args: {
     authority: PublicKey;
+    resource: PublicKey;
     tokenMint: PublicKey;
     lastBid: BN | null;
     endedAt: BN | null;
@@ -157,6 +160,7 @@ export class AuctionData {
     bidState: BidState;
   }) {
     this.authority = args.authority;
+    this.resource = args.resource;
     this.tokenMint = args.tokenMint;
     this.lastBid = args.lastBid;
     this.endedAt = args.endedAt;
@@ -359,6 +363,7 @@ export const AUCTION_SCHEMA = new Map<any, any>([
       kind: 'struct',
       fields: [
         ['authority', 'pubkey'],
+        ['resource', 'pubkey'],
         ['tokenMint', 'pubkey'],
         ['lastBid', { kind: 'option', type: 'u64' }],
         ['endedAt', { kind: 'option', type: 'u64' }],

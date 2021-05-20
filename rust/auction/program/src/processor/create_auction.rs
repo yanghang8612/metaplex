@@ -114,6 +114,7 @@ pub fn create_auction(
     AuctionData {
         authority: args.authority,
         bid_state: bid_state,
+        resource: args.resource,
         end_auction_at: args.end_auction_at,
         end_auction_gap: args.end_auction_gap,
         ended_at: None,

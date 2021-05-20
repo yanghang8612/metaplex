@@ -61,7 +61,7 @@ pub enum PriceFloor {
 
 // The two extra 8's are present, one 8 is for the Vec's amount of elements and one is for the max
 // usize in bid state.
-pub const BASE_AUCTION_DATA_SIZE: usize = 32 + 32 + 9 + 9 + 9 + 9 + 1 + 32 + 1 + 8 + 8;
+pub const BASE_AUCTION_DATA_SIZE: usize = 32 + 32 + 32 + 9 + 9 + 9 + 9 + 1 + 32 + 1 + 8 + 8;
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq, Debug)]
 pub struct AuctionData {
@@ -72,6 +72,8 @@ pub struct AuctionData {
     /// interactin that happens in metaplex during redemptions due to some low level rust error
     /// that happens when AuctionData has too many fields. This field was the least used.
     ///pub resource: Pubkey,
+    /// Token mint for the SPL token being used to bid
+    pub resource: Pubkey,
     /// Token mint for the SPL token being used to bid
     pub token_mint: Pubkey,
     /// The time the last bid was placed, used to keep track of auction timing.
