@@ -138,7 +138,7 @@ pub fn start_auction_instruction(
     Instruction {
         program_id,
         accounts: vec![
-            AccountMeta::new(authority_pubkey, true),
+            AccountMeta::new_readonly(authority_pubkey, true),
             AccountMeta::new(auction_pubkey, false),
             AccountMeta::new_readonly(sysvar::clock::id(), false),
         ],
