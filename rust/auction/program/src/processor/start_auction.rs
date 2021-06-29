@@ -88,7 +88,7 @@ pub fn start_auction<'a, 'b: 'a>(
 
     AuctionData {
         ended_at,
-        state: auction.state.start()?,
+        state: AuctionState::Started,
         ..auction
     }
     .serialize(&mut *accounts.auction.data.borrow_mut())?;
