@@ -62,6 +62,8 @@ pub enum PriceFloor {
 // The two extra 8's are present, one 8 is for the Vec's amount of elements and one is for the max
 // usize in bid state.
 pub const BASE_AUCTION_DATA_SIZE: usize = 32 + 32 + 32 + 9 + 9 + 9 + 9 + 1 + 32 + 1 + 8 + 8;
+
+pub const HARDCODED_GAP_TIME: i64 = 600;
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq, Debug)]
 pub struct AuctionData {
@@ -101,7 +103,7 @@ impl AuctionData {
             (Some(end), Some(gap)) => {
                 // Check if the bid is within the gap between the last bidder.
                 if let Some(last) = self.last_bid {
-                    let next_bid_time = match last.checked_add(gap) {
+                    let next_bid_time = match last.checked_add(HARDCODED_GAP_TIME) {
                         Some(val) => val,
                         None => return Err(AuctionError::NumericalOverflowError.into()),
                     };
