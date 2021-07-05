@@ -86,6 +86,13 @@ pub fn start_auction<'a, 'b: 'a>(
         None
     };
 
+    // Reset current winner
+
+    match &mut auction.bid_state {
+        BidState::EnglishAuction { bids, max } => bids.pop(),
+        BidState::OpenEdition { bids, max } => bids.pop(),
+    };
+
     AuctionData {
         ended_at,
         state: AuctionState::Started,

@@ -212,8 +212,8 @@ impl BidState {
                         }
                         Ok(())
                     } else {
-                        msg!("This bid fails to make it onto the winner stack but can still register metadata.");
-                        Ok(())
+                        msg!("This bid fails to make it onto the winner stack.");
+                        Err(AuctionError::BidTooSmall.into())
                     }
                 }
                 _ => {
