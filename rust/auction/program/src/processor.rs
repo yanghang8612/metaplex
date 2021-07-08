@@ -28,6 +28,8 @@ pub use place_bid::*;
 pub use set_authority::*;
 pub use start_auction::*;
 
+pub const BONFIDA_VAULT: &str = "DmSyHDSM9eSLyvoLsPvDr5fRRFZ7Bfr3h3ULvWpgQaq7";
+
 pub fn process_instruction(
     program_id: &Pubkey,
     accounts: &[AccountInfo],

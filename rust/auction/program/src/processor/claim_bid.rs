@@ -1,9 +1,11 @@
 //! Claim bid winnings into a target SPL account, only the authorised key can do this, though the
 //! target can be any SPL account.
 
+use std::str::FromStr;
+
 use crate::{
     errors::AuctionError,
-    processor::{AuctionData, BidderMetadata, BidderPot},
+    processor::{AuctionData, BidderMetadata, BidderPot, BONFIDA_VAULT},
     utils::{
         assert_derivation, assert_initialized, assert_owned_by, assert_signer,
         create_or_allocate_account_raw, spl_token_transfer, TokenTransferParams,
@@ -32,6 +34,7 @@ use {
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
 pub struct ClaimBidArgs {
     pub resource: Pubkey,
+    pub fee_percentage: u64, // * 10_000
 }
 
 struct Accounts<'a, 'b: 'a> {
@@ -44,6 +47,7 @@ struct Accounts<'a, 'b: 'a> {
     mint: &'a AccountInfo<'b>,
     clock_sysvar: &'a AccountInfo<'b>,
     token_program: &'a AccountInfo<'b>,
+    bonfida_vault: &'a AccountInfo<'b>,
 }
 
 fn parse_accounts<'a, 'b: 'a>(
@@ -61,6 +65,7 @@ fn parse_accounts<'a, 'b: 'a>(
         mint: next_account_info(account_iter)?,
         clock_sysvar: next_account_info(account_iter)?,
         token_program: next_account_info(account_iter)?,
+        bonfida_vault: next_account_info(account_iter)?,
     };
 
     assert_owned_by(accounts.auction, program_id)?;
@@ -68,6 +73,10 @@ fn parse_accounts<'a, 'b: 'a>(
     assert_owned_by(accounts.destination, &spl_token::id())?;
     assert_owned_by(accounts.bidder_pot_token, &spl_token::id())?;
     assert_signer(accounts.authority)?;
+    if accounts.bonfida_vault.key != &Pubkey::from_str(BONFIDA_VAULT).unwrap() {
+        msg!("Wrong Bonfida vault address");
+        return Err(ProgramError::InvalidArgument);
+    };
 
     Ok(accounts)
 }
@@ -154,14 +163,26 @@ pub fn claim_bid(
         return Err(AuctionError::BidderPotTokenAccountOwnerMismatch.into());
     }
 
-    // Transfer SPL bid balance back to the user.
+    // Calculate fees
+    let fees = args.fee_percentage * actual_account.amount / 1000;
+    let rest_amount = actual_account.amount - fees;
+
+    // Transfer SPL bid balance back to the user and the bonfida vault
     spl_token_transfer(TokenTransferParams {
         source: accounts.bidder_pot_token.clone(),
         destination: accounts.destination.clone(),
         authority: accounts.auction.clone(),
         authority_signer_seeds: auction_seeds,
         token_program: accounts.token_program.clone(),
-        amount: actual_account.amount,
+        amount: rest_amount,
+    })?;
+    spl_token_transfer(TokenTransferParams {
+        source: accounts.bidder_pot_token.clone(),
+        destination: accounts.bonfida_vault.clone(),
+        authority: accounts.auction.clone(),
+        authority_signer_seeds: auction_seeds,
+        token_program: accounts.token_program.clone(),
+        amount: fees,
     })?;
 
     bidder_pot.emptied = true;

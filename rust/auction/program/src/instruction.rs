@@ -44,6 +44,7 @@ pub enum AuctionInstruction {
     ///   6. `[]` Token mint of the auction
     ///   7. `[]` Clock sysvar
     ///   8. `[]` Token program
+    ///   9. `[]` Bonfida vault account
     ClaimBid(ClaimBidArgs),
 
     /// Ends an auction, regardless of end timing conditions
