@@ -5,7 +5,7 @@ use std::str::FromStr;
 
 use crate::{
     errors::AuctionError,
-    processor::{AuctionData, BidderMetadata, BidderPot, BONFIDA_VAULT},
+    processor::{AuctionData, BidderMetadata, BidderPot},
     utils::{
         assert_derivation, assert_initialized, assert_owned_by, assert_signer,
         create_or_allocate_account_raw, spl_token_transfer, TokenTransferParams,
@@ -73,10 +73,6 @@ fn parse_accounts<'a, 'b: 'a>(
     assert_owned_by(accounts.destination, &spl_token::id())?;
     assert_owned_by(accounts.bidder_pot_token, &spl_token::id())?;
     assert_signer(accounts.authority)?;
-    if accounts.bonfida_vault.key != &Pubkey::from_str(BONFIDA_VAULT).unwrap() {
-        msg!("Wrong Bonfida vault address");
-        return Err(ProgramError::InvalidArgument);
-    };
 
     Ok(accounts)
 }
