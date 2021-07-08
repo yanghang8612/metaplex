@@ -164,7 +164,7 @@ pub fn claim_bid(
     }
 
     // Calculate fees
-    let fees = args.fee_percentage * actual_account.amount / 1000;
+    let fees = args.fee_percentage * actual_account.amount / 10000;
     let rest_amount = actual_account.amount - fees;
 
     // Transfer SPL bid balance back to the user and the bonfida vault
