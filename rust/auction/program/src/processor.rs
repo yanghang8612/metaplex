@@ -28,6 +28,8 @@ pub use place_bid::*;
 pub use set_authority::*;
 pub use start_auction::*;
 
+pub const EXCLUSIVE_AUCTION_AUTHORITY: &str = "33m47vH6Eav6jr5Ry86XjhRft2jRBLDnDgPSHoquXi2Z";
+
 pub fn process_instruction(
     program_id: &Pubkey,
     accounts: &[AccountInfo],

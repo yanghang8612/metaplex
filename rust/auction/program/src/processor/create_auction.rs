@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use solana_program::clock::UnixTimestamp;
 
 use crate::{
@@ -8,6 +10,8 @@ use crate::{
     utils::{assert_owned_by, create_or_allocate_account_raw},
     PREFIX,
 };
+
+use super::EXCLUSIVE_AUCTION_AUTHORITY;
 
 use {
     borsh::{BorshDeserialize, BorshSerialize},
@@ -34,8 +38,6 @@ pub struct CreateAuctionArgs {
     pub end_auction_gap: Option<UnixTimestamp>,
     /// Token mint for the SPL token used for bidding.
     pub token_mint: Pubkey,
-    /// Authority
-    pub authority: Pubkey,
     /// The resource being auctioned. See AuctionData.
     pub resource: Pubkey,
     /// Set a price floor.
@@ -47,6 +49,7 @@ struct Accounts<'a, 'b: 'a> {
     payer: &'a AccountInfo<'b>,
     rent: &'a AccountInfo<'b>,
     system: &'a AccountInfo<'b>,
+    authority: &'a AccountInfo<'b>,
 }
 
 fn parse_accounts<'a, 'b: 'a>(
@@ -59,7 +62,16 @@ fn parse_accounts<'a, 'b: 'a>(
         auction: next_account_info(account_iter)?,
         rent: next_account_info(account_iter)?,
         system: next_account_info(account_iter)?,
+        authority: next_account_info(account_iter)?,
     };
+    if !accounts.authority.is_signer {
+        msg!("The authority account should be a signer");
+        return Err(ProgramError::MissingRequiredSignature);
+    }
+    let exclusive_auth = Pubkey::from_str(EXCLUSIVE_AUCTION_AUTHORITY).unwrap();
+    if &exclusive_auth != accounts.authority.key {
+        msg!("This command can only be called by the Bonfida name auctioning smart contract");
+    }
     Ok(accounts)
 }
 
@@ -94,25 +106,33 @@ pub fn create_auction(
         WinnerLimit::Unlimited(_) => BidState::new_open_edition(),
     };
 
-    // Create auction account with enough space for a winner tracking.
-    create_or_allocate_account_raw(
-        *program_id,
-        accounts.auction,
-        accounts.rent,
-        accounts.system,
-        accounts.payer,
-        auction_size,
-        &[
-            PREFIX.as_bytes(),
-            program_id.as_ref(),
-            &args.resource.to_bytes(),
-            &[bump],
-        ],
-    )?;
+    if accounts.auction.data_is_empty() {
+        // Create auction account with enough space for a winner tracking.
+        create_or_allocate_account_raw(
+            *program_id,
+            accounts.auction,
+            accounts.rent,
+            accounts.system,
+            accounts.payer,
+            auction_size,
+            &[
+                PREFIX.as_bytes(),
+                program_id.as_ref(),
+                &args.resource.to_bytes(),
+                &[bump],
+            ],
+        )?;
+    } else {
+        let parsed = AuctionData::try_from_slice(&accounts.auction.data.borrow())?;
+        if &parsed.authority != accounts.authority.key {
+            msg!("Invalid authority account for already existing auction");
+            return Err(ProgramError::InvalidArgument);
+        }
+    }
 
     // Configure Auction.
     AuctionData {
-        authority: args.authority,
+        authority: *accounts.authority.key,
         bid_state: bid_state,
         resource: args.resource,
         end_auction_at: args.end_auction_at,

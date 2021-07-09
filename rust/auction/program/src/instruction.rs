@@ -80,6 +80,7 @@ pub enum AuctionInstruction {
 pub fn create_auction_instruction(
     program_id: Pubkey,
     creator_pubkey: Pubkey,
+    authority_pubkey: Pubkey,
     args: CreateAuctionArgs,
 ) -> Instruction {
     let seeds = &[
@@ -95,6 +96,7 @@ pub fn create_auction_instruction(
             AccountMeta::new(auction_pubkey, false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
+            AccountMeta::new_readonly(authority_pubkey, true),
         ],
         data: AuctionInstruction::CreateAuction(args)
             .try_to_vec()

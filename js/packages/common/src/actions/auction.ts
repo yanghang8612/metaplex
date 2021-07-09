@@ -9,7 +9,7 @@ import {
 import { programIds } from '../utils/ids';
 import { deserializeUnchecked, serialize } from 'borsh';
 import BN from 'bn.js';
-import { AccountParser, cache } from '../contexts';
+import { AccountParser } from '../contexts';
 
 export const AUCTION_PREFIX = 'auction';
 export const METADATA = 'metadata';
