@@ -69,7 +69,7 @@ fn parse_accounts<'a, 'b: 'a>(
         return Err(ProgramError::MissingRequiredSignature);
     }
     let exclusive_auth = Pubkey::from_str(EXCLUSIVE_AUCTION_AUTHORITY).unwrap();
-    if &exclusive_auth != accounts.authority.key {
+    if &exclusive_auth != accounts.authority.owner {
         msg!("This command can only be called by the Bonfida name auctioning smart contract");
     }
     Ok(accounts)
