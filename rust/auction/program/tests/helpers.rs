@@ -324,6 +324,7 @@ pub async fn claim_bid(
             *mint,
             ClaimBidArgs {
                 resource: *resource,
+                fee_percentage: 0,
             },
         )],
         Some(&payer.pubkey()),

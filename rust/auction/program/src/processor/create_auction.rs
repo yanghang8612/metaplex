@@ -123,7 +123,7 @@ pub fn create_auction(
             ],
         )?;
     } else {
-        let parsed = AuctionData::try_from_slice(&accounts.auction.data.borrow())?;
+        let parsed: AuctionData = try_from_slice_unchecked(&accounts.auction.data.borrow())?;
         if &parsed.authority != accounts.authority.key {
             msg!("Invalid authority account for already existing auction");
             return Err(ProgramError::InvalidArgument);

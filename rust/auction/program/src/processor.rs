@@ -206,7 +206,9 @@ impl BidState {
             // In a capped auction, track the limited number of winners.
             BidState::EnglishAuction { ref mut bids, max } => match bids.last() {
                 Some(top) => {
-                    if top.1 < bid.1 || bids.len() < *max {
+                    let outbid = bid.1.saturating_sub(top.1);
+                    let minimum_bid_increment = top.1 / 20;
+                    if outbid > minimum_bid_increment || bids.len() < *max {
                         bids.retain(|b| b.0 != bid.0);
                         bids.push(bid);
                         if bids.len() > *max {
