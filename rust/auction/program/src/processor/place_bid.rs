@@ -14,12 +14,14 @@ use borsh::try_to_vec_with_schema;
 
 use crate::{
     errors::AuctionError,
-    processor::{AuctionData, AuctionState, Bid, BidderMetadata, BidderPot, PriceFloor},
+    processor::{
+        AuctionData, AuctionState, Bid, BidderMetadata, BidderPot, BuyNowData, PriceFloor,
+    },
     utils::{
         assert_derivation, assert_initialized, assert_owned_by, assert_signer,
         create_or_allocate_account_raw, spl_token_transfer, TokenTransferParams,
     },
-    PREFIX,
+    BUY_NOW, PREFIX,
 };
 
 use super::BIDDER_METADATA_LEN;
@@ -68,6 +70,7 @@ struct Accounts<'a, 'b: 'a> {
     system: &'a AccountInfo<'b>,
     token_program: &'a AccountInfo<'b>,
     transfer_authority: &'a AccountInfo<'b>,
+    buy_now: Option<&'a AccountInfo<'b>>,
 }
 
 fn parse_accounts<'a, 'b: 'a>(
@@ -89,6 +92,7 @@ fn parse_accounts<'a, 'b: 'a>(
         rent: next_account_info(account_iter)?,
         system: next_account_info(account_iter)?,
         token_program: next_account_info(account_iter)?,
+        buy_now: next_account_info(account_iter).ok(),
     };
 
     assert_owned_by(accounts.auction, program_id)?;
@@ -97,6 +101,9 @@ fn parse_accounts<'a, 'b: 'a>(
     assert_signer(accounts.bidder)?;
     assert_signer(accounts.payer)?;
     assert_signer(accounts.transfer_authority)?;
+    if accounts.buy_now.is_some() {
+        assert_owned_by(accounts.buy_now.unwrap(), program_id)?;
+    }
 
     Ok(accounts)
 }
@@ -285,6 +292,30 @@ pub fn place_bid<'r, 'b: 'r>(
         cancelled: false,
     }
     .serialize(&mut *accounts.bidder_meta.data.borrow_mut())?;
+
+    if accounts.buy_now.is_some() {
+        let buy_now_account = accounts.buy_now.unwrap();
+
+        let buy_now_path = [
+            BUY_NOW.as_bytes(),
+            program_id.as_ref(),
+            &args.resource.to_bytes(),
+        ];
+        let (buy_now_key, buy_now_bump) = Pubkey::find_program_address(&buy_now_path, program_id);
+        if buy_now_account.key != &buy_now_key {
+            msg!("Invalid buy now account provided");
+            return Err(ProgramError::InvalidArgument);
+        }
+
+        // Deserialize data
+        let buy_now_state: BuyNowData = try_from_slice_unchecked(&buy_now_account.data.borrow())?;
+        // End the auction
+        if args.amount >= buy_now_state.max_price {
+            auction.ended_at = Some(clock.unix_timestamp);
+            auction.state = auction.state.end()?;
+            auction.serialize(&mut *accounts.auction.data.borrow_mut())?;
+        }
+    }
 
     Ok(())
 }

@@ -326,7 +326,7 @@ pub fn claim_bid_instruction(
             AccountMeta::new_readonly(token_mint_pubkey, false),
             AccountMeta::new_readonly(sysvar::clock::id(), false),
             AccountMeta::new_readonly(spl_token::id(), false),
-            AccountMeta::new(bonfida_vault, false)
+            AccountMeta::new(bonfida_vault, false),
         ],
         data: AuctionInstruction::ClaimBid(args).try_to_vec().unwrap(),
     }

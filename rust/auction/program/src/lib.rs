@@ -9,5 +9,6 @@ pub mod processor;
 
 /// Prefix used in PDA derivations to avoid collisions with other programs.
 pub const PREFIX: &str = "auction";
+pub const BUY_NOW: &str = "buy now";
 
 solana_program::declare_id!("DBPY5XNr398qXCWkri9qaSar3kPgzHCkfa8r8agRKgsw");

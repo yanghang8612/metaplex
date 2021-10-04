@@ -5,10 +5,11 @@ use solana_program::clock::UnixTimestamp;
 use crate::{
     errors::AuctionError,
     processor::{
-        AuctionData, AuctionState, Bid, BidState, PriceFloor, WinnerLimit, BASE_AUCTION_DATA_SIZE,
+        AuctionData, AuctionState, Bid, BidState, BuyNowData, PriceFloor, WinnerLimit,
+        BASE_AUCTION_DATA_SIZE, BUY_NOW_DATA_LEN,
     },
     utils::{assert_owned_by, create_or_allocate_account_raw},
-    PREFIX,
+    BUY_NOW, PREFIX,
 };
 
 use super::EXCLUSIVE_AUCTION_AUTHORITY;
@@ -42,6 +43,8 @@ pub struct CreateAuctionArgs {
     pub resource: Pubkey,
     /// Set a price floor.
     pub price_floor: PriceFloor,
+    /// Max price of the auction i.e buy now price
+    pub max_price: Option<u64>,
 }
 
 struct Accounts<'a, 'b: 'a> {
@@ -50,6 +53,7 @@ struct Accounts<'a, 'b: 'a> {
     rent: &'a AccountInfo<'b>,
     system: &'a AccountInfo<'b>,
     authority: &'a AccountInfo<'b>,
+    buy_now: Option<&'a AccountInfo<'b>>,
 }
 
 fn parse_accounts<'a, 'b: 'a>(
@@ -63,6 +67,7 @@ fn parse_accounts<'a, 'b: 'a>(
         rent: next_account_info(account_iter)?,
         system: next_account_info(account_iter)?,
         authority: next_account_info(account_iter)?,
+        buy_now: next_account_info(account_iter).ok(),
     };
     if !accounts.authority.is_signer {
         msg!("The authority account should be a signer");
@@ -128,6 +133,43 @@ pub fn create_auction(
             msg!("Invalid authority account for already existing auction");
             return Err(ProgramError::InvalidArgument);
         }
+    }
+
+    // Allow buy now
+    if args.max_price.is_some() && accounts.buy_now.is_some() {
+        let max_price = args.max_price.unwrap();
+        let buy_now_account = accounts.buy_now.unwrap();
+
+        let buy_now_path = [
+            BUY_NOW.as_bytes(),
+            program_id.as_ref(),
+            &args.resource.to_bytes(),
+        ];
+
+        let (buy_now_key, buy_now_bump) = Pubkey::find_program_address(&buy_now_path, program_id);
+
+        if buy_now_account.key != &buy_now_key {
+            msg!("Invalid buy now account provided");
+            return Err(ProgramError::InvalidArgument);
+        }
+
+        if buy_now_account.data_is_empty() {
+            create_or_allocate_account_raw(
+                *program_id,
+                buy_now_account,
+                accounts.rent,
+                accounts.system,
+                accounts.payer,
+                BUY_NOW_DATA_LEN,
+                &[
+                    BUY_NOW.as_bytes(),
+                    program_id.as_ref(),
+                    &args.resource.to_bytes(),
+                    &[buy_now_bump],
+                ],
+            )?;
+        }
+        BuyNowData { max_price }.serialize(&mut *buy_now_account.data.borrow_mut())?;
     }
 
     // Configure Auction.

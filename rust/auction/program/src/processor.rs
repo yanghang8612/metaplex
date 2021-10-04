@@ -299,3 +299,11 @@ pub struct BidderPot {
     /// emptied or not
     pub emptied: bool,
 }
+#[repr(C)]
+#[derive(Clone, BorshDeserialize, BorshSerialize, PartialEq, Debug)]
+pub struct BuyNowData {
+    /// Max price of the auction i.e buy now price
+    pub max_price: u64,
+}
+
+pub const BUY_NOW_DATA_LEN: usize = 8;
