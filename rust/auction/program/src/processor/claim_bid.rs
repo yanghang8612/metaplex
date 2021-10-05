@@ -13,8 +13,10 @@ use crate::{
     BONFIDA_SOL_VAULT, BUY_NOW, PREFIX,
 };
 
+use super::BuyNowData;
+
 use {
-    borsh::{BorshDeserialize, BorshSerialize},
+    borsh::{try_from_slice_with_schema, BorshDeserialize, BorshSerialize},
     solana_program::{
         account_info::{next_account_info, AccountInfo},
         borsh::try_from_slice_unchecked,
@@ -210,12 +212,10 @@ fn buy_now_account_exists(program_id: &Pubkey, resource: &Pubkey, buy_now: &Acco
     let buy_now_path = [BUY_NOW.as_bytes(), program_id.as_ref(), resource.as_ref()];
     let (buy_now_key, buy_now_bump) = Pubkey::find_program_address(&buy_now_path, program_id);
     assert_account_key(buy_now, &buy_now_key).unwrap();
-    match Account::unpack(&buy_now.data.borrow()) {
-        Ok(_) => {
-            // If the account exists it must be owned by the program
-            assert_owned_by(buy_now, program_id).unwrap();
-            true
-        }
-        _ => false,
+    if buy_now.data_len() != 0 {
+        // If the account exists it must be owned by the program
+        assert_owned_by(buy_now, program_id).unwrap();
+        return true;
     }
+    false
 }
