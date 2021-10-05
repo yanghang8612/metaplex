@@ -81,6 +81,7 @@ pub fn create_auction_instruction(
     program_id: Pubkey,
     creator_pubkey: Pubkey,
     authority_pubkey: Pubkey,
+    buy_now_pubkey: Option<Pubkey>,
     args: CreateAuctionArgs,
 ) -> Instruction {
     let seeds = &[
@@ -89,15 +90,19 @@ pub fn create_auction_instruction(
         args.resource.as_ref(),
     ];
     let (auction_pubkey, _) = Pubkey::find_program_address(seeds, &program_id);
+    let mut accounts = vec![
+        AccountMeta::new(creator_pubkey, true),
+        AccountMeta::new(auction_pubkey, false),
+        AccountMeta::new_readonly(sysvar::rent::id(), false),
+        AccountMeta::new_readonly(solana_program::system_program::id(), false),
+        AccountMeta::new_readonly(authority_pubkey, true),
+    ];
+    if buy_now_pubkey.is_some() {
+        accounts.push(AccountMeta::new(buy_now_pubkey.unwrap(), false));
+    }
     Instruction {
         program_id,
-        accounts: vec![
-            AccountMeta::new(creator_pubkey, true),
-            AccountMeta::new(auction_pubkey, false),
-            AccountMeta::new_readonly(sysvar::rent::id(), false),
-            AccountMeta::new_readonly(solana_program::system_program::id(), false),
-            AccountMeta::new_readonly(authority_pubkey, true),
-        ],
+        accounts,
         data: AuctionInstruction::CreateAuction(args)
             .try_to_vec()
             .unwrap(),
@@ -158,6 +163,7 @@ pub fn place_bid_instruction(
     token_mint_pubkey: Pubkey,
     transfer_authority: Pubkey,
     payer: Pubkey,
+    buy_now_pubkey: Option<Pubkey>,
     args: PlaceBidArgs,
 ) -> Instruction {
     // Derive Auction Key
@@ -187,23 +193,29 @@ pub fn place_bid_instruction(
     ];
     let (bidder_meta_pubkey, _) = Pubkey::find_program_address(seeds, &program_id);
 
+    let mut accounts = vec![
+        AccountMeta::new(bidder_pubkey, true),
+        AccountMeta::new(bidder_token_pubkey, false),
+        AccountMeta::new(bidder_pot_pubkey, false),
+        AccountMeta::new(bidder_pot_token_pubkey, false),
+        AccountMeta::new(bidder_meta_pubkey, false),
+        AccountMeta::new(auction_pubkey, false),
+        AccountMeta::new(token_mint_pubkey, false),
+        AccountMeta::new_readonly(transfer_authority, true),
+        AccountMeta::new_readonly(payer, true),
+        AccountMeta::new_readonly(sysvar::clock::id(), false),
+        AccountMeta::new_readonly(sysvar::rent::id(), false),
+        AccountMeta::new_readonly(solana_program::system_program::id(), false),
+        AccountMeta::new_readonly(spl_token::id(), false),
+    ];
+
+    if buy_now_pubkey.is_some() {
+        accounts.push(AccountMeta::new(buy_now_pubkey.unwrap(), false));
+    }
+
     Instruction {
         program_id,
-        accounts: vec![
-            AccountMeta::new(bidder_pubkey, true),
-            AccountMeta::new(bidder_token_pubkey, false),
-            AccountMeta::new(bidder_pot_pubkey, false),
-            AccountMeta::new(bidder_pot_token_pubkey, false),
-            AccountMeta::new(bidder_meta_pubkey, false),
-            AccountMeta::new(auction_pubkey, false),
-            AccountMeta::new(token_mint_pubkey, false),
-            AccountMeta::new_readonly(transfer_authority, true),
-            AccountMeta::new_readonly(payer, true),
-            AccountMeta::new_readonly(sysvar::clock::id(), false),
-            AccountMeta::new_readonly(sysvar::rent::id(), false),
-            AccountMeta::new_readonly(solana_program::system_program::id(), false),
-            AccountMeta::new_readonly(spl_token::id(), false),
-        ],
+        accounts: accounts,
         data: AuctionInstruction::PlaceBid(args).try_to_vec().unwrap(),
     }
 }
