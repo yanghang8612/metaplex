@@ -10,7 +10,7 @@ use crate::{
         assert_derivation, assert_initialized, assert_owned_by, assert_signer,
         create_or_allocate_account_raw, spl_token_transfer, TokenTransferParams,
     },
-    PREFIX,
+    BONFIDA_SOL_VAULT, PREFIX,
 };
 
 use {
@@ -48,6 +48,8 @@ struct Accounts<'a, 'b: 'a> {
     clock_sysvar: &'a AccountInfo<'b>,
     token_program: &'a AccountInfo<'b>,
     bonfida_vault: &'a AccountInfo<'b>,
+    buy_now: Option<&'a AccountInfo<'b>>,
+    bonfida_sol_vault: Option<&'a AccountInfo<'b>>,
 }
 
 fn parse_accounts<'a, 'b: 'a>(
@@ -66,6 +68,8 @@ fn parse_accounts<'a, 'b: 'a>(
         clock_sysvar: next_account_info(account_iter)?,
         token_program: next_account_info(account_iter)?,
         bonfida_vault: next_account_info(account_iter)?,
+        buy_now: next_account_info(account_iter).ok(),
+        bonfida_sol_vault: next_account_info(account_iter).ok(),
     };
 
     assert_owned_by(accounts.auction, program_id)?;
@@ -73,6 +77,17 @@ fn parse_accounts<'a, 'b: 'a>(
     assert_owned_by(accounts.destination, &spl_token::id())?;
     assert_owned_by(accounts.bidder_pot_token, &spl_token::id())?;
     assert_signer(accounts.authority)?;
+
+    if accounts.buy_now.is_some() {
+        assert_owned_by(accounts.buy_now.unwrap(), program_id)?;
+    }
+
+    if accounts.bonfida_sol_vault.is_some()
+        && *accounts.bonfida_sol_vault.unwrap().key != Pubkey::from_str(BONFIDA_SOL_VAULT).unwrap()
+    {
+        msg!("Invalid SOL vault");
+        return Err(ProgramError::InvalidAccountData);
+    }
 
     Ok(accounts)
 }
@@ -183,6 +198,18 @@ pub fn claim_bid(
 
     bidder_pot.emptied = true;
     bidder_pot.serialize(&mut *accounts.bidder_pot.data.borrow_mut())?;
+
+    // Collect lamports from the buy_now account as an additional fee for this type of sales
+    if accounts.buy_now.is_some() && accounts.bonfida_sol_vault.is_some() {
+        let buy_now_accounts = accounts.buy_now.unwrap();
+        let bonfida_sol_vault_account = accounts.bonfida_sol_vault.unwrap();
+
+        let mut target_lamports = bonfida_sol_vault_account.lamports.borrow_mut();
+        let mut buy_now_lamports = buy_now_accounts.lamports.borrow_mut();
+
+        **target_lamports += **buy_now_lamports;
+        **buy_now_lamports = 0;
+    }
 
     Ok(())
 }

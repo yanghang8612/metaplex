@@ -307,6 +307,8 @@ pub fn claim_bid_instruction(
     bidder_pot_token_pubkey: Pubkey,
     token_mint_pubkey: Pubkey,
     bonfida_vault: Pubkey,
+    buy_now: Option<Pubkey>,
+    bonfida_sol_vault: Option<Pubkey>,
     args: ClaimBidArgs,
 ) -> Instruction {
     // Derive Auction Key
@@ -326,20 +328,27 @@ pub fn claim_bid_instruction(
     ];
     let (bidder_pot_pubkey, _) = Pubkey::find_program_address(seeds, &program_id);
 
+    let mut accounts = vec![
+        AccountMeta::new(destination_pubkey, false),
+        AccountMeta::new(bidder_pot_token_pubkey, false),
+        AccountMeta::new(bidder_pot_pubkey, false),
+        AccountMeta::new_readonly(authority_pubkey, true),
+        AccountMeta::new_readonly(auction_pubkey, false),
+        AccountMeta::new_readonly(bidder_pubkey, false),
+        AccountMeta::new_readonly(token_mint_pubkey, false),
+        AccountMeta::new_readonly(sysvar::clock::id(), false),
+        AccountMeta::new_readonly(spl_token::id(), false),
+        AccountMeta::new(bonfida_vault, false),
+    ];
+
+    if buy_now.is_some() && bonfida_sol_vault.is_some() {
+        accounts.push(AccountMeta::new(buy_now.unwrap(), false));
+        accounts.push(AccountMeta::new(bonfida_sol_vault.unwrap(), false));
+    }
+
     Instruction {
         program_id,
-        accounts: vec![
-            AccountMeta::new(destination_pubkey, false),
-            AccountMeta::new(bidder_pot_token_pubkey, false),
-            AccountMeta::new(bidder_pot_pubkey, false),
-            AccountMeta::new_readonly(authority_pubkey, true),
-            AccountMeta::new_readonly(auction_pubkey, false),
-            AccountMeta::new_readonly(bidder_pubkey, false),
-            AccountMeta::new_readonly(token_mint_pubkey, false),
-            AccountMeta::new_readonly(sysvar::clock::id(), false),
-            AccountMeta::new_readonly(spl_token::id(), false),
-            AccountMeta::new(bonfida_vault, false),
-        ],
+        accounts: accounts,
         data: AuctionInstruction::ClaimBid(args).try_to_vec().unwrap(),
     }
 }
