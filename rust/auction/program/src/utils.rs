@@ -69,6 +69,13 @@ pub fn assert_derivation(
     Ok(bump)
 }
 
+pub fn assert_account_key(account: &AccountInfo, key: &Pubkey) -> ProgramResult {
+    if account.key != key {
+        return Err(ProgramError::InvalidArgument);
+    }
+    Ok(())
+}
+
 #[inline(always)]
 pub fn create_or_allocate_account_raw<'a>(
     program_id: Pubkey,

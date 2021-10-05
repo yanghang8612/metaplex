@@ -7,10 +7,10 @@ use crate::{
     errors::AuctionError,
     processor::{AuctionData, BidderMetadata, BidderPot},
     utils::{
-        assert_derivation, assert_initialized, assert_owned_by, assert_signer,
+        assert_account_key, assert_derivation, assert_initialized, assert_owned_by, assert_signer,
         create_or_allocate_account_raw, spl_token_transfer, TokenTransferParams,
     },
-    BONFIDA_SOL_VAULT, PREFIX,
+    BONFIDA_SOL_VAULT, BUY_NOW, PREFIX,
 };
 
 use {
@@ -48,8 +48,8 @@ struct Accounts<'a, 'b: 'a> {
     clock_sysvar: &'a AccountInfo<'b>,
     token_program: &'a AccountInfo<'b>,
     bonfida_vault: &'a AccountInfo<'b>,
-    buy_now: Option<&'a AccountInfo<'b>>,
-    bonfida_sol_vault: Option<&'a AccountInfo<'b>>,
+    buy_now: &'a AccountInfo<'b>,
+    bonfida_sol_vault: &'a AccountInfo<'b>,
 }
 
 fn parse_accounts<'a, 'b: 'a>(
@@ -68,8 +68,8 @@ fn parse_accounts<'a, 'b: 'a>(
         clock_sysvar: next_account_info(account_iter)?,
         token_program: next_account_info(account_iter)?,
         bonfida_vault: next_account_info(account_iter)?,
-        buy_now: next_account_info(account_iter).ok(),
-        bonfida_sol_vault: next_account_info(account_iter).ok(),
+        buy_now: next_account_info(account_iter)?,
+        bonfida_sol_vault: next_account_info(account_iter)?,
     };
 
     assert_owned_by(accounts.auction, program_id)?;
@@ -78,23 +78,11 @@ fn parse_accounts<'a, 'b: 'a>(
     assert_owned_by(accounts.bidder_pot_token, &spl_token::id())?;
     assert_signer(accounts.authority)?;
 
-    if accounts.buy_now.is_some() {
-        assert_owned_by(accounts.buy_now.unwrap(), program_id)?;
-    }
-
-    if accounts.bonfida_sol_vault.is_some()
-        && *accounts.bonfida_sol_vault.unwrap().key != Pubkey::from_str(BONFIDA_SOL_VAULT).unwrap()
-    {
-        msg!("Invalid SOL vault");
-        return Err(ProgramError::InvalidAccountData);
-    }
-
-    if accounts.buy_now.is_some() && accounts.bonfida_sol_vault.is_none()
-        || accounts.buy_now.is_none() && accounts.bonfida_sol_vault.is_some()
-    {
-        msg!("Need to specify both the SOL vault and the buy now account");
-        return Err(ProgramError::InvalidArgument);
-    }
+    assert_account_key(
+        accounts.bonfida_sol_vault,
+        &Pubkey::from_str(BONFIDA_SOL_VAULT).unwrap(),
+    )
+    .unwrap();
 
     Ok(accounts)
 }
@@ -207,16 +195,27 @@ pub fn claim_bid(
     bidder_pot.serialize(&mut *accounts.bidder_pot.data.borrow_mut())?;
 
     // Collect lamports from the buy_now account as an additional fee for this type of sales
-    if accounts.buy_now.is_some() && accounts.bonfida_sol_vault.is_some() {
-        let buy_now_accounts = accounts.buy_now.unwrap();
-        let bonfida_sol_vault_account = accounts.bonfida_sol_vault.unwrap();
-
-        let mut target_lamports = bonfida_sol_vault_account.lamports.borrow_mut();
-        let mut buy_now_lamports = buy_now_accounts.lamports.borrow_mut();
+    if buy_now_account_exists(program_id, &args.resource, &accounts.buy_now) {
+        let mut target_lamports = accounts.bonfida_sol_vault.lamports.borrow_mut();
+        let mut buy_now_lamports = accounts.buy_now.lamports.borrow_mut();
 
         **target_lamports += **buy_now_lamports;
         **buy_now_lamports = 0;
     }
 
     Ok(())
+}
+
+fn buy_now_account_exists(program_id: &Pubkey, resource: &Pubkey, buy_now: &AccountInfo) -> bool {
+    let buy_now_path = [BUY_NOW.as_bytes(), program_id.as_ref(), resource.as_ref()];
+    let (buy_now_key, buy_now_bump) = Pubkey::find_program_address(&buy_now_path, program_id);
+    assert_account_key(buy_now, &buy_now_key).unwrap();
+    match Account::unpack(&buy_now.data.borrow()) {
+        Ok(_) => {
+            // If the account exists it must be owned by the program
+            assert_owned_by(buy_now, program_id).unwrap();
+            true
+        }
+        _ => false,
+    }
 }
