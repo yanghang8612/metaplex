@@ -307,8 +307,8 @@ pub fn claim_bid_instruction(
     bidder_pot_token_pubkey: Pubkey,
     token_mint_pubkey: Pubkey,
     bonfida_vault: Pubkey,
-    buy_now: Option<Pubkey>,
-    bonfida_sol_vault: Option<Pubkey>,
+    buy_now: Pubkey,
+    bonfida_sol_vault: Pubkey,
     args: ClaimBidArgs,
 ) -> Instruction {
     // Derive Auction Key
@@ -339,12 +339,9 @@ pub fn claim_bid_instruction(
         AccountMeta::new_readonly(sysvar::clock::id(), false),
         AccountMeta::new_readonly(spl_token::id(), false),
         AccountMeta::new(bonfida_vault, false),
+        AccountMeta::new(buy_now, false),
+        AccountMeta::new(bonfida_sol_vault, false),
     ];
-
-    if buy_now.is_some() && bonfida_sol_vault.is_some() {
-        accounts.push(AccountMeta::new(buy_now.unwrap(), false));
-        accounts.push(AccountMeta::new(bonfida_sol_vault.unwrap(), false));
-    }
 
     Instruction {
         program_id,
