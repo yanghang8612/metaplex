@@ -89,6 +89,13 @@ fn parse_accounts<'a, 'b: 'a>(
         return Err(ProgramError::InvalidAccountData);
     }
 
+    if accounts.buy_now.is_some() && accounts.bonfida_sol_vault.is_none()
+        || accounts.buy_now.is_none() && accounts.bonfida_sol_vault.is_some()
+    {
+        msg!("Need to specify both the SOL vault and the buy now account");
+        return Err(ProgramError::InvalidArgument);
+    }
+
     Ok(accounts)
 }
 
