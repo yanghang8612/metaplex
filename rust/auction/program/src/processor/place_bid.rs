@@ -286,7 +286,7 @@ pub fn place_bid<'r, 'b: 'r>(
     auction
         .bid_state
         .place_bid(Bid(*accounts.bidder_pot.key, args.amount))?;
-    auction.serialize(&mut *accounts.auction.data.borrow_mut())?;
+    auction.serialize(&mut (&mut accounts.auction.data.borrow_mut() as &mut [u8]))?;
 
     // Update latest metadata with results from the bid.
     BidderMetadata {
