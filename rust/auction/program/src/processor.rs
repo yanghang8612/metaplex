@@ -139,10 +139,16 @@ pub enum AuctionState {
     Created,
     Started,
     Ended,
+    BuyNowCreated,
+    BuyNowStarted,
+    BuyNowEnded,
 }
 
 impl AuctionState {
-    pub fn create() -> Self {
+    pub fn create(is_buy_now: bool) -> Self {
+        if is_buy_now {
+            return AuctionState::BuyNowCreated;
+        }
         AuctionState::Created
     }
 
@@ -150,6 +156,7 @@ impl AuctionState {
     pub fn start(self) -> Result<Self, ProgramError> {
         match self {
             AuctionState::Created => Ok(AuctionState::Started),
+            AuctionState::BuyNowCreated => Ok(AuctionState::BuyNowStarted),
             _ => Err(AuctionError::AuctionTransitionInvalid.into()),
         }
     }
@@ -158,6 +165,7 @@ impl AuctionState {
     pub fn end(self) -> Result<Self, ProgramError> {
         match self {
             AuctionState::Started => Ok(AuctionState::Ended),
+            AuctionState::BuyNowCreated => Ok(AuctionState::BuyNowEnded),
             _ => Err(AuctionError::AuctionTransitionInvalid.into()),
         }
     }

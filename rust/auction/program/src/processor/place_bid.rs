@@ -120,6 +120,11 @@ pub fn place_bid<'r, 'b: 'r>(
     // Load the auction and verify this bid is valid.
     let mut auction: AuctionData = try_from_slice_unchecked(&accounts.auction.data.borrow())?;
 
+    if auction.state == AuctionState::BuyNowStarted && accounts.buy_now.is_none() {
+        msg!("The buy_now account is missing");
+        return Err(ProgramError::InvalidArgument);
+    }
+
     // Load the clock, used for various auction timing.
     let clock = Clock::from_account_info(accounts.clock_sysvar)?;
 
@@ -204,7 +209,7 @@ pub fn place_bid<'r, 'b: 'r>(
     )?;
 
     // Can't bid on an auction that isn't running.
-    if auction.state != AuctionState::Started {
+    if auction.state != AuctionState::Started && auction.state != AuctionState::BuyNowStarted {
         return Err(AuctionError::InvalidState.into());
     }
 

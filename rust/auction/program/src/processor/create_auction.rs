@@ -136,7 +136,8 @@ pub fn create_auction(
     }
 
     // Allow buy now
-    if args.max_price.is_some() && accounts.buy_now.is_some() {
+    let mut is_buy_now = args.max_price.is_some() && accounts.buy_now.is_some();
+    if is_buy_now {
         let max_price = args.max_price.unwrap();
         let buy_now_account = accounts.buy_now.unwrap();
 
@@ -182,7 +183,7 @@ pub fn create_auction(
         ended_at: None,
         last_bid: None,
         price_floor: args.price_floor,
-        state: AuctionState::create(),
+        state: AuctionState::create(is_buy_now),
         token_mint: args.token_mint,
     }
     .serialize(&mut *accounts.auction.data.borrow_mut())?;

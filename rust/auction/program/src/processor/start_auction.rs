@@ -95,7 +95,11 @@ pub fn start_auction<'a, 'b: 'a>(
 
     AuctionData {
         ended_at,
-        state: AuctionState::Started,
+        state: match auction.state {
+            AuctionState::BuyNowEnded => AuctionState::BuyNowStarted,
+            AuctionState::Ended => AuctionState::Started,
+            _ => return Err(AuctionError::AuctionTransitionInvalid.into()),
+        },
         ..auction
     }
     .serialize(&mut *accounts.auction.data.borrow_mut())?;
