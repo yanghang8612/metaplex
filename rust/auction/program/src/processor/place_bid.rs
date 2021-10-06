@@ -320,7 +320,7 @@ pub fn place_bid<'r, 'b: 'r>(
             // Disable the end auction gap in the buy now case.
             auction.end_auction_gap = None;
             auction.state = auction.state.end()?;
-            auction.serialize(&mut *accounts.auction.data.borrow_mut())?;
+            auction.serialize(&mut (&mut accounts.auction.data.borrow_mut() as &mut [u8]))?;
         }
     }
 
