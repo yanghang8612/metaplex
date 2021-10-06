@@ -317,6 +317,8 @@ pub fn place_bid<'r, 'b: 'r>(
         // End the auction
         if args.amount >= buy_now_state.max_price {
             auction.ended_at = Some(clock.unix_timestamp);
+            // Disable the end auction gap in the buy now case.
+            auction.end_auction_gap = None;
             auction.state = auction.state.end()?;
             auction.serialize(&mut *accounts.auction.data.borrow_mut())?;
         }
