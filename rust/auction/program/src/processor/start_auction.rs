@@ -94,10 +94,14 @@ pub fn start_auction<'a, 'b: 'a>(
     };
 
     let ended = auction.ended(clock.unix_timestamp)?;
+    let has_no_bid = match &auction.bid_state {
+        BidState::EnglishAuction { bids, max: _ } => bids.is_empty(),
+        BidState::OpenEdition { bids, max: _ } => bids.is_empty(),
+    };
 
     AuctionData {
         ended_at,
-        state: match (auction.state, ended) {
+        state: match (auction.state, ended && has_no_bid) {
             (AuctionState::BuyNowEnded | AuctionState::BuyNowCreated, _) => {
                 AuctionState::BuyNowStarted
             }
