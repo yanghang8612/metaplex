@@ -102,10 +102,10 @@ pub fn start_auction<'a, 'b: 'a>(
     AuctionData {
         ended_at,
         state: match (auction.state, ended && has_no_bid) {
-            (AuctionState::BuyNowEnded | AuctionState::BuyNowCreated, _) => {
+            (AuctionState::BuyNowEnded, _) | (AuctionState::BuyNowCreated, _) => {
                 AuctionState::BuyNowStarted
             }
-            (AuctionState::Ended | AuctionState::Created, _) => AuctionState::Started,
+            (AuctionState::Ended, _) | (AuctionState::Created, _) => AuctionState::Started,
             (AuctionState::Started, true) => AuctionState::Started,
             (AuctionState::BuyNowStarted, true) => AuctionState::BuyNowStarted,
             _ => return Err(AuctionError::AuctionTransitionInvalid.into()),
