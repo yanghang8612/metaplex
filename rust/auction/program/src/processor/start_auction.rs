@@ -93,11 +93,17 @@ pub fn start_auction<'a, 'b: 'a>(
         BidState::OpenEdition { bids, max } => bids.pop(),
     };
 
+    let ended = auction.ended(clock.unix_timestamp)?;
+
     AuctionData {
         ended_at,
-        state: match auction.state {
-            AuctionState::BuyNowEnded | AuctionState::BuyNowCreated => AuctionState::BuyNowStarted,
-            AuctionState::Ended | AuctionState::Created => AuctionState::Started,
+        state: match (auction.state, ended) {
+            (AuctionState::BuyNowEnded | AuctionState::BuyNowCreated, _) => {
+                AuctionState::BuyNowStarted
+            }
+            (AuctionState::Ended | AuctionState::Created, _) => AuctionState::Started,
+            (AuctionState::Started, true) => AuctionState::Started,
+            (AuctionState::BuyNowStarted, true) => AuctionState::BuyNowStarted,
             _ => return Err(AuctionError::AuctionTransitionInvalid.into()),
         },
         ..auction
