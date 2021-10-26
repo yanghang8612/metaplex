@@ -74,6 +74,16 @@ pub enum AuctionInstruction {
     ///   11. `[]` System program
     ///   12. `[]` SPL Token Program
     PlaceBid(PlaceBidArgs),
+
+    // Create a bidder pot account
+    ///   0. `[]` The auction account
+    ///   1. `[writable]` The bidder pot account
+    ///   2. `[writable, signer]` The bidder account
+    ///   3. `[signer]` The transfer authority account
+    ///   4. `[writable,signer]` The fee payer account
+    ///   5. `[]` Rent account
+    ///   6. `[]` System account
+    CreateBidderPot,
 }
 
 /// Creates an CreateAuction instruction.

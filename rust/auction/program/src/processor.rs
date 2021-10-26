@@ -14,6 +14,7 @@ use solana_program::{
 pub mod cancel_bid;
 pub mod claim_bid;
 pub mod create_auction;
+pub mod create_bidder_pot;
 pub mod end_auction;
 pub mod place_bid;
 pub mod set_authority;
@@ -23,6 +24,7 @@ pub mod start_auction;
 pub use cancel_bid::*;
 pub use claim_bid::*;
 pub use create_auction::*;
+pub use create_bidder_pot::*;
 pub use end_auction::*;
 pub use place_bid::*;
 pub use set_authority::*;
@@ -44,6 +46,7 @@ pub fn process_instruction(
         AuctionInstruction::PlaceBid(args) => place_bid(program_id, accounts, args),
         AuctionInstruction::SetAuthority => set_authority(program_id, accounts),
         AuctionInstruction::StartAuction(args) => start_auction(program_id, accounts, args),
+        AuctionInstruction::CreateBidderPot => create_bidder_pot(program_id, accounts),
     }
 }
 
