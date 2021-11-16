@@ -9,7 +9,8 @@ use crate::{
     processor::{AuctionData, BidderMetadata, BidderPot},
     utils::{
         assert_derivation, assert_initialized, assert_owned_by, assert_signer,
-        create_or_allocate_account_raw, spl_token_transfer, TokenTransferParams,
+        create_or_allocate_account_raw, spl_token_transfer, spl_token_transfer_checked,
+        TokenTransferCheckedParams, TokenTransferParams,
     },
     PREFIX,
 };
@@ -114,11 +115,6 @@ pub fn cancel_bid(
     // Load the auction and verify this bid is valid.
     let mut auction: AuctionData = try_from_slice_unchecked(&accounts.auction.data.borrow())?;
 
-    // The mint provided in this bid must match the one the auction was initialized with.
-    if auction.token_mint != *accounts.mint.key {
-        return Err(AuctionError::IncorrectMint.into());
-    }
-
     // Load the clock, used for various auction timing.
     let clock = Clock::from_account_info(accounts.clock_sysvar)?;
 
@@ -178,13 +174,16 @@ pub fn cancel_bid(
 
     // Transfer SPL bid balance back to the user.
     let account: Account = Account::unpack_from_slice(&accounts.bidder_pot_token.data.borrow())?;
-    spl_token_transfer(TokenTransferParams {
+
+    spl_token_transfer_checked(TokenTransferCheckedParams {
         source: accounts.bidder_pot_token.clone(),
         destination: accounts.bidder_token.clone(),
         authority: accounts.auction.clone(),
         authority_signer_seeds: auction_seeds,
         token_program: accounts.token_program.clone(),
         amount: account.amount,
+        mint: account.mint,
+        decimals: 6, // USDC and FIDA decimals are 6
     })?;
 
     // Update Metadata

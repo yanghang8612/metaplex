@@ -2,8 +2,8 @@ use crate::{
     errors::AuctionError,
     processor::BidderPot,
     utils::{
-        assert_account_key, assert_derivation, assert_owned_by, assert_signer,
-        create_or_allocate_account_raw, assert_initialized
+        assert_account_key, assert_derivation, assert_initialized, assert_owned_by, assert_signer,
+        create_or_allocate_account_raw,
     },
     PREFIX,
 };

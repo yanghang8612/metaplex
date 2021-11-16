@@ -165,6 +165,57 @@ pub fn spl_token_transfer(params: TokenTransferParams<'_, '_>) -> ProgramResult 
     result.map_err(|_| AuctionError::TokenTransferFailed.into())
 }
 
+///TokenTransferCheckedParams
+pub struct TokenTransferCheckedParams<'a: 'b, 'b> {
+    /// source
+    pub source: AccountInfo<'a>,
+    /// destination
+    pub destination: AccountInfo<'a>,
+    /// amount
+    pub amount: u64,
+    /// authority
+    pub authority: AccountInfo<'a>,
+    /// authority_signer_seeds
+    pub authority_signer_seeds: &'b [&'b [u8]],
+    /// token_program
+    pub token_program: AccountInfo<'a>,
+    /// Decimals
+    pub decimals: u8,
+    /// Mint
+    pub mint: Pubkey,
+}
+
+pub fn spl_token_transfer_checked(params: TokenTransferCheckedParams<'_, '_>) -> ProgramResult {
+    let TokenTransferCheckedParams {
+        source,
+        destination,
+        authority,
+        token_program,
+        amount,
+        authority_signer_seeds,
+        decimals,
+        mint,
+    } = params;
+    let instruction = &spl_token::instruction::transfer_checked(
+        token_program.key,
+        source.key,
+        &mint,
+        destination.key,
+        authority.key,
+        &[],
+        amount,
+        decimals,
+    )?;
+
+    let result = invoke_signed(
+        instruction,
+        &[source, destination, authority, token_program],
+        &[authority_signer_seeds],
+    );
+
+    result.map_err(|_| AuctionError::TokenTransferFailed.into())
+}
+
 /// TokenMintToParams
 pub struct TokenCreateAccount<'a> {
     /// payer
