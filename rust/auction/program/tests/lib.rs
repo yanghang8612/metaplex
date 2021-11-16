@@ -146,7 +146,7 @@ async fn setup_auction(
 
     assert_eq!(auction.authority, payer.pubkey());
     assert_eq!(auction.last_bid, None);
-    assert_eq!(auction.state as i32, AuctionState::create() as i32);
+    assert_eq!(auction.state as i32, AuctionState::create(false) as i32);
     assert_eq!(auction.end_auction_at, None);
 
     // Start Auction.

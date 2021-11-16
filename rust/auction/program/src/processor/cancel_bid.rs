@@ -182,7 +182,7 @@ pub fn cancel_bid(
         authority_signer_seeds: auction_seeds,
         token_program: accounts.token_program.clone(),
         amount: account.amount,
-        mint: account.mint,
+        mint: accounts.mint.clone(),
         decimals: 6, // USDC and FIDA decimals are 6
     })?;
 

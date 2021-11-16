@@ -145,14 +145,16 @@ pub async fn create_auction(
         &[instruction::create_auction_instruction(
             *program_id,
             payer.pubkey(),
+            payer.pubkey(),
+            None,
             CreateAuctionArgs {
-                authority: payer.pubkey(),
                 end_auction_at: None,
                 end_auction_gap: None,
                 resource: *resource,
                 token_mint: *mint_keypair,
                 winners: WinnerLimit::Capped(max_winners),
                 price_floor: PriceFloor::None([0u8; 32]),
+                max_price: None,
             },
         )],
         Some(&payer.pubkey()),
@@ -232,6 +234,7 @@ pub async fn place_bid(
             *mint,           // Token Mint
             transfer_authority.pubkey(), // Approved to Move Tokens
             payer.pubkey(),  // Pays for Transactions
+            None,
             PlaceBidArgs {
                 amount,
                 resource: *resource,
@@ -322,6 +325,9 @@ pub async fn claim_bid(
             bidder.pubkey(),
             bidder_spl_account.pubkey(),
             *mint,
+            Pubkey::default(),
+            Pubkey::default(),
+            Pubkey::default(),
             ClaimBidArgs {
                 resource: *resource,
                 fee_percentage: 0,

@@ -182,10 +182,10 @@ pub struct TokenTransferCheckedParams<'a: 'b, 'b> {
     /// Decimals
     pub decimals: u8,
     /// Mint
-    pub mint: Pubkey,
+    pub mint: AccountInfo<'a>,
 }
 
-pub fn spl_token_transfer_checked(params: TokenTransferCheckedParams<'_, '_>) -> ProgramResult {
+pub fn spl_token_transfer_checked<'a>(params: TokenTransferCheckedParams<'_, '_>) -> ProgramResult {
     let TokenTransferCheckedParams {
         source,
         destination,
@@ -199,7 +199,7 @@ pub fn spl_token_transfer_checked(params: TokenTransferCheckedParams<'_, '_>) ->
     let instruction = &spl_token::instruction::transfer_checked(
         token_program.key,
         source.key,
-        &mint,
+        mint.key,
         destination.key,
         authority.key,
         &[],
@@ -209,7 +209,7 @@ pub fn spl_token_transfer_checked(params: TokenTransferCheckedParams<'_, '_>) ->
 
     let result = invoke_signed(
         instruction,
-        &[source, destination, authority, token_program],
+        &[source, destination, authority, token_program, mint],
         &[authority_signer_seeds],
     );
 
