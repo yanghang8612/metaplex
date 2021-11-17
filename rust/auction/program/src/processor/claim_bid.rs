@@ -215,6 +215,12 @@ fn buy_now_account_exists(program_id: &Pubkey, resource: &Pubkey, buy_now: &Acco
     if buy_now.data_len() != 0 {
         // If the account exists it must be owned by the program
         assert_owned_by(buy_now, program_id).unwrap();
+        // To prevent issues when the domains are directly resold before being gc
+        BuyNowData {
+            max_price: u64::MAX,
+        }
+        .serialize(&mut *buy_now.data.borrow_mut())
+        .unwrap();
         return true;
     }
     false
