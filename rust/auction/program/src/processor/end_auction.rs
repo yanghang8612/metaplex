@@ -102,7 +102,7 @@ pub fn end_auction<'a, 'b: 'a>(
     }
 
     // As long as it hasn't already ended.
-    if auction.ended_at.is_some() {
+    if auction.ended(clock.unix_timestamp)? {
         return Err(AuctionError::AuctionTransitionInvalid.into());
     }
 
