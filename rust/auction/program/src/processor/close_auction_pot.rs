@@ -56,7 +56,7 @@ fn parse_account<'a, 'b: 'a>(
 
     assert_owned_by(accounts.auction, program_id)?;
     assert_signer(accounts.authority)?;
-    assert_account_key(
+    assert_owned_by(
         accounts.authority,
         &Pubkey::from_str(EXCLUSIVE_AUCTION_AUTHORITY).unwrap(),
     )?;
