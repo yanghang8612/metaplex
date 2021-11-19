@@ -9,6 +9,8 @@ use solana_program::{
     program_error::ProgramError,
     pubkey::Pubkey,
 };
+pub mod close_auction_pot;
+use crate::processor::close_auction_pot::close_auction_pot;
 
 // Declare submodules, each contains a single handler for each instruction variant in the program.
 pub mod cancel_bid;
@@ -47,6 +49,9 @@ pub fn process_instruction(
         AuctionInstruction::SetAuthority => set_authority(program_id, accounts),
         AuctionInstruction::StartAuction(args) => start_auction(program_id, accounts, args),
         AuctionInstruction::CreateBidderPot => create_bidder_pot(program_id, accounts),
+        AuctionInstruction::CloseAuctionPot { resource } => {
+            close_auction_pot(program_id, accounts, resource)
+        }
     }
 }
 

@@ -84,6 +84,41 @@ pub enum AuctionInstruction {
     ///   5. `[]` Rent account
     ///   6. `[]` System account
     CreateBidderPot,
+
+    // Close the bidder pot and auction account.
+    // The exclusive auction authority needs to sign.
+    CloseAuctionPot {
+        resource: Pubkey,
+    },
+}
+
+/// Creates an CreateAuction instruction.
+pub fn close_auction_pot(
+    program_id: Pubkey,
+    auction: Pubkey,
+    bidder_pot: Pubkey,
+    bidder: Pubkey,
+    destination: Pubkey,
+    system: Pubkey,
+    authority: Pubkey,
+    resource: Pubkey,
+) -> Instruction {
+    let mut accounts = vec![
+        AccountMeta::new(auction, false),
+        AccountMeta::new(bidder_pot, false),
+        AccountMeta::new_readonly(bidder, false),
+        AccountMeta::new(destination, false),
+        AccountMeta::new_readonly(system, false),
+        AccountMeta::new_readonly(authority, true),
+    ];
+
+    Instruction {
+        program_id,
+        accounts,
+        data: AuctionInstruction::CloseAuctionPot { resource }
+            .try_to_vec()
+            .unwrap(),
+    }
 }
 
 /// Creates an CreateAuction instruction.
