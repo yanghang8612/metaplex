@@ -101,6 +101,8 @@ pub fn close_auction_pot(
     destination: Pubkey,
     system: Pubkey,
     authority: Pubkey,
+    bonfida_vault: Pubkey,
+    bidder_pot_token: Pubkey,
     resource: Pubkey,
 ) -> Instruction {
     let mut accounts = vec![
@@ -110,6 +112,9 @@ pub fn close_auction_pot(
         AccountMeta::new(destination, false),
         AccountMeta::new_readonly(system, false),
         AccountMeta::new_readonly(authority, true),
+        AccountMeta::new_readonly(spl_token::ID, false),
+        AccountMeta::new(bidder_pot_token, false),
+        AccountMeta::new(bonfida_vault, false),
     ];
 
     Instruction {
