@@ -113,45 +113,26 @@ pub fn close_auction_pot<'a, 'b: 'a>(
     ];
 
     if !accounts.bidder_pot.data_is_empty() && !accounts.auction.data_is_empty() {
-        let bidder_transfer_instr = system_instruction::transfer(
-            &accounts.bidder_pot.key,
-            &accounts.destination.key,
-            accounts.bidder_pot.lamports(),
-        );
-        invoke_signed(
-            &bidder_transfer_instr,
-            &[
-                accounts.system.clone(),
-                accounts.bidder_pot.clone(),
-                accounts.destination.clone(),
-            ],
-            &[&pot_seeds],
-        );
-        let auction_transfer_instr = system_instruction::transfer(
-            &accounts.auction.key,
-            &accounts.destination.key,
-            accounts.auction.lamports(),
-        );
-        invoke_signed(
-            &bidder_transfer_instr,
-            &[
-                accounts.system.clone(),
-                accounts.bidder_pot.clone(),
-                accounts.destination.clone(),
-            ],
-            &[&auction_seeds],
-        );
-        let amount = Account::unpack_from_slice(&accounts.bidder_pot_token.data.borrow())
-            .unwrap()
-            .amount;
-        spl_token_transfer(TokenTransferParams {
-            source: accounts.bidder_pot_token.clone(),
-            destination: accounts.bonfida_vault.clone(),
-            authority: accounts.auction.clone(),
-            authority_signer_seeds: &auction_seeds,
-            token_program: accounts.spl_token_program.clone(),
-            amount,
-        })?;
+        let mut bidder_pot_lamports = accounts.bidder_pot.lamports.borrow_mut();
+        let mut destination_lamports = accounts.destination.lamports.borrow_mut();
+        **destination_lamports += **bidder_pot_lamports;
+        **bidder_pot_lamports = 0;
+
+        let mut auction_lamports = accounts.auction.lamports.borrow_mut();
+        **destination_lamports += **auction_lamports;
+        **auction_lamports = 0;
+
+        // let amount = Account::unpack_from_slice(&accounts.bidder_pot_token.data.borrow())
+        //     .unwrap()
+        //     .amount;
+        // spl_token_transfer(TokenTransferParams {
+        //     source: accounts.bidder_pot_token.clone(),
+        //     destination: accounts.bonfida_vault.clone(),
+        //     authority: accounts.auction.clone(),
+        //     authority_signer_seeds: &auction_seeds,
+        //     token_program: accounts.spl_token_program.clone(),
+        //     amount,
+        // })?;
     } else {
         msg!("Bidder pot does not exists");
         return Err(ProgramError::InvalidAccountData);
