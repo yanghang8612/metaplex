@@ -10,7 +10,7 @@ use crate::{
         assert_account_key, assert_derivation, assert_initialized, assert_owned_by, assert_signer,
         create_or_allocate_account_raw, spl_token_transfer, TokenTransferParams,
     },
-    BONFIDA_SOL_VAULT, BUY_NOW, PREFIX,
+    BONFIDA_SOL_VAULT, BUY_NOW, PREFIX, REF_SHARE,
 };
 
 use super::BuyNowData;
@@ -52,6 +52,7 @@ struct Accounts<'a, 'b: 'a> {
     bonfida_vault: &'a AccountInfo<'b>,
     buy_now: &'a AccountInfo<'b>,
     bonfida_sol_vault: &'a AccountInfo<'b>,
+    referrer: Option<&'a AccountInfo<'b>>,
 }
 
 fn parse_accounts<'a, 'b: 'a>(
@@ -72,6 +73,7 @@ fn parse_accounts<'a, 'b: 'a>(
         bonfida_vault: next_account_info(account_iter)?,
         buy_now: next_account_info(account_iter)?,
         bonfida_sol_vault: next_account_info(account_iter)?,
+        referrer: next_account_info(account_iter).ok(),
     };
 
     assert_owned_by(accounts.auction, program_id)?;
@@ -173,6 +175,12 @@ pub fn claim_bid(
 
     // Calculate fees
     let fees = args.fee_percentage * actual_account.amount / 10000;
+    let ref_fees = if accounts.referrer.is_some() {
+        (fees * REF_SHARE) / 100
+    } else {
+        0
+    };
+    let fees = fees - ref_fees;
     let rest_amount = actual_account.amount - fees;
 
     // Transfer SPL bid balance back to the user and the bonfida vault
@@ -192,6 +200,17 @@ pub fn claim_bid(
         token_program: accounts.token_program.clone(),
         amount: fees,
     })?;
+
+    if ref_fees != 0 {
+        spl_token_transfer(TokenTransferParams {
+            source: accounts.bidder_pot_token.clone(),
+            destination: accounts.referrer.unwrap().clone(),
+            authority: accounts.auction.clone(),
+            authority_signer_seeds: auction_seeds,
+            token_program: accounts.token_program.clone(),
+            amount: fees,
+        })?;
+    }
 
     bidder_pot.emptied = true;
     bidder_pot.serialize(&mut *accounts.bidder_pot.data.borrow_mut())?;

@@ -45,6 +45,7 @@ pub enum AuctionInstruction {
     ///   7. `[]` Clock sysvar
     ///   8. `[]` Token program
     ///   9. `[]` Bonfida vault account
+    ///   10. `[writable]` Optional referrer FIDA account
     ClaimBid(ClaimBidArgs),
 
     /// Ends an auction, regardless of end timing conditions
@@ -359,6 +360,7 @@ pub fn claim_bid_instruction(
     bonfida_vault: Pubkey,
     buy_now: Pubkey,
     bonfida_sol_vault: Pubkey,
+    referrer: Option<Pubkey>,
     args: ClaimBidArgs,
 ) -> Instruction {
     // Derive Auction Key
@@ -392,6 +394,10 @@ pub fn claim_bid_instruction(
         AccountMeta::new(buy_now, false),
         AccountMeta::new(bonfida_sol_vault, false),
     ];
+
+    if let Some(referrer) = referrer {
+        accounts.push(AccountMeta::new(referrer, false))
+    }
 
     Instruction {
         program_id,
