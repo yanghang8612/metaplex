@@ -174,14 +174,28 @@ pub fn claim_bid(
     }
 
     // Calculate fees
-    let fees = args.fee_percentage * actual_account.amount / 10000;
+    let fees = args
+        .fee_percentage
+        .checked_mul(actual_account.amount)
+        .ok_or(AuctionError::NumericalOverflowError)?
+        .checked_div(10000)
+        .ok_or(AuctionError::NumericalOverflowError)?;
     let ref_fees = if accounts.referrer.is_some() {
-        (fees * REF_SHARE) / 100
+        fees.checked_mul(REF_SHARE)
+            .ok_or(AuctionError::NumericalOverflowError)?
+            .checked_div(100)
+            .ok_or(AuctionError::NumericalOverflowError)?
     } else {
         0
     };
-    let fees = fees - ref_fees;
-    let rest_amount = actual_account.amount - fees;
+
+    let fees = fees
+        .checked_sub(ref_fees)
+        .ok_or(AuctionError::NumericalOverflowError)?;
+    let rest_amount = actual_account
+        .amount
+        .checked_sub(fees)
+        .ok_or(AuctionError::NumericalOverflowError)?;
 
     // Transfer SPL bid balance back to the user and the bonfida vault
     spl_token_transfer(TokenTransferParams {
