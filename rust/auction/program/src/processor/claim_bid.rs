@@ -189,12 +189,12 @@ pub fn claim_bid(
         0
     };
 
-    let fees = fees
-        .checked_sub(ref_fees)
-        .ok_or(AuctionError::NumericalOverflowError)?;
     let rest_amount = actual_account
         .amount
         .checked_sub(fees)
+        .ok_or(AuctionError::NumericalOverflowError)?;
+    let fees = fees
+        .checked_sub(ref_fees)
         .ok_or(AuctionError::NumericalOverflowError)?;
 
     // Transfer SPL bid balance back to the user and the bonfida vault
