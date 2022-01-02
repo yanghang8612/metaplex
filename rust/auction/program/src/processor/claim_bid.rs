@@ -222,7 +222,7 @@ pub fn claim_bid(
             authority: accounts.auction.clone(),
             authority_signer_seeds: auction_seeds,
             token_program: accounts.token_program.clone(),
-            amount: fees,
+            amount: ref_fees,
         })?;
     }
 
