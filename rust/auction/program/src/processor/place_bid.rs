@@ -200,15 +200,6 @@ pub fn place_bid<'r, 'b: 'r>(
         ],
     )?;
 
-    // The account within the pot must be owned by us.
-    let actual_account: Account = assert_initialized(accounts.bidder_pot_token)?;
-    if actual_account.owner != *accounts.auction.key {
-        return Err(AuctionError::BidderPotTokenAccountOwnerMismatch.into());
-    }
-    if actual_account.delegate.is_some() | actual_account.close_authority.is_some() {
-        return Err(ProgramError::InvalidArgument);
-    }
-
     // Derive and load Auction.
     let auction_bump = assert_derivation(
         program_id,
@@ -264,13 +255,16 @@ pub fn place_bid<'r, 'b: 'r>(
         pot.auction_act = *accounts.auction.key;
         pot.serialize(&mut *accounts.bidder_pot.data.borrow_mut())?;
 
-        let bidder_pot_seeds = &[&accounts.bidder_pot.key.to_bytes() as &[u8]];
-
         let (bidder_pot_key, bidder_pot_nonce) =
-            Pubkey::find_program_address(bidder_pot_seeds, program_id);
+            Pubkey::find_program_address(&[&accounts.bidder_pot.key.to_bytes()], program_id);
         if &bidder_pot_key != accounts.bidder_pot_token.key {
             return Err(AuctionError::BidderPotTokenAccountOwnerMismatch.into());
         }
+
+        let bidder_pot_seeds = &[
+            &accounts.bidder_pot.key.to_bytes() as &[u8],
+            &[bidder_pot_nonce],
+        ];
 
         assert_owned_by(accounts.bidder_pot_token, &system_program::ID)?;
         allocate_and_create_token_account(
@@ -284,6 +278,14 @@ pub fn place_bid<'r, 'b: 'r>(
             accounts.system,
         )?;
     } else {
+        // The account within the pot must be owned by us.
+        let actual_account: Account = assert_initialized(accounts.bidder_pot_token)?;
+        if actual_account.owner != *accounts.auction.key {
+            return Err(AuctionError::BidderPotTokenAccountOwnerMismatch.into());
+        }
+        if actual_account.delegate.is_some() | actual_account.close_authority.is_some() {
+            return Err(ProgramError::InvalidArgument);
+        }
         // Already exists, verify that the pot contains the specified SPL address.
 
         assert_owned_by(accounts.bidder_pot_token, &spl_token::ID)?;

@@ -133,7 +133,8 @@ pub fn allocate_and_create_token_account<'a>(
     rent_account: &AccountInfo<'a>,
     system_program_info: &AccountInfo<'a>,
 ) -> Result<(), ProgramError> {
-    let rent = Rent::get()?;
+    msg!("Initializing token account");
+    let rent = Rent::from_account_info(rent_account)?;
     let size = spl_token::state::Account::LEN;
     let required_lamports = rent.minimum_balance(size);
     let ix_allocate = system_instruction::create_account(
