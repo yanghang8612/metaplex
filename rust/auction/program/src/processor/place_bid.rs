@@ -11,6 +11,7 @@
 //! are not winning bids from the state.
 
 use borsh::try_to_vec_with_schema;
+use solana_program::system_program;
 
 use crate::{
     errors::AuctionError,
@@ -18,8 +19,8 @@ use crate::{
         AuctionData, AuctionState, Bid, BidderMetadata, BidderPot, BuyNowData, PriceFloor,
     },
     utils::{
-        assert_derivation, assert_initialized, assert_owned_by, assert_signer,
-        create_or_allocate_account_raw, spl_token_transfer, TokenTransferParams,
+        allocate_and_create_token_account, assert_derivation, assert_initialized, assert_owned_by,
+        assert_signer, create_or_allocate_account_raw, spl_token_transfer, TokenTransferParams,
     },
     BUY_NOW, PREFIX,
 };
@@ -97,7 +98,10 @@ fn parse_accounts<'a, 'b: 'a>(
 
     assert_owned_by(accounts.auction, program_id)?;
     assert_owned_by(accounts.mint, &spl_token::id())?;
-    assert_owned_by(accounts.bidder_pot_token, &spl_token::id())?;
+    assert_owned_by(accounts.bidder_pot_token, &spl_token::id()).or(assert_owned_by(
+        accounts.bidder_pot_token,
+        &system_program::id(),
+    ))?;
     assert_signer(accounts.bidder)?;
     assert_signer(accounts.payer)?;
     assert_signer(accounts.transfer_authority)?;
@@ -119,6 +123,11 @@ pub fn place_bid<'r, 'b: 'r>(
 
     // Load the auction and verify this bid is valid.
     let mut auction: AuctionData = try_from_slice_unchecked(&accounts.auction.data.borrow())?;
+
+    if &auction.token_mint != accounts.mint.key {
+        msg!("Invalid token mint!");
+        return Err(ProgramError::InvalidArgument);
+    }
 
     if auction.state == AuctionState::BuyNowStarted && accounts.buy_now.is_none() {
         msg!("The buy_now account is missing");
@@ -196,6 +205,9 @@ pub fn place_bid<'r, 'b: 'r>(
     if actual_account.owner != *accounts.auction.key {
         return Err(AuctionError::BidderPotTokenAccountOwnerMismatch.into());
     }
+    if actual_account.delegate.is_some() | actual_account.close_authority.is_some() {
+        return Err(ProgramError::InvalidArgument);
+    }
 
     // Derive and load Auction.
     let auction_bump = assert_derivation(
@@ -251,8 +263,30 @@ pub fn place_bid<'r, 'b: 'r>(
         pot.bidder_act = *accounts.bidder.key;
         pot.auction_act = *accounts.auction.key;
         pot.serialize(&mut *accounts.bidder_pot.data.borrow_mut())?;
+
+        let bidder_pot_seeds = &[&accounts.bidder_pot.key.to_bytes() as &[u8]];
+
+        let (bidder_pot_key, bidder_pot_nonce) =
+            Pubkey::find_program_address(bidder_pot_seeds, program_id);
+        if &bidder_pot_key != accounts.bidder_pot_token.key {
+            return Err(AuctionError::BidderPotTokenAccountOwnerMismatch.into());
+        }
+
+        assert_owned_by(accounts.bidder_pot_token, &system_program::ID)?;
+        allocate_and_create_token_account(
+            program_id,
+            accounts.token_program,
+            accounts.payer,
+            bidder_pot_seeds,
+            accounts.bidder_pot_token,
+            accounts.mint,
+            accounts.rent,
+            accounts.system,
+        )?;
     } else {
         // Already exists, verify that the pot contains the specified SPL address.
+
+        assert_owned_by(accounts.bidder_pot_token, &spl_token::ID)?;
         let bidder_pot: BidderPot =
             try_from_slice_unchecked(&accounts.bidder_pot.data.borrow_mut())?;
         if bidder_pot.bidder_pot != *accounts.bidder_pot_token.key {

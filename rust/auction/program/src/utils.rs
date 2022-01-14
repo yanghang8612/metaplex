@@ -122,6 +122,55 @@ pub fn create_or_allocate_account_raw<'a>(
     Ok(())
 }
 
+#[inline(always)]
+pub fn allocate_and_create_token_account<'a>(
+    program_id: &Pubkey,
+    spl_token_program: &AccountInfo<'a>,
+    payer_info: &AccountInfo<'a>,
+    signer_seeds: &[&[u8]],
+    token_account: &AccountInfo<'a>,
+    mint_account: &AccountInfo<'a>,
+    rent_account: &AccountInfo<'a>,
+    system_program_info: &AccountInfo<'a>,
+) -> Result<(), ProgramError> {
+    let rent = Rent::get()?;
+    let size = spl_token::state::Account::LEN;
+    let required_lamports = rent.minimum_balance(size);
+    let ix_allocate = system_instruction::create_account(
+        payer_info.key,
+        token_account.key,
+        required_lamports,
+        size as u64,
+        &spl_token::ID,
+    );
+    invoke_signed(
+        &ix_allocate,
+        &[
+            system_program_info.clone(),
+            payer_info.clone(),
+            token_account.clone(),
+        ],
+        &[signer_seeds],
+    )?;
+    let ix_initialize = spl_token::instruction::initialize_account2(
+        &spl_token::ID,
+        token_account.key,
+        mint_account.key,
+        program_id,
+    )?;
+    invoke_signed(
+        &ix_initialize,
+        &[
+            spl_token_program.clone(),
+            token_account.clone(),
+            mint_account.clone(),
+            rent_account.clone(),
+        ],
+        &[signer_seeds],
+    )?;
+    Ok(())
+}
+
 ///TokenTransferParams
 pub struct TokenTransferParams<'a: 'b, 'b> {
     /// source
