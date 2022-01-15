@@ -102,7 +102,7 @@ pub fn claim_bid(
 
     // The account within the pot must be owned by us.
     let actual_account: Account = assert_initialized(accounts.bidder_pot_token)?;
-    if actual_account.owner != *accounts.auction.key || &actual_account.owner != program_id {
+    if actual_account.owner != *accounts.auction.key && &actual_account.owner != program_id {
         return Err(AuctionError::BidderPotTokenAccountOwnerMismatch.into());
     }
 
