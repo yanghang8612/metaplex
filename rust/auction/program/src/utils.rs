@@ -124,7 +124,7 @@ pub fn create_or_allocate_account_raw<'a>(
 
 #[inline(always)]
 pub fn allocate_and_create_token_account<'a>(
-    program_id: &Pubkey,
+    token_account_owner: &Pubkey,
     spl_token_program: &AccountInfo<'a>,
     payer_info: &AccountInfo<'a>,
     signer_seeds: &[&[u8]],
@@ -157,7 +157,7 @@ pub fn allocate_and_create_token_account<'a>(
         &spl_token::ID,
         token_account.key,
         mint_account.key,
-        program_id,
+        token_account_owner,
     )?;
     invoke_signed(
         &ix_initialize,

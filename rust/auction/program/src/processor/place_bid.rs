@@ -268,7 +268,7 @@ pub fn place_bid<'r, 'b: 'r>(
 
         assert_owned_by(accounts.bidder_pot_token, &system_program::ID)?;
         allocate_and_create_token_account(
-            program_id,
+            accounts.auction.key,
             accounts.token_program,
             accounts.payer,
             bidder_pot_seeds,
