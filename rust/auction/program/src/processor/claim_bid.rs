@@ -102,7 +102,7 @@ pub fn claim_bid(
 
     // The account within the pot must be owned by us.
     let actual_account: Account = assert_initialized(accounts.bidder_pot_token)?;
-    if actual_account.owner != *accounts.auction.key {
+    if actual_account.owner != *accounts.auction.key || &actual_account.owner != program_id {
         return Err(AuctionError::BidderPotTokenAccountOwnerMismatch.into());
     }
 
@@ -197,33 +197,36 @@ pub fn claim_bid(
         .checked_sub(ref_fees)
         .ok_or(AuctionError::NumericalOverflowError)?;
 
-    // Transfer SPL bid balance back to the user and the bonfida vault
-    spl_token_transfer(TokenTransferParams {
-        source: accounts.bidder_pot_token.clone(),
-        destination: accounts.destination.clone(),
-        authority: accounts.auction.clone(),
-        authority_signer_seeds: auction_seeds,
-        token_program: accounts.token_program.clone(),
-        amount: rest_amount,
-    })?;
-    spl_token_transfer(TokenTransferParams {
-        source: accounts.bidder_pot_token.clone(),
-        destination: accounts.bonfida_vault.clone(),
-        authority: accounts.auction.clone(),
-        authority_signer_seeds: auction_seeds,
-        token_program: accounts.token_program.clone(),
-        amount: fees,
-    })?;
-
-    if ref_fees != 0 {
+    // Stopgap measure
+    if &actual_account.owner != program_id {
+        // Transfer SPL bid balance back to the user and the bonfida vault
         spl_token_transfer(TokenTransferParams {
             source: accounts.bidder_pot_token.clone(),
-            destination: accounts.referrer.unwrap().clone(),
+            destination: accounts.destination.clone(),
             authority: accounts.auction.clone(),
             authority_signer_seeds: auction_seeds,
             token_program: accounts.token_program.clone(),
-            amount: ref_fees,
+            amount: rest_amount,
         })?;
+        spl_token_transfer(TokenTransferParams {
+            source: accounts.bidder_pot_token.clone(),
+            destination: accounts.bonfida_vault.clone(),
+            authority: accounts.auction.clone(),
+            authority_signer_seeds: auction_seeds,
+            token_program: accounts.token_program.clone(),
+            amount: fees,
+        })?;
+
+        if ref_fees != 0 {
+            spl_token_transfer(TokenTransferParams {
+                source: accounts.bidder_pot_token.clone(),
+                destination: accounts.referrer.unwrap().clone(),
+                authority: accounts.auction.clone(),
+                authority_signer_seeds: auction_seeds,
+                token_program: accounts.token_program.clone(),
+                amount: ref_fees,
+            })?;
+        }
     }
 
     bidder_pot.emptied = true;
