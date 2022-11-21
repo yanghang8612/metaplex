@@ -32,8 +32,8 @@ use {
     spl_token::state::Account,
 };
 
-const NOV_25TH: i64 = 1669357426;
-const NOV_28TH: i64 = 1669616626;
+const NOV_25TH: i64 = 1669334400;
+const NOV_28TH: i64 = 1669593600;
 
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
