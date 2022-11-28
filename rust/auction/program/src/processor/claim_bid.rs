@@ -32,9 +32,6 @@ use {
     spl_token::state::Account,
 };
 
-const NOV_25TH: i64 = 1669356000;
-const NOV_28TH: i64 = 1669615200;
-
 #[repr(C)]
 #[derive(Clone, BorshSerialize, BorshDeserialize, PartialEq)]
 pub struct ClaimBidArgs {
@@ -177,22 +174,12 @@ pub fn claim_bid(
     }
 
     // Calculate fees
-    // let fees = args
-    //     .fee_percentage
-    //     .checked_mul(actual_account.amount)
-    //     .ok_or(AuctionError::NumericalOverflowError)?
-    //     .checked_div(10000)
-    //     .ok_or(AuctionError::NumericalOverflowError)?;
-    let now = Clock::get()?.unix_timestamp;
-    let fees = if now > NOV_25TH && now < NOV_28TH {
-        0u64
-    } else {
-        args.fee_percentage
-            .checked_mul(actual_account.amount)
-            .ok_or(AuctionError::NumericalOverflowError)?
-            .checked_div(10000)
-            .ok_or(AuctionError::NumericalOverflowError)?
-    };
+    let fees = args
+        .fee_percentage
+        .checked_mul(actual_account.amount)
+        .ok_or(AuctionError::NumericalOverflowError)?
+        .checked_div(10000)
+        .ok_or(AuctionError::NumericalOverflowError)?;
     let ref_fees = if accounts.referrer.is_some() {
         fees.checked_mul(REF_SHARE)
             .ok_or(AuctionError::NumericalOverflowError)?
