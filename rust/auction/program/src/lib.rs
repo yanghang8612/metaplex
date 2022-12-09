@@ -13,4 +13,4 @@ pub const BUY_NOW: &str = "buy now";
 pub const BONFIDA_SOL_VAULT: &str = "GcWEQ9K78FV7LEHteFVciYApERk5YvQuFDQPk1yYJVXi";
 pub const REF_SHARE: u64 = 20;
 
-solana_program::declare_id!("DBPY5XNr398qXCWkri9qaSar3kPgzHCkfa8r8agRKgsw");
+solana_program::declare_id!("AVWV7vdWbLqXiLKFaP19GhYurhwxaLp2qRBSjT5tR5vT");

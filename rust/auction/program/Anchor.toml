@@ -1,0 +1,14 @@
+anchor_version = "0.25.0"
+
+
+[workspace]
+members = ["./"]
+
+
+[provider]
+cluster = "mainnet"
+wallet = "~/.config/solana/id.json"
+
+
+[programs.mainnet]
+spl-auction = "AVWV7vdWbLqXiLKFaP19GhYurhwxaLp2qRBSjT5tR5vT"
